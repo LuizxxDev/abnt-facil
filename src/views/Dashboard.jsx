@@ -5,11 +5,11 @@ import {
     Trash2, Star, BookTemplate, Eye, Sparkles, MoreVertical,
     RotateCcw, Copy, Box, Clock, CheckCircle2, FileEdit, Ghost,
     ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
-    Sun, Moon
+    Sun, Moon, Cloud, CloudOff, User, Home // <-- Importado o ícone Home
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
-import { ABNT_TIPS, EXAMPLE_ID, PROJECT_TYPES, AVATAR_OPTIONS } from '../utils/constants'; 
+import { ABNT_TIPS, EXAMPLE_ID, PROJECT_TYPES } from '../utils/constants'; 
 import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal } from '../components/common/Modals';
 
@@ -21,7 +21,9 @@ const Dashboard = () => {
         createNewProject, createFromExample, createFromModel,
         duplicateProject, duplicateAsTemplate,
         deleteProject, restoreProject, updateProject,
-        importAllProjects
+        importAllProjects,
+        user, loginWithGoogle, logout,
+        isAuthLoading, isDataLoading 
     } = useAppContext();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,12 +35,8 @@ const Dashboard = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [newProjectTitle, setNewProjectTitle] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, []);
+    const isLoadingGlobal = isAuthLoading || isDataLoading;
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -54,10 +52,14 @@ const Dashboard = () => {
         setTipIndex(Math.floor(Math.random() * ABNT_TIPS.length));
     }, []);
 
+    const displayName = user?.user_metadata?.full_name?.split(' ')[0] || settings.userName || "Estudante";
+
     const userAvatar = useMemo(() => {
-        const option = AVATAR_OPTIONS.find(a => a.id === settings.avatarId) || AVATAR_OPTIONS[0];
-        return option.icon;
-    }, [settings.avatarId]);
+        if (user?.user_metadata?.avatar_url) {
+            return <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded-2xl md:rounded-3xl" referrerPolicy="no-referrer" />;
+        }
+        return <User size={28} className="md:w-8 md:h-8" />;
+    }, [user]);
 
     const handleExportBackup = () => {
         if (projects.length === 0) {
@@ -151,12 +153,12 @@ const Dashboard = () => {
         inputBg: settings.theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-800',
     };
 
-    if (isLoading) {
+    if (isLoadingGlobal) {
         return (
             <div className={`h-screen flex items-center justify-center transition-colors duration-300 ${theme.bg}`}>
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="animate-spin text-green-700" size={48} />
-                    <p className={`text-xs font-black uppercase tracking-widest animate-pulse ${theme.textMuted}`}>A preparar o teu espaço...</p>
+                    <p className={`text-xs font-black uppercase tracking-widest animate-pulse ${theme.textMuted}`}>A Sincronizar Informações...</p>
                 </div>
             </div>
         );
@@ -173,9 +175,14 @@ const Dashboard = () => {
                             <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl md:rounded-3xl bg-green-600 text-white flex items-center justify-center shadow-lg shadow-green-900/20 group-hover:scale-105 transition-all">
                                 {userAvatar}
                             </div>
-                            <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 p-1 rounded-lg border shadow-sm text-slate-400 group-hover:text-green-600 transition-colors">
+                            <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 p-1 rounded-lg border shadow-sm text-slate-400 group-hover:text-green-600 transition-colors z-10">
                                 <Settings2 size={12} />
                             </div>
+                            {user && (
+                                <div className="absolute -top-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-10" title="Sincronizado na Nuvem">
+                                    <Cloud size={12} strokeWidth={3}/>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -184,13 +191,12 @@ const Dashboard = () => {
                                 </span>
                             </div>
                             <h1 className={`text-2xl md:text-4xl font-black tracking-tight mb-1 ${theme.text}`}>
-                                Olá, {settings.userName || "Estudante"}
+                                Olá, {displayName}
                             </h1>
                             <p className={`text-xs md:text-sm max-w-md ${theme.textMuted}`}>Gerencie seus {stats.total} projetos acadêmicos.</p>
                         </div>
                     </div>
                     
-                    {/* Alterado: Grid no mobile para não esmagar e FAB */}
                     <div className="grid grid-cols-2 md:flex items-center gap-3 md:gap-4 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500">
                         <div className={`${theme.cardBg} p-3 md:p-4 md:pr-8 rounded-xl md:rounded-2xl shadow-sm border flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 flex-1`}>
                             <div className="bg-blue-50 text-blue-600 p-2 md:p-3 rounded-lg md:rounded-xl"><FileText size={18} className="md:w-5 md:h-5" /></div>
@@ -202,8 +208,12 @@ const Dashboard = () => {
                         </div>
                         <div className="h-12 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
                         
-                        {/* Botões do topo: Theme e Settings no Mobile ficam juntos, Novo Projeto vira botão flutuante */}
                         <div className="col-span-2 flex justify-end gap-3 md:gap-3 mt-2 md:mt-0">
+                            {/* --- NOVO: Botão Home --- */}
+                            <button onClick={() => navigate('/')} className={`${theme.cardBg} h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-blue-500 dark:hover:text-blue-400`} title="Página Inicial">
+                                <Home size={20} className="md:w-[22px] md:h-[22px]"/>
+                            </button>
+
                             <button onClick={toggleTheme} className={`${theme.cardBg} h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
                                 {settings.theme === 'dark' ? <Sun size={20} className="md:w-[22px] md:h-[22px]"/> : <Moon size={20} className="md:w-[22px] md:h-[22px]"/>}
                             </button>
@@ -211,7 +221,6 @@ const Dashboard = () => {
                                 <Settings2 size={20} className="md:w-[22px] md:h-[22px]"/>
                             </button>
                             
-                            {/* BOTÃO NOVO PROJETO - Flutuante no Mobile, Normal no Desktop */}
                             <button onClick={() => setIsTitleModalOpen(true)} className="fixed bottom-6 right-6 md:static md:bottom-auto md:right-auto z-40 bg-green-700 text-white p-4 md:px-8 md:h-14 rounded-full md:rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-green-800 transition-all shadow-xl shadow-green-900/20 hover:-translate-y-1">
                                 <PlusCircle size={24} className="md:w-[22px] md:h-[22px]"/>
                                 <span className="hidden md:inline">Novo Projeto</span>
@@ -220,12 +229,32 @@ const Dashboard = () => {
                     </div>
                 </div>
 
+                {!user && (
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl md:rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-white animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 -mt-10 -mr-10 text-blue-500/20 pointer-events-none">
+                            <CloudOff size={150} />
+                        </div>
+                        <div className="flex items-center gap-4 relative z-10">
+                            <div className="bg-white/20 p-3 rounded-xl shrink-0 backdrop-blur-md border border-white/20">
+                                <CloudOff size={24} className="text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-lg md:text-xl">Modo Local Ativo</h3>
+                                <p className="text-sm text-blue-100 max-w-xl">Os teus projetos estão guardados apenas neste navegador. Faz login para os guardares em segurança na nuvem e acederes de qualquer dispositivo.</p>
+                            </div>
+                        </div>
+                        <button onClick={loginWithGoogle} className="w-full md:w-auto bg-white text-blue-700 px-6 py-3.5 rounded-xl font-black shadow-lg hover:bg-blue-50 hover:scale-105 transition-all flex items-center justify-center gap-3 whitespace-nowrap relative z-10">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                            Entrar com o Google
+                        </button>
+                    </div>
+                )}
+
                 {filterTab === 'all' && !searchTerm && (
                     <div className="space-y-4 animate-in fade-in zoom-in-95 duration-700">
                         <div className="flex items-center justify-between">
                             <h2 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Modelos Rápidos ABNT</h2>
                         </div>
-                        {/* Scroll horizontal no mobile para os modelos rápidos */}
                         <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 snap-x pr-4 md:pr-0 md:pb-0" style={{ scrollbarWidth: 'none' }}>
                             {Object.keys(PROJECT_TYPES).map((key) => (
                                 <button 
@@ -256,7 +285,6 @@ const Dashboard = () => {
 
                 <div className={`flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 md:gap-4 p-2 rounded-2xl md:rounded-3xl shadow-sm border ${theme.cardBg}`}>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-                        {/* Scroll horizontal nos botões de filtro no mobile */}
                         <div className={`flex overflow-x-auto p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`} style={{ scrollbarWidth: 'none' }}>
                             <button onClick={() => setFilterTab('all')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 shrink-0 ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-slate-600 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm') : 'text-slate-400 hover:text-slate-600'}`}>
                                 Todos <span className={`text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (settings.theme === 'dark' ? 'bg-slate-600' : 'bg-slate-200')}`}>{counts.all}</span>
@@ -296,7 +324,6 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Força view em lista no Mobile para melhor leitura */}
                 <div className={viewMode === 'grid' && window.innerWidth >= 768 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" : "flex flex-col gap-3"}>
                     {processedProjects.map((p, idx) => (
                         <div key={p.id} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 50}ms` }}>
@@ -324,7 +351,16 @@ const Dashboard = () => {
                 </div>
 
                 <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} onConfirm={handleCreate} />
-                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={settings} setSettings={setSettings} onDeleteAll={() => { if(window.confirm("Desejas apagar TUDO? Esta ação é irreversível.")) { localStorage.clear(); toast.error("Todos os dados foram eliminados."); window.location.reload(); } }} />
+                <SettingsModal 
+                    isOpen={isSettingsModalOpen} 
+                    onClose={() => setIsSettingsModalOpen(false)} 
+                    settings={settings} 
+                    setSettings={setSettings} 
+                    onDeleteAll={() => { if(window.confirm("Desejas apagar TUDO? Esta ação é irreversível.")) { localStorage.clear(); toast.error("Todos os dados foram eliminados."); window.location.reload(); } }} 
+                    user={user}
+                    loginWithGoogle={loginWithGoogle}
+                    logout={logout}
+                />
             </div>
         </div>
     );
@@ -377,7 +413,6 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
         );
     }
 
-    // A versão em Grid mantém a aparência anterior, mas agora só aparece em tablets/desktop
     return (
         <div className={`${theme.cardBg} rounded-[2rem] border-2 border-transparent hover:border-green-600 transition-all p-6 group flex flex-col relative h-full shadow-sm hover:shadow-md project-menu-container`}>
             <div className="flex justify-between mb-4">
