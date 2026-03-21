@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Lock, Loader2, Save, CheckCircle2, AlertTriangle, AlertCircle, 
   ZoomOut, ZoomIn, List, Minimize2, Maximize2, FileDown, Printer, FileEdit, 
-  ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText
+  ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText,
+  Sun, Moon, Eye // Adicionado o Eye para o botão mobile
 } from 'lucide-react';
 
 import { useAppContext } from '../contexts/AppContext';
@@ -15,7 +16,6 @@ import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
 import ABNTViewer from '../components/preview/ABNTViewer';
 
-// IMPORTAMOS O NOVO MODAL AQUI (substituindo o antigo Modals.jsx)
 import ReferenceModal from '../components/editor/ReferenceModal';
 import AssetModal from '../components/common/AssetModal';
 
@@ -23,7 +23,7 @@ const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     
-    const { projects, setProjects, settings, setActiveProjectId, createFromExample } = useAppContext();
+    const { projects, setProjects, settings, setSettings, setActiveProjectId, createFromExample } = useAppContext();
     
     const [data, setData] = useState(null);
     const [authors, setAuthors] = useState(['']);
@@ -35,11 +35,12 @@ const Editor = () => {
     const [focusedSection, setFocusedSection] = useState(null);
     const [focusMode, setFocusMode] = useState(false);
     const [showOutline, setShowOutline] = useState(true);
-    const [zoomLevel, setZoomLevel] = useState(0.80);
     
-    // ESTADO DO MODAL ATUALIZADO (agora só precisamos saber se está aberto ou fechado)
+    // NOVO: Zoom adaptável para mobile e Estado para alternar vistas no mobile
+    const [zoomLevel, setZoomLevel] = useState(window.innerWidth < 768 ? 0.45 : 0.80);
+    const [mobileView, setMobileView] = useState('editor'); // 'editor' ou 'preview'
+    
     const [isRefModalOpen, setIsRefModalOpen] = useState(false);
-    
     const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [] });
 
     useEffect(() => {
@@ -78,7 +79,7 @@ const Editor = () => {
         const errs = [];
         if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
         if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
-        if (!data.orientador) errs.push({msg: 'Informe o Orientador', explain: 'Crédito obrigatório na folha de rosto.'});
+        if (!data.orientador && (!data.orientadores || data.orientadores.filter(o => o.trim() !== '').length === 0)) errs.push({msg: 'Informe o Orientador', explain: 'Crédito obrigatório na folha de rosto.'});
         if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
         if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
         if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
@@ -137,63 +138,71 @@ const Editor = () => {
         navigate(`/editor/${newId}`);
     };
 
-    if (!data) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
+    if (!data) return <div className="flex h-screen items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
 
     return (
         <div className={`flex flex-col h-screen overflow-hidden abnt-editor-app transition-colors duration-300 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-            <header className={`h-16 border-b flex items-center justify-between px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors ${isReadOnly ? 'bg-orange-50 border-orange-200' : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
-                <div className="flex items-center gap-4 flex-1">
-                    <button 
-                        onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} 
-                        className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-400 hover:text-green-700"
-                        title="Voltar ao Dashboard"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h2 className="font-bold text-sm truncate max-w-[250px] leading-tight">
-                                {data.titulo || "Projeto sem Título"}
-                            </h2>
-                            {isReadOnly && (
-                                <span className="flex items-center gap-1 text-[9px] bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold uppercase border border-orange-300">
-                                    <Lock size={10}/> Leitura
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {isSaving || isExporting ? (
-                                <span className="flex items-center gap-1 text-[10px] text-yellow-600 font-medium">
-                                    <Loader2 size={10} className="animate-spin"/> Atualizando...
-                                </span>
-                            ) : (
-                                <span className="flex items-center gap-1 text-[10px] text-green-600 font-medium">
-                                    <CheckCircle2 size={10}/> Alterações salvas
-                                </span>
-                            )}
+            
+            {/* Header Responsivo */}
+            <header className={`min-h-[4rem] py-3 lg:py-0 lg:h-16 border-b flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors gap-3 lg:gap-0 ${isReadOnly ? 'bg-orange-50 border-orange-200' : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
+                
+                {/* Lado Esquerdo / Topo Mobile */}
+                <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+                    <div className="flex items-center gap-3 w-full">
+                        <button 
+                            onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} 
+                            className="p-2 shrink-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-400 hover:text-green-700"
+                            title="Voltar ao Dashboard"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                                <h2 className="font-bold text-sm truncate max-w-[180px] sm:max-w-[250px] leading-tight">
+                                    {data.titulo || "Projeto sem Título"}
+                                </h2>
+                                {isReadOnly && (
+                                    <span className="flex items-center shrink-0 gap-1 text-[9px] bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold uppercase border border-orange-300">
+                                        <Lock size={10}/> Leitura
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {isSaving || isExporting ? (
+                                    <span className="flex items-center gap-1 text-[10px] text-yellow-600 font-medium">
+                                        <Loader2 size={10} className="animate-spin"/> Atualizando...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-1 text-[10px] text-green-600 font-medium">
+                                        <CheckCircle2 size={10}/> Alterações salvas
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {!isReadOnly && (
-                    <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 gap-1 border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center px-2">
-                            <button onClick={() => setZoomLevel(z => Math.max(0.3, z - 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomOut size={16}/></button>
-                            <span className="text-[11px] font-bold w-12 text-center text-slate-500">{Math.round(zoomLevel * 100)}%</span>
-                            <button onClick={() => setZoomLevel(z => Math.min(2, z + 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomIn size={16}/></button>
+                {/* Barra de Ferramentas - Deslizável no Mobile */}
+                <div className="flex items-center gap-3 lg:gap-4 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 justify-start lg:justify-end shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    
+                    {!isReadOnly && (
+                        <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 gap-1 border border-slate-200 dark:border-slate-700 shrink-0">
+                            <div className="flex items-center px-2">
+                                <button onClick={() => setZoomLevel(z => Math.max(0.3, z - 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomOut size={16}/></button>
+                                <span className="text-[11px] font-bold w-12 text-center text-slate-500">{Math.round(zoomLevel * 100)}%</span>
+                                <button onClick={() => setZoomLevel(z => Math.min(2, z + 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomIn size={16}/></button>
+                            </div>
+                            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
+                            <div className="flex p-0.5 gap-1">
+                                <button onClick={() => setFontFamily('Arial')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Arial' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>ARIAL</button>
+                                <button onClick={() => setFontFamily('Times New Roman')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Times New Roman' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>TIMES</button>
+                            </div>
                         </div>
-                        <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-                        <div className="flex p-0.5 gap-1">
-                            <button onClick={() => setFontFamily('Arial')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Arial' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>ARIAL</button>
-                            <button onClick={() => setFontFamily('Times New Roman')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Times New Roman' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>TIMES</button>
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                <div className="flex items-center gap-4 flex-1 justify-end">
-                    <div className="hidden sm:flex items-center gap-3">
-                        <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex flex-col items-end hidden sm:flex">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none">Métricas</span>
                             <div className="flex gap-2 text-[10px] font-bold text-slate-500">
                                 <span className="flex items-center gap-1"><AlignLeft size={10}/> {stats.words} pal.</span>
@@ -205,9 +214,17 @@ const Editor = () => {
                         </button>
                     </div>
 
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 pr-4 lg:pr-0">
+                        <button 
+                            onClick={() => setSettings(s => ({...s, theme: s.theme === 'dark' ? 'light' : 'dark'}))} 
+                            className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-all" 
+                            title="Alternar Tema"
+                        >
+                            {settings.theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}
+                        </button>
+
                         <button 
                             onClick={() => setShowOutline(!showOutline)} 
                             className={`hidden xl:flex p-2 rounded-xl transition-all ${showOutline ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`} 
@@ -224,17 +241,20 @@ const Editor = () => {
                         ) : (
                             <button onClick={handleCreateFromExample} className="bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-orange-700 shadow-lg shadow-orange-900/10 transition-all"><Sparkles size={14}/> Clonar Modelo</button>
                         )}
-                        <button onClick={() => setFocusMode(!focusMode)} className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all" title="Alternar Modo Foco">
+                        <button onClick={() => setFocusMode(!focusMode)} className="hidden lg:flex p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all" title="Alternar Modo Foco">
                             {focusMode ? <Minimize2 size={20}/> : <Maximize2 size={20}/>}
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="flex flex-1 overflow-hidden">
+            {/* Layout Responsivo: Empilha as secções no Mobile, Lado-a-Lado no Desktop */}
+            <main className="flex flex-1 overflow-hidden relative">
+                
+                {/* Painel Esquerdo: Editor / Assistente */}
                 {!focusMode && (
-                    <aside className={`w-[450px] border-r flex flex-col print:hidden transition-all duration-300 ${isReadOnly ? 'opacity-80' : ''} ${settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                         <div className={`flex border-b ${settings.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}><button onClick={() => setTab('editor')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'editor' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><FileEdit size={14}/> Conteúdo</button><button onClick={() => setTab('checklist')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'checklist' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><ListTodo size={14}/> Assistente</button></div>
+                    <aside className={`absolute inset-0 z-10 lg:relative lg:z-auto w-full lg:w-[450px] border-r flex-col print:hidden transition-all duration-300 ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} ${isReadOnly ? 'opacity-80' : ''} ${settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                         <div className={`flex border-b shrink-0 ${settings.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}><button onClick={() => setTab('editor')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'editor' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><FileEdit size={14}/> Conteúdo</button><button onClick={() => setTab('checklist')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'checklist' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><ListTodo size={14}/> Assistente</button></div>
                          {tab === 'editor' ? (
                              <EditorForm 
                                 data={data} setData={setData} 
@@ -242,18 +262,19 @@ const Editor = () => {
                                 settings={settings} isReadOnly={isReadOnly}
                                 focusedSection={focusedSection} setFocusedSection={setFocusedSection}
                                 onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [] })}
-                                onOpenRefModal={() => setIsRefModalOpen(true)} // ATUALIZADO AQUI
+                                onOpenRefModal={() => setIsRefModalOpen(true)}
                              />
                          ) : (
                             <div className={`flex-1 overflow-y-auto p-6 space-y-8 ${settings.theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}>
-                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2 mb-4"><ShieldCheck size={14} className="text-green-600"/> Saúde do Documento</h3>{abntErrors.length === 0 ? <div className="text-center py-6"><CheckCircle2 size={40} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-bold text-slate-700">Tudo Certo!</p><p className="text-xs text-slate-400">Nenhum problema estrutural encontrado.</p></div> : <ul className="space-y-2">{abntErrors.map((err, i) => (<li key={i} className="text-xs text-red-600 bg-red-50 p-3 rounded"><div className="flex items-center gap-2 font-bold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div><div className="pl-6 opacity-75">{err.explain}</div></li>))}</ul>}</section>
-                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><ListTodo size={14} className="text-blue-600"/> Checklist TCC</h3><span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / checklist.length)*100)}%</span></div><div className="space-y-3">{checklist.map(item => (<div key={item.id} onClick={() => !item.auto && !isReadOnly && setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? 'bg-green-50 border-green-200' : (settings.theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-100')} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:border-blue-300' : 'cursor-default opacity-80'}`}><div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</div><div className="flex-1"><span className={`text-xs font-medium ${item.done ? 'text-green-800 line-through' : 'text-slate-600'}`}>{item.text}</span>{item.auto && <span className="text-[9px] text-slate-400 block mt-0.5 uppercase tracking-wide">Automático</span>}</div></div>))}</div></section>
+                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"><ShieldCheck size={14} className="text-green-600"/> Saúde do Documento</h3>{abntErrors.length === 0 ? <div className="text-center py-6"><CheckCircle2 size={40} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Tudo Certo!</p><p className="text-xs text-slate-400">Nenhum problema estrutural encontrado.</p></div> : <ul className="space-y-2">{abntErrors.map((err, i) => (<li key={i} className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded"><div className="flex items-center gap-2 font-bold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div><div className="pl-6 opacity-75">{err.explain}</div></li>))}</ul>}</section>
+                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2"><ListTodo size={14} className="text-blue-600"/> Checklist TCC</h3><span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / checklist.length)*100)}%</span></div><div className="space-y-3">{checklist.map(item => (<div key={item.id} onClick={() => !item.auto && !isReadOnly && setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (settings.theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-100')} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:border-blue-300' : 'cursor-default opacity-80'}`}><div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</div><div className="flex-1"><span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : 'text-slate-600 dark:text-slate-300'}`}>{item.text}</span>{item.auto && <span className="text-[9px] text-slate-400 block mt-0.5 uppercase tracking-wide">Automático</span>}</div></div>))}</div></section>
                             </div>
                          )}
                     </aside>
                 )}
 
-                <div className={`flex-1 overflow-hidden flex flex-col ${settings.theme === 'dark' ? 'bg-slate-800' : 'bg-slate-300'}`}>
+                {/* Painel Direito: Pré-visualização do PDF */}
+                <div className={`absolute inset-0 z-0 lg:relative lg:z-auto flex-1 overflow-hidden flex-col ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'} ${settings.theme === 'dark' ? 'bg-slate-800' : 'bg-slate-300'}`}>
                     <ABNTViewer 
                         data={data} authors={authors} 
                         zoomLevel={zoomLevel} fontFamily={fontFamily}
@@ -267,16 +288,32 @@ const Editor = () => {
                         scrollToSection={scrollToSection} 
                         setShowOutline={setShowOutline}
                         settings={settings}
+                        onReorder={(oldIndex, newIndex) => {
+                            if (isReadOnly) return;
+                            const newSecoes = [...data.secoes];
+                            const [moved] = newSecoes.splice(oldIndex, 1);
+                            newSecoes.splice(newIndex, 0, moved);
+                            setData({ ...data, secoes: newSecoes });
+                        }}
                     />
                 )}
+
+                {/* BOTÃO FLUTUANTE EXCLUSIVO PARA MOBILE - Alterna entre Escrever e Ver PDF */}
+                <button 
+                    onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')}
+                    className={`lg:hidden fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95 border-4 ${settings.theme === 'dark' ? 'bg-green-600 text-white border-slate-900 shadow-green-900/50' : 'bg-green-600 text-white border-white shadow-green-600/30'}`}
+                >
+                    {mobileView === 'editor' ? <Eye size={24}/> : <FileEdit size={24}/>}
+                    <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border-2 ${settings.theme === 'dark' ? 'border-slate-900' : 'border-white'}`}>
+                        {mobileView === 'editor' ? 'PDF' : 'EDITAR'}
+                    </span>
+                </button>
             </main>
 
-            {/* AQUI RENDERIZAMOS O NOVO MODAL */}
             <ReferenceModal 
                 isOpen={isRefModalOpen} 
                 onClose={() => setIsRefModalOpen(false)}
                 onAddReference={(referenceStr) => { 
-                    // Pega a string pronta do componente filho e adiciona ao editor
                     setData({ 
                         ...data, 
                         referencias: data.referencias ? data.referencias + '\n\n' + referenceStr : referenceStr 
