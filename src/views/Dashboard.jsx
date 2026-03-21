@@ -4,7 +4,8 @@ import {
     FileText, Settings2, PlusCircle, Lightbulb, Search,
     Trash2, Star, BookTemplate, Eye, Sparkles, MoreVertical,
     RotateCcw, Copy, Box, Clock, CheckCircle2, FileEdit, Ghost,
-    ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload
+    ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
+    Sun, Moon // Adicionados ícones do tema
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
@@ -98,6 +99,10 @@ const Dashboard = () => {
         e.target.value = null;
     };
 
+    const toggleTheme = () => {
+        setSettings(s => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }));
+    };
+
     const counts = useMemo(() => ({
         all: projects.filter(p => !p.deleted).length,
         favorites: projects.filter(p => !p.deleted && p.favorite).length,
@@ -188,15 +193,17 @@ const Dashboard = () => {
                     <div className="flex flex-wrap md:flex-nowrap items-center gap-4 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500">
                         <div className={`${theme.cardBg} p-4 pr-8 rounded-2xl shadow-sm border flex items-center gap-4 flex-1 xl:flex-none`}><div className="bg-blue-50 text-blue-600 p-3 rounded-xl"><FileText size={20} /></div><div><p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total</p><p className={`text-2xl font-black ${theme.text}`}>{stats.total}</p></div></div>
                         <div className={`${theme.cardBg} p-4 pr-8 rounded-2xl shadow-sm border flex items-center gap-4 flex-1 xl:flex-none`}><div className="bg-green-50 text-green-600 p-3 rounded-xl"><CheckCircle2 size={20} /></div><div><p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Concluídos</p><p className={`text-2xl font-black ${theme.text}`}>{stats.completed}</p></div></div>
-                        <div className="h-12 w-px bg-slate-200 mx-2 hidden md:block"></div>
+                        <div className="h-12 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
                         <div className="flex gap-3 flex-1 xl:flex-none">
-                            <button onClick={() => setIsSettingsModalOpen(true)} className={`${theme.cardBg} h-14 w-14 rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 transition-all text-slate-400 hover:text-slate-600`} title="Configurações"><Settings2 size={22} /></button>
+                            <button onClick={toggleTheme} className={`${theme.cardBg} h-14 w-14 rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
+                                {settings.theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+                            </button>
+                            <button onClick={() => setIsSettingsModalOpen(true)} className={`${theme.cardBg} h-14 w-14 rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-600 dark:hover:text-white`} title="Configurações"><Settings2 size={22} /></button>
                             <button onClick={() => setIsTitleModalOpen(true)} className="bg-green-700 text-white px-8 h-14 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-green-800 transition-all shadow-lg shadow-green-900/20 hover:shadow-xl hover:-translate-y-0.5 flex-1 xl:flex-none whitespace-nowrap"><PlusCircle size={22} /><span>Novo Projeto</span></button>
                         </div>
                     </div>
                 </div>
 
-                {/* O restante do Dashboard segue o mesmo padrão anterior */}
                 {filterTab === 'all' && !searchTerm && (
                     <div className="space-y-4 animate-in fade-in zoom-in-95 duration-700">
                         <div className="flex items-center justify-between">
@@ -225,13 +232,16 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-4 text-blue-800 animate-in fade-in slide-in-from-bottom-4 duration-500"><div className="bg-white p-2 rounded-lg shadow-sm text-blue-600"><Lightbulb size={20} /></div><div><p className="text-xs font-bold uppercase opacity-70">Dica ABNT da Semana</p><p className="text-sm font-medium">{ABNT_TIPS[tipIndex]}</p></div></div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-4 flex items-center gap-4 text-blue-800 dark:text-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white dark:bg-blue-900/50 p-2 rounded-lg shadow-sm text-blue-600 dark:text-blue-400"><Lightbulb size={20} /></div>
+                    <div><p className="text-xs font-bold uppercase opacity-70">Dica ABNT da Semana</p><p className="text-sm font-medium">{ABNT_TIPS[tipIndex]}</p></div>
+                </div>
 
                 <div className={`flex flex-col lg:flex-row justify-between items-center gap-4 p-2 rounded-2xl shadow-sm border ${theme.cardBg}`}>
                     <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                         <div className={`flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
                             <button onClick={() => setFilterTab('all')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-slate-600 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm') : 'text-slate-400 hover:text-slate-600'}`}>
-                                Todos <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? 'bg-green-100 text-green-700' : 'bg-slate-200'}`}>{counts.all}</span>
+                                Todos <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (settings.theme === 'dark' ? 'bg-slate-600' : 'bg-slate-200')}`}>{counts.all}</span>
                             </button>
                             <button onClick={() => setFilterTab('favorites')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${filterTab === 'favorites' ? (settings.theme === 'dark' ? 'bg-slate-600 text-orange-400 shadow-sm' : 'bg-white text-orange-500 shadow-sm') : 'text-slate-400 hover:text-orange-400'}`}>
                                 <Star size={12} /> Favoritos
@@ -254,8 +264,8 @@ const Dashboard = () => {
 
                     <div className="flex items-center gap-3 w-full lg:w-auto">
                         <div className={`flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-green-700 shadow-sm' : 'text-slate-400'}`} title="Vista em Grid"><LayoutGrid size={16}/></button>
-                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-green-700 shadow-sm' : 'text-slate-400'}`} title="Vista em Lista"><ListIcon size={16}/></button>
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Grid"><LayoutGrid size={16}/></button>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Lista"><ListIcon size={16}/></button>
                         </div>
                         <div className="relative flex-1 md:flex-none">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -295,7 +305,7 @@ const Dashboard = () => {
     );
 };
 
-// Subcomponente Card
+// Subcomponente Card (sem alterações)
 const ProjectCard = ({ 
     project, theme, viewMode, isMenuOpen, onToggleMenu,
     onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate, onDuplicateTemplate 
@@ -326,7 +336,7 @@ const ProjectCard = ({
                         </button>
                     )}
                     <div className="relative">
-                        <button onClick={onToggleMenu} className="p-2 text-slate-300 hover:text-slate-800"><MoreVertical size={16} /></button>
+                        <button onClick={onToggleMenu} className="p-2 text-slate-300 hover:text-slate-800 dark:hover:text-white"><MoreVertical size={16} /></button>
                         {isMenuOpen && (
                             <div className="absolute right-0 top-8 w-48 bg-white rounded-xl shadow-2xl border p-2 z-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:border-slate-600">
                                 {isTrash ? (
@@ -349,28 +359,28 @@ const ProjectCard = ({
     return (
         <div className={`${theme.cardBg} rounded-[2rem] border-2 border-transparent hover:border-green-600 transition-all p-6 group flex flex-col relative h-full shadow-sm hover:shadow-md project-menu-container`}>
             <div className="flex justify-between mb-4">
-                <div onClick={!isTrash ? onLoad : undefined} className={`p-3 rounded-2xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 cursor-default text-slate-400' : 'bg-green-50 text-green-700 cursor-pointer'}`}><FileText size={24} /></div>
+                <div onClick={!isTrash ? onLoad : undefined} className={`p-3 rounded-2xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 dark:bg-slate-700 cursor-default text-slate-400' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-pointer'}`}><FileText size={24} /></div>
                 <div className="flex items-center gap-1">
                     {!isTrash && (
                         <button 
                             onClick={(e) => { e.stopPropagation(); onFav(); }} 
-                            className={`p-2 rounded-full hover:bg-slate-100 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}
+                            className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}
                         >
                             <Star size={18} fill={project.favorite ? "currentColor" : "none"} />
                         </button>
                     )}
-                    <button onClick={onToggleMenu} className="p-2 rounded-full text-slate-300 hover:bg-slate-100"><MoreVertical size={18} /></button>
+                    <button onClick={onToggleMenu} className="p-2 rounded-full text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"><MoreVertical size={18} /></button>
                     {isMenuOpen && (
                         <div className="absolute right-6 top-16 w-52 bg-white dark:bg-slate-700 dark:text-white dark:border-slate-600 rounded-2xl shadow-2xl border p-2 z-50 text-slate-800">
                             {isTrash ? (
                                 <>
-                                    <button onClick={onRestore} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 rounded-xl flex items-center gap-3"><RotateCcw size={16} /> Restaurar</button>
+                                    <button onClick={onRestore} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 rounded-xl flex items-center gap-3"><RotateCcw size={16} /> Restaurar</button>
                                     <button onClick={onDeletePermanent} className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl flex items-center gap-3"><Trash2 size={16} /> Eliminar</button>
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={onLoad} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-xl flex items-center gap-3 text-slate-600"><FileEdit size={16} /> Abrir</button>
-                                    <button onClick={onDuplicate} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-xl flex items-center gap-3 text-slate-600"><Copy size={16} /> Duplicar</button>
+                                    <button onClick={onLoad} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-xl flex items-center gap-3 text-slate-600 dark:text-slate-200"><FileEdit size={16} /> Abrir</button>
+                                    <button onClick={onDuplicate} className="w-full text-left px-4 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-xl flex items-center gap-3 text-slate-600 dark:text-slate-200"><Copy size={16} /> Duplicar</button>
                                     <button onClick={onDel} className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl flex items-center gap-3"><Trash2 size={16} /> Lixeira</button>
                                 </>
                             )}
@@ -380,13 +390,13 @@ const ProjectCard = ({
             </div>
             
             <div onClick={!isTrash ? onLoad : undefined} className={`flex-1 ${!isTrash ? 'cursor-pointer' : ''}`}>
-                <h3 className="font-bold text-lg mb-2 line-clamp-2 leading-tight group-hover:text-green-700 transition-colors">{project.title}</h3>
+                <h3 className="font-bold text-lg mb-2 line-clamp-2 leading-tight group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{project.title}</h3>
                 <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-400 font-bold uppercase">
-                    <span className={`px-2 py-0.5 rounded-md ${progress.status === 'green' ? 'bg-green-100 text-green-700' : 'bg-slate-100'}`}>{progress.label}</span>
+                    <span className={`px-2 py-0.5 rounded-md ${progress.status === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-700'}`}>{progress.label}</span>
                     <span className="flex items-center gap-1"><Clock size={10} /> {timeAgo(project.updatedAt)}</span>
                 </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full mb-4 overflow-hidden shadow-inner">
-                    <div className={`h-full rounded-full transition-all duration-1000 ${progress.status === 'green' ? 'bg-green-500' : 'bg-slate-300'}`} style={{ width: `${progress.percent}%` }} />
+                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full mb-4 overflow-hidden shadow-inner">
+                    <div className={`h-full rounded-full transition-all duration-1000 ${progress.status === 'green' ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-500'}`} style={{ width: `${progress.percent}%` }} />
                 </div>
             </div>
         </div>

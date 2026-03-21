@@ -13,9 +13,9 @@ export const AppProvider = ({ children }) => {
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { console.error(e); }
     }
-    // Adicionado userName padrão e avatarId
+    // Adicionado userName padrão e avatarId. Tema padrão alterado para 'dark'.
     return { 
-        theme: 'light', 
+        theme: 'dark', 
         autoSave: true, 
         defaultFont: 'Arial', 
         avatarId: 'user',
