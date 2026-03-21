@@ -1,24 +1,32 @@
-# 🎓 Editor TCC IFPA - Academics
+# 🎓 ABNTFácil
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-Um editor de texto acadêmico focado na normalização automática para trabalhos do **IFPA (Instituto Federal do Pará)** seguindo as normas da **ABNT**. O projeto permite a criação, edição e exportação de TCCs, Artigos e Relatórios diretamente pelo navegador, com persistência local de dados.
+O **ABNTFácil** é um editor académico focado na produtividade de estudantes, desenvolvido para automatizar as normas da ABNT (NBR 14724, NBR 6023, entre outras). O projeto nasceu da necessidade de simplificar a formatação de TCCs, artigos e relatórios técnicos, permitindo que o autor foque apenas no conteúdo científico.
+
+Este projeto foi desenvolvido por **Luiz Felipe**, estudante de Engenharia de Controle e Automação no **IFPA Campus Belém**.
 
 ---
 
 ## ✨ Funcionalidades Principais
 
-* **📄 Formatação ABNT Automática:** Margens, fontes (Arial/Times), espaçamentos e recuos configurados automaticamente.
-* **👁️ Visualização em Tempo Real:** Editor dividido (Split-screen) com formulário à esquerda e pré-visualização da folha A4 à direita.
-* **🖨️ Exportação PDF Nativa:** Geração de arquivos PDF vetoriais perfeitos usando o motor de impressão do navegador (sem cortes ou páginas em branco).
-* **💾 Persistência Local:** Todos os dados são salvos automaticamente no `localStorage` do navegador. Nada é perdido ao fechar a aba.
-* **🌙 Modo Escuro:** Interface adaptável para ambientes com pouca luz.
-* **drag-n-drop:** Reorganização de capítulos arrastando os itens.
-* **🖼️ Upload de Imagens:** Suporte para imagens locais (convertidas para Base64) e via URL.
+- **🚀 Modelos Prontos**: Inicie rapidamente com estruturas pré-definidas para TCC, Artigo Académico, Relatório Técnico e Resumo Expandido.
+- **📝 Editor Inteligente**: Sistema de arrastar e soltar (drag-and-drop) para reordenar capítulos e subseções.
+- **📚 Gerador de Referências**: Ferramenta automática para formatar referências de livros e sites conforme a NBR 6023.
+- **🖼️ Elementos Automáticos**: Inserção simplificada de imagens, tabelas, quadros e citações longas com formatação ABNT nativa.
+- **🌗 Personalização**: Suporte completo a Modo Escuro (Dark Mode) e Modo Claro, além de escolha de avatar e nome de utilizador.
+- **📄 Exportação Otimizada**: Gere PDFs formatados com margens de 3cm (superior/esquerda) e 2cm (inferior/direita) diretamente do navegador.
 
 ---
+
+## 🔒 Privacidade e Segurança
+
+Diferente de outros editores online, o **ABNTFácil** prioriza a segurança dos teus dados:
+- **Armazenamento Local**: Todos os teus textos são guardados apenas no teu navegador através do `LocalStorage`. Nada é enviado para servidores externos.
+- **Backups**: Podes exportar e importar ficheiros JSON para salvaguardar o teu trabalho ou continuar noutro computador.
+
 
 ## 🛠️ Tech Stack
 
