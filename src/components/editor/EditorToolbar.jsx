@@ -14,7 +14,8 @@ export const EditorToolbar = ({ onAction }) => {
             {buttons.map(btn => (
                 <button
                     key={btn.id}
-                    onClick={(e) => { e.preventDefault(); onAction(btn); }}
+                    // AQUI ESTÁ A CORREÇÃO: Usamos onMouseDown em vez de onClick
+                    onMouseDown={(e) => { e.preventDefault(); onAction(btn); }}
                     title={btn.label}
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
                 >

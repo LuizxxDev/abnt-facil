@@ -3,13 +3,39 @@ import { TAG_RENDERERS } from '../../utils/constants';
 
 const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
     
+    // Proteção para evitar que caracteres como < ou > digitados pelo usuário quebrem o layout
+    const escapeHtml = (text) => {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const formatConteudo = (texto) => {
         if (!texto) return null;
         return texto.trim().split('\n\n').map((p, i) => { 
             const m = p.trim().match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i); 
-            return m && TAG_RENDERERS[m[1].toUpperCase()] 
-                ? TAG_RENDERERS[m[1].toUpperCase()](m[2], i) 
-                : <p key={i} className="abnt-p">{p}</p>; 
+            
+            // Se for uma tag especial (Citação, Imagem, etc), renderiza normalmente
+            if (m && TAG_RENDERERS[m[1].toUpperCase()]) {
+                return TAG_RENDERERS[m[1].toUpperCase()](m[2], i);
+            }
+            
+            // Se for texto normal, aplica a conversão de Negrito (**) e Itálico (*)
+            const textoSeguro = escapeHtml(p);
+            const textoFormatado = textoSeguro
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Negrito
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');            // Itálico
+            
+            return (
+                <p 
+                    key={i} 
+                    className="abnt-p" 
+                    dangerouslySetInnerHTML={{ __html: textoFormatado }} 
+                />
+            );
         });
     };
 
