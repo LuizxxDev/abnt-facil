@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TAG_RENDERERS } from '../../utils/constants';
 
 const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
@@ -26,8 +26,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             // Se for texto normal, aplica a conversão de Negrito (**) e Itálico (*)
             const textoSeguro = escapeHtml(p);
             const textoFormatado = textoSeguro
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Negrito
-                .replace(/\*(.*?)\*/g, '<em>$1</em>');            // Itálico
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');            
             
             return (
                 <p 
@@ -39,18 +39,43 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         });
     };
 
-    const getPageNumber = (secId) => {
-        let paginasPreTextuais = 4;
+    // --- NOVO: Cálculo Dinâmico de Páginas ---
+    const pageMapping = useMemo(() => {
+        if (!data || !groupedSections) return {};
+
+        // Páginas pré-textuais fixas: Capa(1), Rosto(2), Resumo(3), Sumário(4)
+        let currentPage = 4;
         if (data.resumoEn && data.resumoEn.trim() !== '') {
-            paginasPreTextuais += 1;
+            currentPage += 1; // Abstract adiciona uma página extra
         }
 
-        for (let i = 0; i < groupedSections.length; i++) {
-            if (groupedSections[i].some(s => s.id === secId)) {
-                return paginasPreTextuais + i + 1; 
-            }
-        }
-        return "";
+        const mapping = {};
+        // Uma página ABNT padrão suporta aproximadamente 2500 caracteres
+        const CHARS_PER_PAGE = 2500;
+
+        groupedSections.forEach(group => {
+            let groupCharCount = 0;
+
+            group.forEach(sec => {
+                // Calcula em qual página desta seção estamos (baseado no texto acumulado do grupo)
+                const offsetPages = Math.floor(groupCharCount / CHARS_PER_PAGE);
+                mapping[sec.id] = currentPage + offsetPages;
+
+                // Adiciona o tamanho desta seção ao total do grupo
+                groupCharCount += (sec.titulo?.length || 0) + (sec.conteudo?.length || 0);
+            });
+
+            // Avança a página atual baseada no tamanho total que este grupo ocupou
+            // Usa Math.max(1, ...) para garantir que o grupo ocupa pelo menos a página onde começou
+            const groupTotalPages = Math.max(1, Math.ceil(groupCharCount / CHARS_PER_PAGE));
+            currentPage += groupTotalPages;
+        });
+
+        return mapping;
+    }, [data, groupedSections]);
+
+    const getPageNumber = (secId) => {
+        return pageMapping[secId] || "";
     };
 
     return (
