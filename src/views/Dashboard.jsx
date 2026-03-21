@@ -5,7 +5,7 @@ import {
     Trash2, Star, BookTemplate, Eye, Sparkles, MoreVertical,
     RotateCcw, Copy, Box, Clock, CheckCircle2, FileEdit, Ghost,
     ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
-    Sun, Moon // Adicionados ícones do tema
+    Sun, Moon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
@@ -163,14 +163,14 @@ const Dashboard = () => {
     }
 
     return (
-        <div className={`h-screen overflow-y-auto font-sans p-6 md:p-12 scroll-smooth transition-colors duration-300 ${theme.bg} ${theme.text}`}>
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className={`h-screen overflow-y-auto font-sans p-4 md:p-12 scroll-smooth transition-colors duration-300 ${theme.bg} ${theme.text}`}>
+            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 pb-24">
                 
-                {/* Header com Nome Personalizado */}
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
-                    <div className="flex items-center gap-6 animate-in fade-in slide-in-from-left duration-500">
-                        <div className="relative group cursor-pointer" onClick={() => setIsSettingsModalOpen(true)}>
-                            <div className="w-16 h-16 rounded-3xl bg-green-600 text-white flex items-center justify-center shadow-lg shadow-green-900/20 group-hover:scale-105 transition-all">
+                {/* Header Responsivo */}
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 md:gap-8">
+                    <div className="flex items-center gap-4 md:gap-6 animate-in fade-in slide-in-from-left duration-500">
+                        <div className="relative group cursor-pointer shrink-0" onClick={() => setIsSettingsModalOpen(true)}>
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl md:rounded-3xl bg-green-600 text-white flex items-center justify-center shadow-lg shadow-green-900/20 group-hover:scale-105 transition-all">
                                 {userAvatar}
                             </div>
                             <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 p-1 rounded-lg border shadow-sm text-slate-400 group-hover:text-green-600 transition-colors">
@@ -179,27 +179,43 @@ const Dashboard = () => {
                         </div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-xs font-bold uppercase tracking-widest ${theme.textMuted}`}>
+                                <span className={`text-[10px] md:text-xs font-bold uppercase tracking-widest ${theme.textMuted}`}>
                                     {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                                 </span>
                             </div>
-                            <h1 className={`text-4xl font-black tracking-tight mb-1 ${theme.text}`}>
+                            <h1 className={`text-2xl md:text-4xl font-black tracking-tight mb-1 ${theme.text}`}>
                                 Olá, {settings.userName || "Estudante"}
                             </h1>
-                            <p className={`text-sm max-w-md ${theme.textMuted}`}>Gerencie seus {stats.total} projetos acadêmicos.</p>
+                            <p className={`text-xs md:text-sm max-w-md ${theme.textMuted}`}>Gerencie seus {stats.total} projetos acadêmicos.</p>
                         </div>
                     </div>
                     
-                    <div className="flex flex-wrap md:flex-nowrap items-center gap-4 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500">
-                        <div className={`${theme.cardBg} p-4 pr-8 rounded-2xl shadow-sm border flex items-center gap-4 flex-1 xl:flex-none`}><div className="bg-blue-50 text-blue-600 p-3 rounded-xl"><FileText size={20} /></div><div><p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total</p><p className={`text-2xl font-black ${theme.text}`}>{stats.total}</p></div></div>
-                        <div className={`${theme.cardBg} p-4 pr-8 rounded-2xl shadow-sm border flex items-center gap-4 flex-1 xl:flex-none`}><div className="bg-green-50 text-green-600 p-3 rounded-xl"><CheckCircle2 size={20} /></div><div><p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Concluídos</p><p className={`text-2xl font-black ${theme.text}`}>{stats.completed}</p></div></div>
+                    {/* Alterado: Grid no mobile para não esmagar e FAB */}
+                    <div className="grid grid-cols-2 md:flex items-center gap-3 md:gap-4 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500">
+                        <div className={`${theme.cardBg} p-3 md:p-4 md:pr-8 rounded-xl md:rounded-2xl shadow-sm border flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 flex-1`}>
+                            <div className="bg-blue-50 text-blue-600 p-2 md:p-3 rounded-lg md:rounded-xl"><FileText size={18} className="md:w-5 md:h-5" /></div>
+                            <div><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Total</p><p className={`text-xl md:text-2xl font-black leading-none mt-1 md:mt-0 ${theme.text}`}>{stats.total}</p></div>
+                        </div>
+                        <div className={`${theme.cardBg} p-3 md:p-4 md:pr-8 rounded-xl md:rounded-2xl shadow-sm border flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 flex-1`}>
+                            <div className="bg-green-50 text-green-600 p-2 md:p-3 rounded-lg md:rounded-xl"><CheckCircle2 size={18} className="md:w-5 md:h-5" /></div>
+                            <div><p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Concluídos</p><p className={`text-xl md:text-2xl font-black leading-none mt-1 md:mt-0 ${theme.text}`}>{stats.completed}</p></div>
+                        </div>
                         <div className="h-12 w-px bg-slate-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
-                        <div className="flex gap-3 flex-1 xl:flex-none">
-                            <button onClick={toggleTheme} className={`${theme.cardBg} h-14 w-14 rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
-                                {settings.theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+                        
+                        {/* Botões do topo: Theme e Settings no Mobile ficam juntos, Novo Projeto vira botão flutuante */}
+                        <div className="col-span-2 flex justify-end gap-3 md:gap-3 mt-2 md:mt-0">
+                            <button onClick={toggleTheme} className={`${theme.cardBg} h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
+                                {settings.theme === 'dark' ? <Sun size={20} className="md:w-[22px] md:h-[22px]"/> : <Moon size={20} className="md:w-[22px] md:h-[22px]"/>}
                             </button>
-                            <button onClick={() => setIsSettingsModalOpen(true)} className={`${theme.cardBg} h-14 w-14 rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-600 dark:hover:text-white`} title="Configurações"><Settings2 size={22} /></button>
-                            <button onClick={() => setIsTitleModalOpen(true)} className="bg-green-700 text-white px-8 h-14 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-green-800 transition-all shadow-lg shadow-green-900/20 hover:shadow-xl hover:-translate-y-0.5 flex-1 xl:flex-none whitespace-nowrap"><PlusCircle size={22} /><span>Novo Projeto</span></button>
+                            <button onClick={() => setIsSettingsModalOpen(true)} className={`${theme.cardBg} h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-600 dark:hover:text-white`} title="Configurações">
+                                <Settings2 size={20} className="md:w-[22px] md:h-[22px]"/>
+                            </button>
+                            
+                            {/* BOTÃO NOVO PROJETO - Flutuante no Mobile, Normal no Desktop */}
+                            <button onClick={() => setIsTitleModalOpen(true)} className="fixed bottom-6 right-6 md:static md:bottom-auto md:right-auto z-40 bg-green-700 text-white p-4 md:px-8 md:h-14 rounded-full md:rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-green-800 transition-all shadow-xl shadow-green-900/20 hover:-translate-y-1">
+                                <PlusCircle size={24} className="md:w-[22px] md:h-[22px]"/>
+                                <span className="hidden md:inline">Novo Projeto</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -207,19 +223,20 @@ const Dashboard = () => {
                 {filterTab === 'all' && !searchTerm && (
                     <div className="space-y-4 animate-in fade-in zoom-in-95 duration-700">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Modelos Rápidos ABNT</h2>
+                            <h2 className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Modelos Rápidos ABNT</h2>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Scroll horizontal no mobile para os modelos rápidos */}
+                        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 snap-x pr-4 md:pr-0 md:pb-0" style={{ scrollbarWidth: 'none' }}>
                             {Object.keys(PROJECT_TYPES).map((key) => (
                                 <button 
                                     key={key}
                                     onClick={() => handleCreateModel(key)}
-                                    className={`${theme.cardBg} p-5 rounded-3xl border-2 border-transparent hover:border-green-600 hover:shadow-xl hover:-translate-y-1 transition-all text-left group flex flex-col h-full relative overflow-hidden`}
+                                    className={`${theme.cardBg} p-4 md:p-5 rounded-[1.5rem] md:rounded-3xl border-2 border-transparent hover:border-green-600 hover:shadow-xl hover:-translate-y-1 transition-all text-left group flex flex-col min-w-[240px] md:min-w-0 h-full relative overflow-hidden snap-center shrink-0`}
                                 >
-                                    <div className="bg-green-50 text-green-700 w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                    <div className="bg-green-50 text-green-700 w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
                                         {PROJECT_TYPES[key].icon}
                                     </div>
-                                    <h3 className="font-bold text-base mb-1">{PROJECT_TYPES[key].label}</h3>
+                                    <h3 className="font-bold text-sm md:text-base mb-1">{PROJECT_TYPES[key].label}</h3>
                                     <p className="text-[10px] text-slate-400 leading-tight mb-4 flex-1">
                                         {PROJECT_TYPES[key].description}
                                     </p>
@@ -232,58 +249,60 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-4 flex items-center gap-4 text-blue-800 dark:text-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white dark:bg-blue-900/50 p-2 rounded-lg shadow-sm text-blue-600 dark:text-blue-400"><Lightbulb size={20} /></div>
-                    <div><p className="text-xs font-bold uppercase opacity-70">Dica ABNT da Semana</p><p className="text-sm font-medium">{ABNT_TIPS[tipIndex]}</p></div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-2xl p-3 md:p-4 flex items-center gap-3 md:gap-4 text-blue-800 dark:text-blue-300 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white dark:bg-blue-900/50 p-2 rounded-lg shadow-sm text-blue-600 dark:text-blue-400 shrink-0"><Lightbulb size={18} className="md:w-5 md:h-5"/></div>
+                    <div><p className="text-[10px] md:text-xs font-bold uppercase opacity-70">Dica ABNT da Semana</p><p className="text-xs md:text-sm font-medium">{ABNT_TIPS[tipIndex]}</p></div>
                 </div>
 
-                <div className={`flex flex-col lg:flex-row justify-between items-center gap-4 p-2 rounded-2xl shadow-sm border ${theme.cardBg}`}>
-                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        <div className={`flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                            <button onClick={() => setFilterTab('all')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-slate-600 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm') : 'text-slate-400 hover:text-slate-600'}`}>
-                                Todos <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (settings.theme === 'dark' ? 'bg-slate-600' : 'bg-slate-200')}`}>{counts.all}</span>
+                <div className={`flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 md:gap-4 p-2 rounded-2xl md:rounded-3xl shadow-sm border ${theme.cardBg}`}>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                        {/* Scroll horizontal nos botões de filtro no mobile */}
+                        <div className={`flex overflow-x-auto p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`} style={{ scrollbarWidth: 'none' }}>
+                            <button onClick={() => setFilterTab('all')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 shrink-0 ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-slate-600 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm') : 'text-slate-400 hover:text-slate-600'}`}>
+                                Todos <span className={`text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (settings.theme === 'dark' ? 'bg-slate-600' : 'bg-slate-200')}`}>{counts.all}</span>
                             </button>
-                            <button onClick={() => setFilterTab('favorites')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${filterTab === 'favorites' ? (settings.theme === 'dark' ? 'bg-slate-600 text-orange-400 shadow-sm' : 'bg-white text-orange-500 shadow-sm') : 'text-slate-400 hover:text-orange-400'}`}>
+                            <button onClick={() => setFilterTab('favorites')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 shrink-0 ${filterTab === 'favorites' ? (settings.theme === 'dark' ? 'bg-slate-600 text-orange-400 shadow-sm' : 'bg-white text-orange-500 shadow-sm') : 'text-slate-400 hover:text-orange-400'}`}>
                                 <Star size={12} /> Favoritos
                             </button>
-                            <button onClick={() => setFilterTab('trash')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${filterTab === 'trash' ? (settings.theme === 'dark' ? 'bg-slate-600 text-red-400 shadow-sm' : 'bg-white text-red-500 shadow-sm') : 'text-slate-400 hover:text-red-400'}`}>
+                            <button onClick={() => setFilterTab('trash')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase transition-all flex items-center justify-center gap-2 shrink-0 ${filterTab === 'trash' ? (settings.theme === 'dark' ? 'bg-slate-600 text-red-400 shadow-sm' : 'bg-white text-red-500 shadow-sm') : 'text-slate-400 hover:text-red-400'}`}>
                                 <Trash2 size={12} /> Lixeira
                             </button>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 justify-end">
                             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleImportBackup} />
-                            <button onClick={() => fileInputRef.current.click()} className={`p-2 rounded-xl border transition-all ${theme.cardBg} hover:text-blue-600 hover:border-blue-200`} title="Importar Backup">
-                                <Upload size={18}/>
+                            <button onClick={() => fileInputRef.current.click()} className={`p-2 rounded-xl border transition-all flex-1 sm:flex-none flex justify-center ${theme.cardBg} hover:text-blue-600 hover:border-blue-200`} title="Importar Backup">
+                                <Upload size={16}/>
                             </button>
-                            <button onClick={handleExportBackup} className={`p-2 rounded-xl border transition-all ${theme.cardBg} hover:text-green-600 hover:border-green-200`} title="Exportar Backup">
-                                <Download size={18}/>
+                            <button onClick={handleExportBackup} className={`p-2 rounded-xl border transition-all flex-1 sm:flex-none flex justify-center ${theme.cardBg} hover:text-green-600 hover:border-green-200`} title="Exportar Backup">
+                                <Download size={16}/>
                             </button>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full lg:w-auto">
-                        <div className={`flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                    <div className="flex items-center gap-2 md:gap-3 w-full lg:w-auto">
+                        <div className={`hidden md:flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
                             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Grid"><LayoutGrid size={16}/></button>
                             <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Lista"><ListIcon size={16}/></button>
                         </div>
-                        <div className="relative flex-1 md:flex-none">
+                        <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <input type="text" placeholder="Procurar..." className={`w-full pl-10 pr-4 py-2 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/20 ${theme.inputBg}`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            <input type="text" placeholder="Procurar..." className={`w-full pl-9 pr-3 py-2 border-none rounded-xl text-xs md:text-sm outline-none focus:ring-2 focus:ring-green-500/20 ${theme.inputBg}`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
-                        <select className={`bg-transparent text-sm font-bold outline-none cursor-pointer ${settings.theme === 'dark' ? 'text-slate-300' : 'text-slate-500'}`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                        <select className={`bg-transparent text-xs md:text-sm font-bold outline-none cursor-pointer p-2 ${settings.theme === 'dark' ? 'text-slate-300' : 'text-slate-500'}`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
                             <option value="recent">Recentes</option>
                             <option value="az">A-Z</option>
                         </select>
                     </div>
                 </div>
 
-                <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20" : "flex flex-col gap-3 pb-20"}>
+                {/* Força view em lista no Mobile para melhor leitura */}
+                <div className={viewMode === 'grid' && window.innerWidth >= 768 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" : "flex flex-col gap-3"}>
                     {processedProjects.map((p, idx) => (
                         <div key={p.id} className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 50}ms` }}>
                             <ProjectCard 
                                 project={p} theme={theme}
-                                viewMode={viewMode}
+                                viewMode={window.innerWidth < 768 ? 'list' : viewMode}
                                 isMenuOpen={activeMenuId === p.id}
                                 onToggleMenu={() => setActiveMenuId(activeMenuId === p.id ? null : p.id)}
                                 onLoad={() => navigate(`/editor/${p.id}`)}
@@ -296,6 +315,12 @@ const Dashboard = () => {
                             />
                         </div>
                     ))}
+                    {processedProjects.length === 0 && (
+                        <div className="text-center py-12 opacity-50">
+                            <Ghost size={48} className="mx-auto mb-4"/>
+                            <p>Nenhum projeto encontrado.</p>
+                        </div>
+                    )}
                 </div>
 
                 <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} onConfirm={handleCreate} />
@@ -305,38 +330,34 @@ const Dashboard = () => {
     );
 };
 
-// Subcomponente Card (sem alterações)
-const ProjectCard = ({ 
-    project, theme, viewMode, isMenuOpen, onToggleMenu,
-    onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate, onDuplicateTemplate 
-}) => {
+const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate, onDuplicateTemplate }) => {
     const progress = calculateProgress(project.data);
     const isTrash = project.deleted;
 
     if (viewMode === 'list') {
         return (
-            <div className={`${theme.cardBg} rounded-2xl border border-transparent hover:border-green-600 transition-all px-6 py-3 group flex items-center justify-between shadow-sm project-menu-container`}>
-                <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={!isTrash ? onLoad : undefined}>
-                    <div className={`p-2 rounded-xl ${isTrash ? 'bg-slate-100 text-slate-400' : 'bg-green-50 text-green-700'}`}>
-                        <FileText size={20} />
+            <div className={`${theme.cardBg} rounded-xl md:rounded-2xl border border-transparent hover:border-green-600 transition-all px-4 py-3 group flex items-center justify-between shadow-sm project-menu-container`}>
+                <div className="flex items-center gap-3 md:gap-4 flex-1 cursor-pointer" onClick={!isTrash ? onLoad : undefined}>
+                    <div className={`p-2 rounded-lg md:rounded-xl shrink-0 ${isTrash ? 'bg-slate-100 text-slate-400' : 'bg-green-50 text-green-700'}`}>
+                        <FileText size={20} className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm truncate group-hover:text-green-700 transition-colors">{project.title}</h3>
-                        <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold uppercase">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <h3 className="font-bold text-sm md:text-base truncate group-hover:text-green-700 transition-colors">{project.title}</h3>
+                        <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] text-slate-400 font-bold uppercase mt-0.5 md:mt-1">
                             <span className={progress.status === 'green' ? 'text-green-600' : ''}>{progress.percent}%</span>
-                            <span className="flex items-center gap-1"><Clock size={10} /> {timeAgo(project.updatedAt)}</span>
+                            <span className="flex items-center gap-1"><Clock size={10} className="w-2.5 h-2.5 md:w-3 md:h-3"/> {timeAgo(project.updatedAt)}</span>
                         </div>
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2 shrink-0">
                     {!isTrash && (
                         <button onClick={onFav} className={`p-2 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}>
-                            <Star size={16} fill={project.favorite ? "currentColor" : "none"} />
+                            <Star size={16} fill={project.favorite ? "currentColor" : "none"} className="w-4 h-4 md:w-5 md:h-5"/>
                         </button>
                     )}
                     <div className="relative">
-                        <button onClick={onToggleMenu} className="p-2 text-slate-300 hover:text-slate-800 dark:hover:text-white"><MoreVertical size={16} /></button>
+                        <button onClick={onToggleMenu} className="p-2 text-slate-300 hover:text-slate-800 dark:hover:text-white"><MoreVertical size={16} className="w-4 h-4 md:w-5 md:h-5"/></button>
                         {isMenuOpen && (
                             <div className="absolute right-0 top-8 w-48 bg-white rounded-xl shadow-2xl border p-2 z-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:border-slate-600">
                                 {isTrash ? (
@@ -356,16 +377,14 @@ const ProjectCard = ({
         );
     }
 
+    // A versão em Grid mantém a aparência anterior, mas agora só aparece em tablets/desktop
     return (
         <div className={`${theme.cardBg} rounded-[2rem] border-2 border-transparent hover:border-green-600 transition-all p-6 group flex flex-col relative h-full shadow-sm hover:shadow-md project-menu-container`}>
             <div className="flex justify-between mb-4">
                 <div onClick={!isTrash ? onLoad : undefined} className={`p-3 rounded-2xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 dark:bg-slate-700 cursor-default text-slate-400' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-pointer'}`}><FileText size={24} /></div>
                 <div className="flex items-center gap-1">
                     {!isTrash && (
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onFav(); }} 
-                            className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}
-                        >
+                        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}>
                             <Star size={18} fill={project.favorite ? "currentColor" : "none"} />
                         </button>
                     )}
