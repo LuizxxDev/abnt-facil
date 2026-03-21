@@ -119,7 +119,7 @@ const LandingPage = () => {
                             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 shadow-inner">
                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">PIX para Manutenção (Servidores/Domínio)</p>
                                 <code className="block bg-slate-900 p-4 rounded-xl text-green-400 font-mono text-xs break-all select-all border border-green-500/10 text-center">
-                                    seu-email-pix-aqui@gmail.com
+                                    luizfelipe.ifpa.2022@gmail.com
                                 </code>
                             </div>
                         </div>
