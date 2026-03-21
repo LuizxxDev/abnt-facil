@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { 
     BookOpen, AlertTriangle, Heart, Coffee, 
     FileText, CheckCircle, GraduationCap, ChevronRight,
-    HelpCircle, ChevronDown
+    HelpCircle, ChevronDown, MessageSquare, Bug, X, Send
 } from 'lucide-react';
 
 const LandingPage = () => {
     const navigate = useNavigate();
     const [openFaq, setOpenFaq] = useState(null);
+    
+    // Novos estados para a funcionalidade de Feedback
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackType, setFeedbackType] = useState('bug');
+    const [feedbackText, setFeedbackText] = useState('');
 
     const faqData = [
         {
@@ -28,6 +33,19 @@ const LandingPage = () => {
             answer: "Como os dados ficam no navegador, recomendamos que utilize a função 'Exportar Backup' no Dashboard regularmente. Assim, pode carregar o seu arquivo em qualquer outro computador sem perder nada."
         }
     ];
+
+    // Função que lida com o envio do feedback via email (CORRIGIDA)
+    const handleSendFeedback = () => {
+        if (!feedbackText.trim()) return;
+        const subject = feedbackType === 'bug' ? '[ABNTFácil] Reporte de Bug' : '[ABNTFácil] Sugestão de Melhoria';
+        const body = `Olá,\n\nGostaria de relatar o seguinte:\n\n${feedbackText}\n\n---\nEnviado via site ABNTFácil`;
+        
+        // A correção está aqui: usamos window.location.href para forçar a abertura do cliente de email
+        window.location.href = `mailto:luizfelipe.ifpa.2022@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        setShowFeedback(false);
+        setFeedbackText('');
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-green-500/30 overflow-x-hidden transition-colors duration-500">
@@ -181,6 +199,77 @@ const LandingPage = () => {
                 <p>Desenvolvido com ☕ por um aluno do IFPA Belém.</p>
                 <p className="mt-2 text-[10px] uppercase tracking-widest opacity-40">© {new Date().getFullYear()} ABNTFácil</p>
             </footer>
+
+            {/* BOTÃO FLUTUANTE DE FEEDBACK */}
+            <button
+                onClick={() => setShowFeedback(true)}
+                className="fixed bottom-6 right-6 z-40 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-500 hover:scale-110 transition-all group flex items-center justify-center border-4 border-slate-950"
+                title="Reportar Bug ou Sugerir Melhoria"
+            >
+                <MessageSquare size={24} />
+                <span className="absolute right-full mr-4 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+                    Bugs ou Sugestões?
+                </span>
+            </button>
+
+            {/* MODAL DE FEEDBACK */}
+            {showFeedback && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-800">
+                            <h3 className="text-xl font-black text-white flex items-center gap-2">
+                                <MessageSquare size={20} className="text-blue-500"/> Enviar Feedback
+                            </h3>
+                            <button onClick={() => setShowFeedback(false)} className="text-slate-500 hover:text-white transition-colors bg-slate-800/50 p-1.5 rounded-full">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-6 flex-1">
+                            <p className="text-sm text-slate-400">
+                                Encontrou algum erro ou tem uma ideia para melhorar a plataforma? Sua ajuda é muito importante!
+                            </p>
+
+                            <div className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                                <button
+                                    onClick={() => setFeedbackType('bug')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${feedbackType === 'bug' ? 'bg-slate-800 text-red-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    <Bug size={16}/> Reportar Bug
+                                </button>
+                                <button
+                                    onClick={() => setFeedbackType('suggestion')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${feedbackType === 'suggestion' ? 'bg-slate-800 text-green-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:text-slate-300'}`}
+                                >
+                                    <Heart size={16}/> Sugerir Melhoria
+                                </button>
+                            </div>
+
+                            <div>
+                                <textarea
+                                    value={feedbackText}
+                                    onChange={(e) => setFeedbackText(e.target.value)}
+                                    placeholder={feedbackType === 'bug' ? 'Descreva o erro que você encontrou com o máximo de detalhes...' : 'Como posso melhorar a sua experiência no ABNTFácil?'}
+                                    className="w-full h-32 bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+                            <button onClick={() => setShowFeedback(false)} className="px-5 py-2.5 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleSendFeedback}
+                                disabled={!feedbackText.trim()}
+                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
+                            >
+                                <Send size={16}/> Enviar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
