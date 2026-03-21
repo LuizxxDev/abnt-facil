@@ -1,0 +1,8 @@
+/* Removemos as restrições de largura e padding do #root */
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left; /* Garante que o texto não fique centralizado forçadamente */
+}
