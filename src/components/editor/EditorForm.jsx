@@ -26,6 +26,39 @@ import { SECTION_GUIDES, SECTION_TEMPLATES, ESTADOS_BR } from '../../utils/const
 import { generateId } from '../../utils/helpers';
 import { EditorToolbar } from './EditorToolbar';
 
+// --- COMPONENTE UTILITÁRIO: Contador de Palavras ABNT ---
+const WordCounter = ({ text, min = 150, max = 500 }) => {
+    const countWords = (str) => {
+        if (!str) return 0;
+        return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+    };
+
+    const count = countWords(text);
+    
+    // Estado inicial (Vazio ou quase vazio)
+    let colorClass = 'text-slate-400 bg-slate-100 border-transparent dark:bg-slate-800';
+    let statusText = '';
+
+    if (count > 0) {
+        if (count < min) {
+            colorClass = 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-900/30 dark:border-yellow-700/50';
+            statusText = `Curto (Mín: ${min})`;
+        } else if (count >= min && count <= max) {
+            colorClass = 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/30 dark:border-green-700/50';
+            statusText = 'Ideal ABNT';
+        } else if (count > max) {
+            colorClass = 'text-red-600 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-900/30 dark:border-red-700/50';
+            statusText = `Longo (Máx: ${max})`;
+        }
+    }
+
+    return (
+        <div className={`text-[10px] font-bold px-2 py-1 rounded border flex items-center gap-1 w-fit transition-colors ${colorClass}`}>
+            {count} palavras {statusText && `- ${statusText}`}
+        </div>
+    );
+};
+
 const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onOpenRefModal }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
     const textareaRef = useRef(null);
@@ -239,12 +272,26 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               <textarea readOnly={isReadOnly} placeholder="Epígrafe (Citação que inspira o trabalho)..." className={`w-full p-3 border rounded-lg text-xs h-20 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.epigrafe || ''} onChange={e => setData({...data, epigrafe: e.target.value})} />
             </section>
 
-            {/* Resumos */}
+            {/* Resumos com Contador Inteligente */}
             <section className="space-y-4">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos e Abstract</h3>
-              <textarea readOnly={isReadOnly} placeholder="Resumo (PT)" className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoPt} onChange={e => setData({...data, resumoPt: e.target.value})} />
+              
+              <div className="space-y-1">
+                  <textarea readOnly={isReadOnly} placeholder="Resumo (PT)" className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoPt} onChange={e => setData({...data, resumoPt: e.target.value})} />
+                  <div className="flex justify-end">
+                      <WordCounter text={data.resumoPt} min={150} max={500} />
+                  </div>
+              </div>
+
               <input readOnly={isReadOnly} placeholder="Palavras-chave" className={`w-full p-2 border rounded-lg text-xs mb-2 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChavePt} onChange={e => setData({...data, palavrasChavePt: e.target.value})} />
-              <textarea readOnly={isReadOnly} placeholder="Abstract (EN)" className={`w-full p-3 border rounded-lg text-xs h-32 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoEn} onChange={e => setData({...data, resumoEn: e.target.value})} />
+              
+              <div className="space-y-1">
+                  <textarea readOnly={isReadOnly} placeholder="Abstract (EN)" className={`w-full p-3 border rounded-lg text-xs h-32 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoEn} onChange={e => setData({...data, resumoEn: e.target.value})} />
+                  <div className="flex justify-end">
+                      <WordCounter text={data.resumoEn} min={150} max={500} />
+                  </div>
+              </div>
+
               <input readOnly={isReadOnly} placeholder="Keywords (EN)" className={`w-full p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChaveEn} onChange={e => setData({...data, palavrasChaveEn: e.target.value})} />
             </section>
             

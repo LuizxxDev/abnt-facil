@@ -43,7 +43,6 @@ const Editor = () => {
     const [mobileView, setMobileView] = useState('editor'); 
     
     const [isRefModalOpen, setIsRefModalOpen] = useState(false);
-    // ADICIONADO localBase64 NO ESTADO INICIAL
     const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     
     const [attachmentModal, setAttachmentModal] = useState({ open: false, type: 'apendice' });
@@ -82,12 +81,53 @@ const Editor = () => {
     const abntErrors = useMemo(() => {
         if (!data) return [];
         const errs = [];
+        
+        // Validações Básicas
         if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
         if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
         if (!data.orientador && (!data.orientadores || data.orientadores.filter(o => o.trim() !== '').length === 0)) errs.push({msg: 'Informe o Orientador', explain: 'Crédito obrigatório na folha de rosto.'});
         if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
         if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
         if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
+
+        // --- NOVA FUNCIONALIDADE: VALIDAÇÃO CRUZADA DE CITAÇÕES ("CAÇA-ERROS") ---
+        if (data.secoes && data.referencias) {
+            // Junta todo o texto das seções
+            const fullText = data.secoes.map(s => s.conteudo).join(' ');
+            
+            // Regex para capturar padrões ABNT como: (SILVA, 2023) ou (SOUZA; LIMA, 2021) ou (SANTOS et al., 2019)
+            const citationRegex = /\(([A-ZÀ-ÖØ-Þ\s;]+?)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)/g;
+            let match;
+            const citedAuthors = new Set();
+            
+            while ((match = citationRegex.exec(fullText)) !== null) {
+                const authorsStr = match[1];
+                // Separa autores se houver ponto e vírgula e limpa os espaços
+                const authorsList = authorsStr.split(';').map(a => a.trim().toUpperCase());
+                authorsList.forEach(author => {
+                    if (author.length > 2) citedAuthors.add(author); // Adiciona ao Set (evita duplicados)
+                });
+            }
+
+            const refsUpper = data.referencias.toUpperCase();
+            const missing = [];
+            
+            // Verifica se cada autor citado no texto existe na string de referências final
+            citedAuthors.forEach(author => {
+                if (!refsUpper.includes(author)) {
+                    missing.push(author);
+                }
+            });
+
+            // Se houver algum autor faltando, dispara o erro
+            if (missing.length > 0) {
+                errs.push({
+                    msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
+                    explain: `Atenção: Citaste "${missing[0]}" no texto, mas não o incluíste na lista final de Referências. A banca desconta nota por isso!`
+                });
+            }
+        }
+        
         return errs;
     }, [data]);
 
@@ -127,17 +167,15 @@ const Editor = () => {
         if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
-    // --- LÓGICA DE INSERÇÃO DE IMAGENS ATUALIZADA (OPÇÃO 1) ---
     const confirmAssetInsert = () => {
         if(isReadOnly) return;
         const { type, sectionIndex, title, source, url, content, tableData, localBase64 } = assetModal;
         
         let newData = { ...data };
-        if (!newData.assets) newData.assets = {}; // Garante que o objeto existe
+        if (!newData.assets) newData.assets = {}; 
         
         let finalUrl = url;
         
-        // Se for imagem local, salva no dicionário e gera um ID limpo para o texto
         if (type === 'img' && localBase64) {
             const assetId = 'local_img_' + Date.now().toString(36);
             newData.assets[assetId] = localBase64;
@@ -155,7 +193,6 @@ const Editor = () => {
         newData.secoes = newSec;
         
         setData(newData); 
-        // Reseta o modal limpando o base64
         setAssetModal({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     };
 
