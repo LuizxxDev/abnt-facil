@@ -19,6 +19,7 @@ import ABNTViewer from '../components/preview/ABNTViewer';
 
 import ReferenceModal from '../components/editor/ReferenceModal';
 import AssetModal from '../components/common/AssetModal';
+import AttachmentModal from '../components/editor/AttachmentModal'; // NOVO IMPORT
 
 const Editor = () => {
     const { id } = useParams();
@@ -31,7 +32,6 @@ const Editor = () => {
     const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
     const [fontFamily, setFontFamily] = useState(settings.defaultFont);
 
-    // PROTEÇÃO CRÍTICA: Estado para saber se já carregámos o projeto atual
     const [loadedId, setLoadedId] = useState(null);
 
     const [tab, setTab] = useState('editor');
@@ -44,6 +44,9 @@ const Editor = () => {
     
     const [isRefModalOpen, setIsRefModalOpen] = useState(false);
     const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [] });
+    
+    // NOVO ESTADO: Modal de Apêndices e Anexos
+    const [attachmentModal, setAttachmentModal] = useState({ open: false, type: 'apendice' });
 
     useEffect(() => {
         setActiveProjectId(id);
@@ -51,8 +54,6 @@ const Editor = () => {
 
     useEffect(() => {
         if (!id) return;
-        
-        // Se já carregámos os dados DESTE projeto, não faz reload (evita loops com a Dashboard)
         if (loadedId === id) return;
 
         if (id === EXAMPLE_ID) {
@@ -206,7 +207,19 @@ const Editor = () => {
                     <aside className={`absolute inset-0 z-10 lg:relative lg:z-auto w-full lg:w-[450px] border-r flex-col print:hidden transition-all duration-300 ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} ${isReadOnly ? 'opacity-80' : ''} ${settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                          <div className={`flex border-b shrink-0 ${settings.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}><button onClick={() => setTab('editor')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'editor' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><FileEdit size={14}/> Conteúdo</button><button onClick={() => setTab('checklist')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'checklist' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><ListTodo size={14}/> Assistente</button></div>
                          {tab === 'editor' ? (
-                             <EditorForm data={data} setData={setData} authors={authors} setAuthors={setAuthors} settings={settings} isReadOnly={isReadOnly} focusedSection={focusedSection} setFocusedSection={setFocusedSection} onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [] })} onOpenRefModal={() => setIsRefModalOpen(true)} />
+                             <EditorForm 
+                                data={data} 
+                                setData={setData} 
+                                authors={authors} 
+                                setAuthors={setAuthors} 
+                                settings={settings} 
+                                isReadOnly={isReadOnly} 
+                                focusedSection={focusedSection} 
+                                setFocusedSection={setFocusedSection} 
+                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [] })} 
+                                onOpenRefModal={() => setIsRefModalOpen(true)}
+                                onOpenAttachmentModal={(type) => setAttachmentModal({ open: true, type })} 
+                             />
                          ) : (
                             <div className={`flex-1 overflow-y-auto p-6 space-y-8 ${settings.theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}>
                                 <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"><ShieldCheck size={14} className="text-green-600"/> Saúde do Documento</h3>{abntErrors.length === 0 ? <div className="text-center py-6"><CheckCircle2 size={40} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Tudo Certo!</p><p className="text-xs text-slate-400">Nenhum problema estrutural encontrado.</p></div> : <ul className="space-y-2">{abntErrors.map((err, i) => (<li key={i} className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded"><div className="flex items-center gap-2 font-bold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div><div className="pl-6 opacity-75">{err.explain}</div></li>))}</ul>}</section>
@@ -232,6 +245,21 @@ const Editor = () => {
 
             <ReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData({ ...data, referencias: data.referencias ? data.referencias + '\n\n' + referenceStr : referenceStr }); }} />
             <AssetModal isOpen={assetModal.open} onClose={() => setAssetModal({...assetModal, open: false})} assetModal={assetModal} setAssetModal={setAssetModal} onConfirm={confirmAssetInsert} />
+            
+            <AttachmentModal 
+                isOpen={attachmentModal.open} 
+                onClose={() => setAttachmentModal({ ...attachmentModal, open: false })} 
+                type={attachmentModal.type} 
+                currentText={attachmentModal.type === 'apendice' ? data.apendices : data.anexos} 
+                onAdd={(formattedStr) => { 
+                    if (attachmentModal.type === 'apendice') {
+                        setData({ ...data, apendices: data.apendices ? data.apendices + '\n\n\n' + formattedStr : formattedStr }); 
+                    } else {
+                        setData({ ...data, anexos: data.anexos ? data.anexos + '\n\n\n' + formattedStr : formattedStr }); 
+                    }
+                    setAttachmentModal({ ...attachmentModal, open: false });
+                }} 
+            />
         </div>
     );
 };
