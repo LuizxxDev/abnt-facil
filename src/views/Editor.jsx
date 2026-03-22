@@ -82,44 +82,35 @@ const Editor = () => {
         if (!data) return [];
         const errs = [];
         
-        // Validações Básicas
         if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
         if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
-        if (!data.orientador && (!data.orientadores || data.orientadores.filter(o => o.trim() !== '').length === 0)) errs.push({msg: 'Informe o Orientador', explain: 'Crédito obrigatório na folha de rosto.'});
         if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
         if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
         if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
 
-        // --- NOVA FUNCIONALIDADE: VALIDAÇÃO CRUZADA DE CITAÇÕES ("CAÇA-ERROS") ---
         if (data.secoes && data.referencias) {
-            // Junta todo o texto das seções
             const fullText = data.secoes.map(s => s.conteudo).join(' ');
-            
-            // Regex para capturar padrões ABNT como: (SILVA, 2023) ou (SOUZA; LIMA, 2021) ou (SANTOS et al., 2019)
             const citationRegex = /\(([A-ZÀ-ÖØ-Þ\s;]+?)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)/g;
             let match;
             const citedAuthors = new Set();
             
             while ((match = citationRegex.exec(fullText)) !== null) {
                 const authorsStr = match[1];
-                // Separa autores se houver ponto e vírgula e limpa os espaços
                 const authorsList = authorsStr.split(';').map(a => a.trim().toUpperCase());
                 authorsList.forEach(author => {
-                    if (author.length > 2) citedAuthors.add(author); // Adiciona ao Set (evita duplicados)
+                    if (author.length > 2) citedAuthors.add(author); 
                 });
             }
 
             const refsUpper = data.referencias.toUpperCase();
             const missing = [];
             
-            // Verifica se cada autor citado no texto existe na string de referências final
             citedAuthors.forEach(author => {
                 if (!refsUpper.includes(author)) {
                     missing.push(author);
                 }
             });
 
-            // Se houver algum autor faltando, dispara o erro
             if (missing.length > 0) {
                 errs.push({
                     msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
@@ -144,17 +135,32 @@ const Editor = () => {
         return { label: 'Erros', color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={12}/> };
     }, [abntErrors]);
 
+    // LÓGICA DE NUMERAÇÃO BLINDADA
     const sumarioItens = useMemo(() => { 
-        if (!data) return [];
-        let i=0, j=0; return data.secoes.map(s => s.level===1 ? { num: ++i, ...s } : { num: `${i}.${++j}`, ...s }); 
+        if (!data || !data.secoes) return [];
+        let currentChapter = 0;
+        let currentSub = 0;
+        
+        return data.secoes.map(s => {
+            const isPrimary = Number(s.level) === 1;
+            if (isPrimary) {
+                currentChapter += 1;
+                currentSub = 0; // Reseta a subseção quando um novo capítulo começa
+                return { ...s, num: currentChapter.toString() };
+            } else {
+                currentSub += 1;
+                const parentChapter = currentChapter === 0 ? 1 : currentChapter;
+                return { ...s, num: `${parentChapter}.${currentSub}` };
+            }
+        }); 
     }, [data?.secoes]);
 
     const groupedSections = useMemo(() => {
-        if (!data) return [];
+        if (!data || !data.secoes) return [];
         const groups = [];
         data.secoes.forEach((section, index) => {
           const sectionWithNum = { ...section, num: sumarioItens[index]?.num };
-          if (section.level === 1 || groups.length === 0) groups.push([sectionWithNum]);
+          if (Number(section.level) === 1 || groups.length === 0) groups.push([sectionWithNum]);
           else groups[groups.length - 1].push(sectionWithNum);
         });
         return groups;
@@ -171,28 +177,30 @@ const Editor = () => {
         if(isReadOnly) return;
         const { type, sectionIndex, title, source, url, content, tableData, localBase64 } = assetModal;
         
-        let newData = { ...data };
-        if (!newData.assets) newData.assets = {}; 
-        
-        let finalUrl = url;
-        
-        if (type === 'img' && localBase64) {
-            const assetId = 'local_img_' + Date.now().toString(36);
-            newData.assets[assetId] = localBase64;
-            finalUrl = assetId; 
-        }
+        setData(prevData => {
+            let newData = { ...prevData };
+            if (!newData.assets) newData.assets = {}; 
+            
+            let finalUrl = url;
+            
+            if (type === 'img' && localBase64) {
+                const assetId = 'local_img_' + Date.now().toString(36);
+                newData.assets[assetId] = localBase64;
+                finalUrl = assetId; 
+            }
 
-        let tag = '';
-        if (type === 'cit') tag = `\n\n[CITAÇÃO]: ${content}`;
-        else if (type === 'img') tag = `\n\n[IMAGEM]: ${title} | ${source} | ${finalUrl}`;
-        else if (type === 'tab') tag = `\n\n[TABELA]: ${title} | ${source} | ${JSON.stringify(tableData)}`;
-        else if (type === 'box') tag = `\n\n[QUADRO]: ${title} | ${source} | ${content || 'Conteúdo...'}`;
+            let tag = '';
+            if (type === 'cit') tag = `\n\n[CITAÇÃO]: ${content}`;
+            else if (type === 'img') tag = `\n\n[IMAGEM]: ${title} | ${source} | ${finalUrl}`;
+            else if (type === 'tab') tag = `\n\n[TABELA]: ${title} | ${source} | ${JSON.stringify(tableData)}`;
+            else if (type === 'box') tag = `\n\n[QUADRO]: ${title} | ${source} | ${content || 'Conteúdo...'}`;
+            
+            const newSec = [...newData.secoes]; 
+            newSec[sectionIndex] = { ...newSec[sectionIndex], conteudo: newSec[sectionIndex].conteudo + tag };
+            newData.secoes = newSec;
+            return newData;
+        }); 
         
-        const newSec = [...newData.secoes]; 
-        newSec[sectionIndex].conteudo += tag; 
-        newData.secoes = newSec;
-        
-        setData(newData); 
         setAssetModal({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     };
 
@@ -292,7 +300,22 @@ const Editor = () => {
                 </div>
 
                 {!focusMode && showOutline && (
-                    <Sidebar sumarioItens={sumarioItens} scrollToSection={scrollToSection} setShowOutline={setShowOutline} settings={settings} onReorder={(oldIndex, newIndex) => { if (isReadOnly) return; const newSecoes = [...data.secoes]; const [moved] = newSecoes.splice(oldIndex, 1); newSecoes.splice(newIndex, 0, moved); setData({ ...data, secoes: newSecoes }); }} data={data} />
+                    <Sidebar 
+                        sumarioItens={sumarioItens} 
+                        scrollToSection={scrollToSection} 
+                        setShowOutline={setShowOutline} 
+                        settings={settings} 
+                        onReorder={(oldIndex, newIndex) => { 
+                            if (isReadOnly) return; 
+                            setData(prev => {
+                                const newSecoes = [...prev.secoes]; 
+                                const [moved] = newSecoes.splice(oldIndex, 1); 
+                                newSecoes.splice(newIndex, 0, moved); 
+                                return { ...prev, secoes: newSecoes }; 
+                            });
+                        }} 
+                        data={data} 
+                    />
                 )}
 
                 <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} className={`lg:hidden fixed bottom-6 right-6 z-30 p-4 rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95 border-4 ${settings.theme === 'dark' ? 'bg-green-600 text-white border-slate-900 shadow-green-900/50' : 'bg-green-600 text-white border-white shadow-green-600/30'}`}>
@@ -301,7 +324,7 @@ const Editor = () => {
                 </button>
             </main>
 
-            <ReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData({ ...data, referencias: data.referencias ? data.referencias + '\n\n' + referenceStr : referenceStr }); }} />
+            <ReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData(prev => ({ ...prev, referencias: prev.referencias ? prev.referencias + '\n\n' + referenceStr : referenceStr })); }} />
             <AssetModal isOpen={assetModal.open} onClose={() => setAssetModal({...assetModal, open: false})} assetModal={assetModal} setAssetModal={setAssetModal} onConfirm={confirmAssetInsert} />
             
             <AttachmentModal 
@@ -310,11 +333,13 @@ const Editor = () => {
                 type={attachmentModal.type} 
                 currentText={attachmentModal.type === 'apendice' ? data.apendices : data.anexos} 
                 onAdd={(formattedStr) => { 
-                    if (attachmentModal.type === 'apendice') {
-                        setData({ ...data, apendices: data.apendices ? data.apendices + '\n\n\n' + formattedStr : formattedStr }); 
-                    } else {
-                        setData({ ...data, anexos: data.anexos ? data.anexos + '\n\n\n' + formattedStr : formattedStr }); 
-                    }
+                    setData(prev => {
+                        if (attachmentModal.type === 'apendice') {
+                            return { ...prev, apendices: prev.apendices ? prev.apendices + '\n\n\n' + formattedStr : formattedStr };
+                        } else {
+                            return { ...prev, anexos: prev.anexos ? prev.anexos + '\n\n\n' + formattedStr : formattedStr };
+                        }
+                    });
                     setAttachmentModal({ ...attachmentModal, open: false });
                 }} 
             />
