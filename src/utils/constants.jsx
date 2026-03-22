@@ -112,7 +112,7 @@ export const EXAMPLE_PROJECT = {
     title: "Modelo de TCC (Exemplo Completo)",
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
-    authors: ["Fulano da Silva"],
+    authors: ["Estudante Universitário"],
     checklist: [
         { id: "ck1", text: "Definir tema e problema", done: true },
         { id: "ck2", text: "Escrever resumo e abstract", done: true },
@@ -124,59 +124,61 @@ export const EXAMPLE_PROJECT = {
     favorite: true,
     data: {
         instituicao: "INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ",
-        curso: "CURSO DE TECNOLOGIA EM ANÁLISE E DESENVOLVIMENTO DE SISTEMAS",
-        titulo: "O IMPACTO DA INTELIGÊNCIA ARTIFICIAL NA EDUCAÇÃO TÉCNICA",
-        subtitulo: "Desafios e Oportunidades no Ensino de Programação",
-        naturezaTrabalho: "Trabalho de Conclusão de Curso apresentado ao Instituto Federal do Pará como requisito parcial para obtenção do título de Tecnólogo em Análise e Desenvolvimento de Sistemas.",
-        orientador: "Prof. Dr. Ciclano de Souza",
+        curso: "CURSO DE BACHARELADO EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO",
+        titulo: "A IMPORTÂNCIA DA SAÚDE MENTAL NO ENSINO SUPERIOR",
+        subtitulo: "Desafios Psicológicos e Impactos no Desempenho de Estudantes de Ciências Exatas",
+        naturezaTrabalho: "Trabalho de Conclusão de Curso apresentado ao Instituto Federal do Pará como requisito parcial para obtenção do título de Bacharel.",
+        orientadores: ["Prof. Dr. Ciclano de Souza"],
         cidade: "Belém",
         estado: "PA",
         ano: new Date().getFullYear().toString(),
-        resumoPt: "O presente trabalho analisa a integração de ferramentas de Inteligência Artificial (IA) no ensino de lógica de programação. Através de uma revisão bibliográfica e estudo de caso, investigou-se como LLMs (Large Language Models) podem auxiliar alunos iniciantes na detecção de erros e compreensão de código. Os resultados indicam que, quando utilizada como tutora e não apenas como geradora de respostas, a IA aumenta a eficácia do aprendizado em 30%. Conclui-se que a mediação docente é indispensável para evitar a dependência tecnológica e fomentar o pensamento crítico.",
-        palavrasChavePt: "Inteligência Artificial. Educação. Programação. Ensino Técnico.",
-        resumoEn: "This paper analyzes the integration of Artificial Intelligence (AI) tools in the teaching of programming logic. Through a literature review and case study, we investigated how LLMs (Large Language Models) can assist beginner students in error detection and code understanding. The results indicate that, when used as a tutor rather than just an answer generator, AI increases learning effectiveness by 30%. It is concluded that teaching mediation is indispensable to avoid technological dependence and foster critical thinking.",
-        palavrasChaveEn: "Artificial Intelligence. Education. Programming. Technical Teaching.",
-        dedicatoria: "Dedico este trabalho aos meus pais, pelo incentivo constante, e aos professores que me ensinaram a amar a tecnologia.",
-        epigrafe: "A tecnologia é apenas uma ferramenta. No que se refere a motivar as crianças e conseguir que trabalhem juntas, o professor é o recurso mais importante. (Bill Gates)",
-        
+        dedicatoria: "Dedico este trabalho a todos os estudantes que silenciosamente enfrentam batalhas internas enquanto buscam seus sonhos acadêmicos. Que a jornada se torne mais leve.",
+        agradecimentos: "Agradeço primeiramente a Deus, pela força nos momentos de dificuldade.\n\nAo meu orientador, pela paciência, empatia e por compreender que por trás de um acadêmico existe um ser humano.\n\nAos profissionais de psicologia e assistência estudantil do IFPA, cujo trabalho diário salva vidas e resgata futuros.",
+        epigrafe: "O que a saúde mental precisa é de mais luz e menos silêncio. (Viktor Frankl)",
+        resumoPt: "O ingresso no ensino superior representa um período de transição crítica, frequentemente acompanhado por um aumento significativo de estresse, ansiedade e pressão por desempenho, especialmente em cursos de ciências exatas. Este trabalho tem como objetivo analisar a importância da saúde mental e seus impactos diretos no rendimento acadêmico de estudantes de engenharia. Através de uma revisão bibliográfica sistemática e da aplicação de questionários, investigou-se a prevalência de transtornos mentais comuns no ambiente universitário e a eficácia das redes de apoio institucional. Os resultados indicam que a carga horária exaustiva e o rigor das avaliações contribuem para o esgotamento (burnout) estudantil. Conclui-se que a implementação de políticas de acolhimento psicológico não é apenas uma questão de saúde pública, mas uma estratégia pedagógica indispensável para reduzir a evasão e promover uma formação integral.",
+        palavrasChavePt: "Saúde Mental. Ensino Superior. Ansiedade. Evasão Universitária. Engenharia.",
+        resumoEn: "Entry into higher education represents a critical transition period, often accompanied by a significant increase in stress, anxiety, and performance pressure, especially in exact sciences courses. This study aims to analyze the importance of mental health and its direct impacts on the academic performance of engineering students. Through a systematic literature review and the application of questionnaires, the prevalence of common mental disorders in the university environment and the effectiveness of institutional support networks were investigated. The results indicate that the exhaustive workload and the rigor of assessments contribute to student burnout. It is concluded that the implementation of psychological support policies is not only a public health issue but an indispensable pedagogical strategy to reduce dropout rates and promote comprehensive education.",
+        palavrasChaveEn: "Mental Health. Higher Education. Anxiety. University Dropout. Engineering.",
         secoes: [
             {
                 id: generateId(),
                 num: "1",
                 titulo: "INTRODUÇÃO",
                 level: 1,
-                conteudo: "A evolução da Inteligência Artificial (IA) tem transformado diversos setores da sociedade, e a educação não é exceção. No contexto do ensino técnico, especificamente na formação de programadores, ferramentas como o ChatGPT e o GitHub Copilot têm alterado a dinâmica da sala de aula.\n\nO problema de pesquisa deste trabalho consiste em: como as ferramentas de IA generativa podem ser utilizadas para potencializar o aprendizado de lógica de programação sem comprometer o desenvolvimento do raciocínio algorítmico do aluno?\n\nO objetivo geral é analisar os impactos pedagógicos do uso assistido de IA em turmas introdutórias de desenvolvimento de sistemas no IFPA. A metodologia adotada foi a pesquisa bibliográfica combinada com a análise qualitativa de dados."
+                conteudo: "O ambiente universitário é, por excelência, um espaço de desenvolvimento intelectual, profissional e pessoal. No entanto, para muitos estudantes, a transição para o ensino superior é marcada por desafios que transcendem as exigências puramente acadêmicas, adentrando a esfera psicológica e emocional. O aumento da carga de estudos, a pressão por notas, as incertezas quanto ao futuro no mercado de trabalho e, muitas vezes, o afastamento do núcleo familiar, configuram um cenário propício ao adoecimento mental.\n\nO problema de pesquisa que norteia este estudo é: de que maneira o esgotamento psicológico afeta o rendimento e a permanência de discentes em cursos de alta exigência analítica, como as Engenharias?\n\nO objetivo geral é compreender os impactos da saúde mental no desempenho de estudantes universitários, propondo diretrizes para a criação de um ambiente acadêmico mais acolhedor. A justificativa fundamenta-se nos alarmantes índices de evasão escolar motivados por quadros de depressão, ansiedade e síndrome de burnout."
             },
             {
                 id: generateId(),
                 num: "2",
                 titulo: "REFERENCIAL TEÓRICO",
                 level: 1,
-                conteudo: "Segundo Silva (2023), a inteligência artificial na educação pode atuar como um sistema de tutoria inteligente, personalizando o ritmo de estudo. No entanto, é crucial distinguir entre o uso da ferramenta como apoio cognitivo e como muleta intelectual.\n\n[CITAÇÃO]: A automação de tarefas cognitivas básicas permite que o aluno foque em problemas de maior complexidade, desde que a base teórica esteja consolidada (ALMEIDA, 2022, p. 45).\n\nAbaixo, apresenta-se um quadro comparativo sobre os tipos de uso da IA:\n\n[QUADRO]:\n**Quadro 1 - Modos de Uso da IA**\n| Modo | Descrição | Impacto |\n|---|---|---|\n| Gerador | O aluno pede a resposta pronta. | Baixo aprendizado |\n| Tutor | O aluno pede explicação do erro. | Alto aprendizado |\n| Revisor | O aluno pede melhorias no código. | Médio aprendizado |\nFonte: Elaborado pelo autor (2024)."
+                conteudo: "Historicamente, o foco das instituições de ensino superior esteve quase que exclusivamente voltado para a excelência técnica e científica, relegando o bem-estar biopsicossocial do aluno a um segundo plano. Segundo Oliveira e Fernandes (2022), a cultura do produtivismo acadêmico frequentemente valida o sofrimento como parte natural e obrigatória do processo de formação.\n\n[CITAÇÃO]: A universidade moderna exige do sujeito uma performance contínua e sem falhas, o que gera uma internalização da culpa frente ao fracasso. O aluno deixa de ser visto em sua totalidade humana para ser avaliado apenas como um repositório de produtividade e notas (SILVA, 2023, p. 112).\n\nPara fins de compreensão das patologias mais comuns, apresenta-se o quadro abaixo:\n\n[QUADRO]: Principais Transtornos no Ambiente Acadêmico | Adaptado de Ministério da Saúde (2023) | Ansiedade: Semanas de provas, apresentações de TCC, prazos apertados. Dificuldade de concentração e branco em avaliações.\nDepressão: Isolamento social, reprovações recorrentes, sensação de insuficiência. Perda de motivação, absenteísmo e evasão.\nBurnout: Sobrecarga extrema de projetos, estágios e relatórios. Exaustão crônica, cinismo e queda brusca de notas."
             },
             {
                 id: generateId(),
                 num: "3",
                 titulo: "METODOLOGIA",
                 level: 1,
-                conteudo: "Esta pesquisa classifica-se como exploratória e descritiva. Para a coleta de dados, foram analisados artigos publicados entre 2020 e 2024 nas bases Google Acadêmico e Scielo.\n\nO procedimento técnico envolveu a comparação de desempenho entre dois grupos de alunos: o Grupo A utilizou IA apenas para tirar dúvidas conceituais, enquanto o Grupo B utilizou IA para gerar códigos completos."
+                conteudo: "A pesquisa possui caráter qualiquantitativo e delineamento transversal. A coleta de dados foi realizada por meio de um questionário online estruturado, aplicado a uma amostra de 150 alunos matriculados nos últimos quatro semestres de cursos de ciências exatas de uma instituição federal.\n\nO instrumento de coleta incluiu a versão adaptada da Escala de Estresse Percebido (Perceived Stress Scale - PSS-10), além de perguntas abertas sobre a utilização e a percepção dos serviços de apoio psicológico oferecidos pela instituição."
             },
             {
                 id: generateId(),
                 num: "4",
                 titulo: "RESULTADOS E DISCUSSÃO",
                 level: 1,
-                conteudo: "Os dados coletados demonstraram que o Grupo A obteve notas 15% superiores nas avaliações presenciais (sem consulta) em comparação ao Grupo B. Isso sugere que o uso da IA para gerar código pronto cria uma falsa sensação de competência.\n\n[IMAGEM]: https://placehold.co/600x300/EEE/31343C?text=Gráfico+de+Desempenho\nFonte: Dados da pesquisa (2024).\n\nA figura acima ilustra a curva de aprendizado. Nota-se que o uso crítico da ferramenta acelera a compreensão de sintaxe, mas não substitui a prática de lógica."
+                conteudo: "A análise dos dados revelou um cenário preocupante. Dos 150 entrevistados, aproximadamente 68% relataram ter experimentado níveis altos ou muito altos de estresse durante o último período letivo. Além disso, 45% afirmaram já ter cogitado abandonar o curso devido à exaustão mental.\n\n[TABELA]: Prevalência de Sintomas Relatados | Dados da pesquisa de campo (2024) | [[\"Sintoma Relatado\", \"Frequência (%)\", \"Impacto Percebido na Nota\"], [\"Insônia crônica\", \"58%\", \"Alto\"], [\"Crises de ansiedade\", \"42%\", \"Muito Alto\"], [\"Desmotivação generalizada\", \"71%\", \"Médio-Alto\"], [\"Pensamentos de desistência\", \"45%\", \"Extremo\"]]\n\nApesar dos altos índices de sofrimento, notou-se que apenas 12% dos estudantes buscaram o núcleo de apoio psicológico da universidade. Quando questionados sobre o motivo, a maioria apontou o estigma associado à saúde mental e a incompatibilidade de horários entre as aulas e os plantões de atendimento.\n\n[IMAGEM]: Gráfico de Busca por Apoio | Dados da pesquisa (2024) | https://placehold.co/600x300/EEE/31343C?text=Alunos+que+buscaram+Apoio:+12%25"
             },
             {
                 id: generateId(),
                 num: "5",
                 titulo: "CONCLUSÃO",
                 level: 1,
-                conteudo: "Conclui-se que a Inteligência Artificial é uma aliada poderosa no ensino técnico, desde que mediada por estratégias pedagógicas claras. A proibição dessas ferramentas mostra-se ineficaz; o caminho é o letramento digital.\n\nPara trabalhos futuros, sugere-se a criação de um guia de boas práticas para docentes sobre como integrar LLMs em planos de aula de disciplinas técnicas."
+                conteudo: "Conclui-se que a saúde mental é um pilar fundamental e indissociável do sucesso acadêmico. A negligência institucional frente ao sofrimento psíquico dos estudantes não apenas compromete a qualidade do ensino, mas também resulta em perdas significativas de talentos devido à evasão.\n\nFaz-se necessária uma mudança de paradigma na cultura acadêmica, substituindo a romantização do esgotamento por estratégias efetivas de cuidado. Recomenda-se, para trabalhos futuros, a investigação de como a adoção de metodologias ativas e avaliações formativas pode mitigar os picos de estresse gerados pelo modelo tradicional de provas."
             }
         ],
-        referencias: "ALMEIDA, R. T. Tecnologias na Educação. São Paulo: Editora Moderna, 2022.\n\nSILVA, J. P. Inteligência Artificial e o Futuro do Ensino. Revista Brasileira de Informática na Educação, v. 10, n. 2, p. 12-25, 2023.\n\nOPENAI. ChatGPT: Optimizing Language Models for Dialogue. 2022. Disponível em: <https://openai.com/blog/chatgpt/>. Acesso em: 15 jan. 2024."
+        referencias: "MINISTÉRIO DA SAÚDE. Manual de Saúde Mental do Estudante Universitário. Brasília: MS, 2023.\n\nOLIVEIRA, M. A.; FERNANDES, L. R. O produtivismo acadêmico e suas consequências. Revista de Psicologia da Educação, v. 21, n. 4, p. 89-105, 2022.\n\nSILVA, P. T. Subjetividade e Sofrimento na Universidade. São Paulo: Editora Saber, 2023.",
+        apendices: "APÊNDICE A - Questionário de Estresse Percebido\n\n1. No último mês, com que frequência você se sentiu nervoso ou estressado por causa da faculdade?\n2. Com que frequência você sentiu que não conseguiria lidar com todas as tarefas acadêmicas?",
+        anexos: "ANEXO A - Cartilha Nacional de Prevenção ao Suicídio\n\n[O conteúdo da cartilha do Ministério da Saúde seria inserido aqui]"
     }
 };
 

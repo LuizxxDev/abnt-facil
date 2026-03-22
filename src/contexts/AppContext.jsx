@@ -211,17 +211,20 @@ export const AppProvider = ({ children }) => {
       cidade: 'Belém', 
       estado: 'PA', 
       ano: new Date().getFullYear().toString(), 
+      dedicatoria: '',
+      agradecimentos: '',
+      epigrafe: '',
       resumoPt: '', 
       palavrasChavePt: '', 
       resumoEn: '', 
       palavrasChaveEn: '', 
-      dedicatoria: '', 
-      epigrafe: '', 
       secoes: [
         { id: generateId(), titulo: 'INTRODUÇÃO', conteudo: '', level: 1 }, 
         { id: generateId(), titulo: 'REFERENCIAL TEÓRICO', conteudo: '', level: 1 }
       ], 
-      referencias: '' 
+      referencias: '',
+      apendices: '',
+      anexos: '' 
     }
   });
 
@@ -254,14 +257,17 @@ export const AppProvider = ({ children }) => {
         cidade: 'Belém',
         estado: 'PA',
         ano: new Date().getFullYear().toString(),
+        dedicatoria: '',
+        agradecimentos: '',
+        epigrafe: '',
         resumoPt: '',
         palavrasChavePt: '',
         resumoEn: '',
         palavrasChaveEn: '',
-        dedicatoria: '',
-        epigrafe: '',
         secoes: model.sections.map(s => ({ ...s, id: generateId() })),
-        referencias: ''
+        referencias: '',
+        apendices: '',
+        anexos: ''
     };
     
     const newProj = prepareProjectObject(title, customData);
@@ -284,11 +290,14 @@ export const AppProvider = ({ children }) => {
     const customData = {
         ...EXAMPLE_PROJECT.data,
         curso: '', 
-        orientadores: EXAMPLE_PROJECT.data.orientador ? [EXAMPLE_PROJECT.data.orientador] : [''], 
+        orientadores: EXAMPLE_PROJECT.data.orientadores ? [...EXAMPLE_PROJECT.data.orientadores] : [''], 
         resumoPt: '', 
         resumoEn: '', 
         dedicatoria: '', 
+        agradecimentos: '',
         epigrafe: '',
+        apendices: '',
+        anexos: '',
         secoes: EXAMPLE_PROJECT.data.secoes.map(s => ({...s, id: generateId(), conteudo: ''}))
     };
     const newProj = prepareProjectObject(title, customData);
@@ -339,10 +348,13 @@ export const AppProvider = ({ children }) => {
         authors: [''], 
         data: {
             ...original.data,
+            dedicatoria: '',
+            agradecimentos: '',
+            epigrafe: '',
             resumoPt: '', 
             resumoEn: '', 
-            dedicatoria: '', 
-            epigrafe: '',
+            apendices: '',
+            anexos: '',
             secoes: original.data.secoes.map(s => ({...s, id: generateId(), conteudo: ''})) 
         }
     };

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { 
   Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
   Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck
+  UserCheck, Heart, LayoutTemplate, Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -215,7 +215,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 </div>
             </section>
 
-            {/* Orientadores - NOVO BLOCO DINÂMICO */}
+            {/* Orientadores */}
             <section>
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><UserCheck size={12}/> Orientadores</h3>
@@ -231,6 +231,15 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 </div>
             </section>
             
+            {/* Elementos Pré-Textuais Opcionais */}
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Heart size={12}/> Elementos Pré-Textuais Opcionais</h3>
+              <textarea readOnly={isReadOnly} placeholder="Dedicatória..." className={`w-full p-3 border rounded-lg text-xs h-20 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.dedicatoria || ''} onChange={e => setData({...data, dedicatoria: e.target.value})} />
+              <textarea readOnly={isReadOnly} placeholder="Agradecimentos..." className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.agradecimentos || ''} onChange={e => setData({...data, agradecimentos: e.target.value})} />
+              <textarea readOnly={isReadOnly} placeholder="Epígrafe (Citação que inspira o trabalho)..." className={`w-full p-3 border rounded-lg text-xs h-20 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.epigrafe || ''} onChange={e => setData({...data, epigrafe: e.target.value})} />
+            </section>
+
+            {/* Resumos */}
             <section className="space-y-4">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos e Abstract</h3>
               <textarea readOnly={isReadOnly} placeholder="Resumo (PT)" className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoPt} onChange={e => setData({...data, resumoPt: e.target.value})} />
@@ -239,6 +248,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               <input readOnly={isReadOnly} placeholder="Keywords (EN)" className={`w-full p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChaveEn} onChange={e => setData({...data, palavrasChaveEn: e.target.value})} />
             </section>
             
+            {/* Seções/Capítulos */}
             <section className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookOpen size={12}/> Capítulos</h3>
@@ -274,12 +284,26 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               </DndContext>
             </section>
             
-            <section className="space-y-4 pb-10">
+            {/* Referências */}
+            <section id="edit-sec-referencias" className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookMarked size={12}/> Referências</h3>
                 {!isReadOnly && <button onClick={onOpenRefModal} className="text-[9px] font-bold text-green-700 hover:underline uppercase transition-all">Gerar NBR 6023</button>}
               </div>
               <textarea readOnly={isReadOnly} placeholder="Cole as referências..." className={`w-full p-3 border rounded-lg text-[10px] font-mono h-40 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.referencias} onChange={e => setData({...data, referencias: e.target.value})} />
+            </section>
+
+            {/* Elementos Pós-Textuais Opcionais */}
+            <section className="space-y-4 pb-10">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
+              
+              <div id="edit-sec-apendices">
+                  <textarea readOnly={isReadOnly} placeholder="Apêndices (Documentos elaborados pelo próprio autor para complementar a argumentação)..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.apendices || ''} onChange={e => setData({...data, apendices: e.target.value})} />
+              </div>
+              
+              <div id="edit-sec-anexos">
+                  <textarea readOnly={isReadOnly} placeholder="Anexos (Documentos NÃO elaborados pelo autor, ex: leis, mapas de terceiros)..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.anexos || ''} onChange={e => setData({...data, anexos: e.target.value})} />
+              </div>
             </section>
         </div>
     );
