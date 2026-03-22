@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { 
   Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
   Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck, Heart, LayoutTemplate, Layers, Plus
+  UserCheck, Heart, LayoutTemplate, Layers, Plus, AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -185,21 +185,92 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
     };
 
     const handleDeleteSection = (id) => {
-        if (window.confirm("Deseja realmente remover esta seção?")) {
-            setData({...data, secoes: data.secoes.filter(s => s.id !== id)});
-            toast.success("Seção removida.");
-        }
+        toast((t) => (
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                    <Trash2 className="text-red-500 shrink-0" size={20} />
+                    <span className={`font-bold text-sm ${settings.theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                        Remover esta seção?
+                    </span>
+                </div>
+                <p className={`text-xs ${settings.theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Esta ação não pode ser desfeita. Todo o conteúdo será apagado.
+                </p>
+                <div className="flex gap-2 justify-end mt-2">
+                    <button 
+                        onClick={() => toast.dismiss(t.id)} 
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setData({...data, secoes: data.secoes.filter(s => s.id !== id)});
+                            toast.dismiss(t.id);
+                            toast.success("Seção removida com sucesso.");
+                        }} 
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                    >
+                        Sim, Remover
+                    </button>
+                </div>
+            </div>
+        ), { 
+            duration: Infinity,
+            style: {
+                background: settings.theme === 'dark' ? '#0f172a' : '#ffffff',
+                border: `1px solid ${settings.theme === 'dark' ? '#334155' : '#e2e8f0'}`,
+                padding: '16px',
+            }
+        });
     };
 
     const insertTemplate = (index, sectionTitle) => {
         if(isReadOnly) return;
         const key = Object.keys(SECTION_TEMPLATES).find(k => sectionTitle.toUpperCase().includes(k));
-        if (key && window.confirm("Deseja carregar o modelo de texto para esta seção?")) {
-            const newSec = [...data.secoes];
-            newSec[index].conteudo = (newSec[index].conteudo + "\n\n" + SECTION_TEMPLATES[key]).trim();
-            setData({...data, secoes: newSec});
-            toast.success("Modelo inserido!");
-        } else if (!key) {
+        
+        if (key) {
+            toast((t) => (
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <Wand2 className="text-purple-500 shrink-0" size={20} />
+                        <span className={`font-bold text-sm ${settings.theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                            Carregar Modelo?
+                        </span>
+                    </div>
+                    <p className={`text-xs ${settings.theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Deseja inserir o texto base de auxílio para esta seção?
+                    </p>
+                    <div className="flex gap-2 justify-end mt-2">
+                        <button 
+                            onClick={() => toast.dismiss(t.id)} 
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            onClick={() => {
+                                const newSec = [...data.secoes];
+                                newSec[index].conteudo = (newSec[index].conteudo + "\n\n" + SECTION_TEMPLATES[key]).trim();
+                                setData({...data, secoes: newSec});
+                                toast.dismiss(t.id);
+                                toast.success("Modelo inserido!");
+                            }} 
+                            className="px-3 py-1.5 text-xs font-bold text-white bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors"
+                        >
+                            Sim, Inserir
+                        </button>
+                    </div>
+                </div>
+            ), { 
+                duration: Infinity,
+                style: {
+                    background: settings.theme === 'dark' ? '#0f172a' : '#ffffff',
+                    border: `1px solid ${settings.theme === 'dark' ? '#334155' : '#e2e8f0'}`,
+                    padding: '16px',
+                }
+            });
+        } else {
             toast.error("Nenhum modelo disponível para este título.");
         }
     };
