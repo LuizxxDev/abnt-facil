@@ -1,15 +1,19 @@
 import React, { useRef, useState } from 'react';
-import { X, Eye, ImageIcon, TableIcon, Box, Quote, UploadCloud, ImagePlus } from 'lucide-react';
+import { X, Eye, ImageIcon, TableIcon, Box, Quote, UploadCloud, ImagePlus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TABLE_PRESETS, TAG_RENDERERS } from '../../utils/constants';
-// IMPORTAMOS O CONTEXTO PARA SABER O TEMA
 import { useAppContext } from '../../contexts/AppContext';
+
+// IMPORTAMOS O CLIENTE SUPABASE PARA O UPLOAD DE IMAGENS
+import { supabase } from '../../lib/supabase';
 
 const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) => {
     const fileInputRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
-    // PEGAMOS AS CONFIGURAÇÕES (settings) ONDE ESTÁ O TEMA
-    const { settings } = useAppContext();
+    const [isUploading, setIsUploading] = useState(false);
+    
+    // PEGAMOS AS CONFIGURAÇÕES (TEMA) E O USER PARA SABER SE PODEMOS USAR A NUVEM
+    const { settings, user } = useAppContext();
 
     if (!isOpen) return null;
 
@@ -31,8 +35,22 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
         setAssetModal({ ...assetModal, tableData: newData }); 
     };
 
-    // FUNÇÃO CENTRALIZADA DE PROCESSAMENTO DE IMAGEM (BASE64)
-    const processFile = (file) => {
+    // FUNÇÃO DE CONVERSÃO LOCAL (FALLBACK OFFLINE)
+    const convertToBase64 = (file) => {
+        if (file.size > 500 * 1024) {
+            toast.error("Para imagens maiores que 500KB, faça login primeiro.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setAssetModal({ ...assetModal, localBase64: event.target.result, url: '' });
+            toast.success("Imagem guardada localmente!");
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // FUNÇÃO CENTRALIZADA DE PROCESSAMENTO DE IMAGEM (NUVEM VS LOCAL)
+    const processFile = async (file) => {
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
@@ -40,18 +58,48 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
             return;
         }
 
-        if (file.size > 500 * 1024) {
-            toast.error("Imagem muito grande! Máximo 500KB.");
-            return;
-        }
+        // Se o utilizador estiver logado, fazemos upload para o Supabase Storage
+        if (user) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("A imagem excede o limite máximo de 5MB da nuvem.");
+                return;
+            }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            // Guarda em localBase64 e limpa a URL, já que usaremos a imagem local
-            setAssetModal({ ...assetModal, localBase64: event.target.result, url: '' });
-            toast.success("Imagem carregada com sucesso!");
-        };
-        reader.readAsDataURL(file);
+            setIsUploading(true);
+            const toastId = toast.loading("A enviar imagem para a nuvem...");
+
+            try {
+                // Cria um nome de ficheiro único para evitar conflitos
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+                const filePath = `${user.id}/${fileName}`;
+
+                // Faz o upload para o bucket 'project-assets' (Certifica-te que criaste este bucket no Supabase)
+                const { error: uploadError } = await supabase.storage
+                    .from('project-assets')
+                    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+                if (uploadError) throw uploadError;
+
+                // Obtém a URL pública permanente da imagem
+                const { data: publicUrlData } = supabase.storage
+                    .from('project-assets')
+                    .getPublicUrl(filePath);
+
+                setAssetModal({ ...assetModal, url: publicUrlData.publicUrl, localBase64: null });
+                toast.success("Imagem guardada na nuvem em segurança!", { id: toastId });
+
+            } catch (error) {
+                console.error("Erro no upload para o Supabase:", error);
+                toast.error("A nuvem falhou. A guardar localmente...", { id: toastId });
+                convertToBase64(file); // Fallback imediato se a net/banco falhar
+            } finally {
+                setIsUploading(false);
+            }
+        } else {
+            // Se for modo Visitante/Offline, usa apenas Base64
+            convertToBase64(file);
+        }
     };
 
     const handleFileUpload = (e) => {
@@ -61,7 +109,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
     // EVENTOS DE DRAG & DROP
     const handleDragOver = (e) => {
         e.preventDefault();
-        setIsDragging(true);
+        if (!isUploading) setIsDragging(true);
     };
 
     const handleDragLeave = (e) => {
@@ -72,6 +120,8 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
+        if (isUploading) return;
+        
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             processFile(e.dataTransfer.files[0]);
             e.dataTransfer.clearData();
@@ -83,7 +133,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
           <div className={`${isDark ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-800'} w-full max-w-2xl rounded-3xl p-8 shadow-2xl flex flex-col max-h-[90vh] transition-colors duration-300`}>
             <div className="flex justify-between items-center mb-6 shrink-0">
                 <h4 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-700'}`}>Inserir Elemento</h4>
-                <button onClick={onClose} className={`hover:scale-110 transition-transform ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
+                <button onClick={onClose} disabled={isUploading} className={`hover:scale-110 transition-transform disabled:opacity-50 ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}>
                     <X size={20}/>
                 </button>
             </div>
@@ -169,15 +219,23 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
               
               {type === 'img' && (
                   <div className="space-y-4">
-                      <label className="text-xs font-bold text-slate-500 uppercase">Upload de Imagem Local</label>
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Upload de Imagem</label>
+                        {user ? (
+                            <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Modo Nuvem (Até 5MB)</span>
+                        ) : (
+                            <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Modo Local (Até 500KB)</span>
+                        )}
+                      </div>
                       
                       {/* ÁREA DE DRAG AND DROP */}
                       <div 
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
-                        onClick={() => fileInputRef.current.click()}
-                        className={`w-full p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 text-center
+                        onClick={() => !isUploading && fileInputRef.current.click()}
+                        className={`w-full p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300 text-center
+                            ${isUploading ? 'opacity-50 cursor-not-allowed border-slate-300' : 'cursor-pointer'}
                             ${isDragging 
                                 ? 'border-green-500 bg-green-500/10 scale-[1.02]' 
                                 : isDark 
@@ -185,27 +243,28 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                                     : 'border-slate-300 hover:border-blue-500/50 hover:bg-slate-50'
                             }`}
                       >
-                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
                           
-                          <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-green-500 text-white' : localBase64 ? 'bg-green-100 text-green-600' : isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                              {isDragging || localBase64 ? <ImagePlus size={32} /> : <UploadCloud size={32} />}
+                          <div className={`p-4 rounded-full transition-colors ${isUploading ? 'bg-blue-500 text-white' : isDragging ? 'bg-green-500 text-white' : localBase64 || url ? 'bg-green-100 text-green-600' : isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                              {isUploading ? <Loader2 size={32} className="animate-spin" /> : isDragging || localBase64 || url ? <ImagePlus size={32} /> : <UploadCloud size={32} />}
                           </div>
                           
                           <div>
                               <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                                  {isDragging ? 'Larga a imagem aqui...' : localBase64 ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}
+                                  {isUploading ? 'A processar imagem...' : isDragging ? 'Larga a imagem aqui...' : localBase64 || url ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}
                               </p>
                               <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                  Suporta JPG, PNG, GIF (Máx. 500KB)
+                                  Suporta JPG, PNG, GIF
                               </p>
                           </div>
                       </div>
 
                       {/* INPUT DE URL ALTERNATIVO */}
                       <div className="pt-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Ou usa um link da internet (URL)</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Ou usa um link da internet direto (URL)</label>
                         <input 
-                            className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-blue-500 outline-none
+                            disabled={isUploading}
+                            className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50
                                 ${isDark ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 placeholder:text-slate-400'}`} 
                             placeholder="https://exemplo.com/imagem.png" 
                             value={url} 
@@ -245,15 +304,17 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
             <div className="mt-8 flex gap-3 shrink-0">
                 <button 
                     onClick={onClose} 
-                    className={`flex-1 py-3 font-bold transition-colors rounded-xl ${isDark ? 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200'}`}
+                    disabled={isUploading}
+                    className={`flex-1 py-3 font-bold transition-colors rounded-xl disabled:opacity-50 ${isDark ? 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200'}`}
                 >
                     Cancelar
                 </button>
                 <button 
                     onClick={onConfirm} 
-                    className="flex-[2] py-3 bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-green-600 hover:-translate-y-0.5 transition-all"
+                    disabled={isUploading}
+                    className="flex-[2] py-3 bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-green-600 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
                 >
-                    Inserir no Texto
+                    {isUploading ? 'Aguarde...' : 'Inserir no Texto'}
                 </button>
             </div>
           </div>
