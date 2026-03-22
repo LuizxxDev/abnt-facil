@@ -23,18 +23,61 @@
   }
 }
 
-/* Scrollbars Dark */
-.dark ::-webkit-scrollbar {
-  width: 10px;
-  background: #0f172a;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 5px;
-  border: 2px solid #0f172a;
+/* Suavidade global de rolagem (âncoras do sumário) */
+html {
+  scroll-behavior: smooth;
 }
 
-/* --- NOVAS ANIMAÇÕES DE POLIMENTO --- */
+/* =========================================
+   UI/UX POLISH: COR DE SELEÇÃO DE TEXTO
+   ========================================= */
+::selection {
+  background-color: #bbf7d0; /* green-200 */
+  color: #166534; /* green-800 */
+}
+
+.dark ::selection {
+  background-color: #166534; /* green-800 */
+  color: #bbf7d0; /* green-200 */
+}
+
+/* =========================================
+   UI/UX POLISH: CUSTOM SCROLLBARS (APP FEEL)
+   ========================================= */
+/* Largura/Altura da barra */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Fundo (Trilho) */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* O "Polegar" (A barra que se move) - Modo Claro */
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+/* O "Polegar" - Modo Escuro */
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 */
+  border-radius: 10px;
+  border: 2px solid var(--bg-card); /* Borda dinâmica para não colar ao fundo */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569; /* slate-600 */
+}
+
+
+/* --- ANIMAÇÕES DE POLIMENTO ORIGINAIS MANTIDAS --- */
 
 /* Animação do Gradiente de Fundo */
 @keyframes gradient-bg {
