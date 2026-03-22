@@ -51,7 +51,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
 
-        let currentPage = 2;
+        // CORREÇÃO AQUI: Capa (1) + Folha de Rosto (2). O próximo elemento entra na página 3.
+        let currentPage = 3; 
         
         if (data.dedicatoria && data.dedicatoria.trim() !== '') currentPage += 1;
         if (data.agradecimentos && data.agradecimentos.trim() !== '') currentPage += 1;
@@ -66,7 +67,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         currentPage += 1; // Sumário
 
         const mapping = {};
-        const CHARS_PER_PAGE = 2500;
+        // Ajustado para 2200 para calcular o espaço com maior precisão quando existem subsecções
+        const CHARS_PER_PAGE = 2200; 
 
         groupedSections.forEach(group => {
             let groupCharCount = 0;
@@ -293,7 +295,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 <div className="page">
                     <div className="abnt-center-bold mb-10">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
-                        {data.secoes && data.secoes.map((sec) => (
+                        {/* CORREÇÃO AQUI: Iteramos em sumarioItens em vez de data.secoes para obter o número .num exato */}
+                        {sumarioItens && sumarioItens.map((sec) => (
                             <div key={`sumario-${sec.id}`} className="sumario-item">
                                 <div className={`sumario-label ${sec.level === 1 ? 'font-bold uppercase' : 'ml-6'}`}>
                                     {sec.num} {sec.titulo}
@@ -303,7 +306,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                             </div>
                         ))}
 
-                        <div className="sumario-item font-bold uppercase">
+                        <div className="sumario-item font-bold uppercase mt-2">
                             <div className="sumario-label">REFERÊNCIAS</div>
                             <div className="sumario-dots"></div>
                             <div className="sumario-page">{getPageNumber('referencias')}</div>
