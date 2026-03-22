@@ -25,7 +25,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                         urlStr = data.assets[urlStr];
                     }
                     
-                    // Envolvido em div com classe abnt-asset-container para controlar o line-height da legenda/fonte
                     return (
                         <div key={i} className="abnt-asset-container">
                             {TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i)}
@@ -182,7 +181,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     line-height: 1.5; 
                 }
                 
-                /* Citação longa com espaçamento simples (1.0) conforme NBR 14724 */
                 .abnt-citacao-longa { 
                     margin-left: 4cm; 
                     font-size: 10pt; 
@@ -223,7 +221,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 .abnt-natureza {
                     margin-left: 8cm;
                     text-align: justify;
-                    line-height: 1.0; /* Natureza do trabalho é simples */
+                    line-height: 1.0;
                     font-size: 12pt;
                     font-weight: normal;
                     text-transform: none;
@@ -237,7 +235,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     line-height: 1.5; 
                 }
 
-                /* Referências com espaçamento simples (1.0) e separadas por um espaço simples entre elas */
                 .abnt-ref {
                     line-height: 1.0;
                     margin-bottom: 12pt;
@@ -245,7 +242,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     font-size: 12pt;
                 }
 
-                /* Container para Ilustrações e Tabelas garantindo espaçamento simples nas legendas e fontes */
                 .abnt-asset-container {
                     line-height: 1.0;
                     font-size: 10pt;
@@ -278,35 +274,59 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             `}</style>
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
-                {/* Capa */}
-                <div className="page text-center font-bold uppercase justify-between text-[12pt]">
-                    <div>
-                        <div>{data.instituicao}</div>
-                        {data.curso && <div className="mt-2">{data.curso}</div>}
+                {/* Capa conforme Manual IFPA 2022 */}
+                <div className="page text-center text-[12pt] justify-between flex flex-col">
+                    <div className="font-bold uppercase space-y-0">
+                        <div>MINISTÉRIO DA EDUCAÇÃO</div>
+                        <div>INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ</div>
+                        {data.campus && <div>CAMPUS {data.campus}</div>}
+                        {data.curso && <div className="mt-4">{data.curso}</div>}
                     </div>
-                    <div className="mt-10 space-y-1">
-                        {authors.map((a,i) => <div key={i}>{a || "AUTOR"}</div>)}
+
+                    <div className="mt-10 uppercase">
+                        {authors.map((a, i) => (
+                            <div key={i} className={i > 0 ? "mt-1" : ""}>
+                                {a || "NOME DO AUTOR"}
+                            </div>
+                        ))}
                     </div>
-                    <div className="my-auto leading-tight px-10">
-                        {data.titulo || "TÍTULO DO TRABALHO"}
-                        {data.subtitulo && <div className="mt-2 normal-case font-normal">{data.subtitulo}</div>}
+
+                    <div className="my-auto px-10">
+                        <div className="font-bold uppercase text-[12pt] leading-tight">
+                            {data.titulo || "TÍTULO DO TRABALHO"}
+                        </div>
+                        {data.subtitulo && (
+                            <div className="mt-2 uppercase font-normal text-[12pt]">
+                                {data.subtitulo}
+                            </div>
+                        )}
                     </div>
-                    <div className="mt-auto">
-                        <div>{data.cidade} - {data.estado}</div>
-                        <div>{data.ano}</div>
+
+                    <div className="mt-auto uppercase">
+                        <div>{data.cidade || "CIDADE"} - {data.estado || "PA"}</div>
+                        <div>{data.ano || new Date().getFullYear()}</div>
                     </div>
                 </div>
 
-                {/* Folha de Rosto */}
-                <div className="page text-center text-[12pt]">
+                {/* Folha de Rosto conforme Manual IFPA 2022 */}
+                <div className="page text-center text-[12pt] flex flex-col">
                     <div className="uppercase space-y-1">
-                        {authors.map((a,i) => <div key={i}>{a || "AUTOR"}</div>)}
+                        {authors.map((a, i) => (
+                            <div key={i}>{a || "NOME DO AUTOR"}</div>
+                        ))}
                     </div>
+                    
                     <div className="my-auto w-full">
-                        <div className="mb-12 px-10 uppercase">
-                            {data.titulo}
-                            {data.subtitulo && <div className="mt-2 normal-case">{data.subtitulo}</div>}
+                        {/* Título agora em NEGRITO conforme solicitado e Manual IFPA */}
+                        <div className="mb-12 px-10 uppercase font-bold">
+                            {data.titulo || "TÍTULO DO TRABALHO"}
+                            {data.subtitulo && (
+                                <div className="mt-2 font-normal">
+                                    {data.subtitulo}
+                                </div>
+                            )}
                         </div>
+                        
                         <div className="flex flex-col text-left">
                             <div className="abnt-natureza">
                                 {data.naturezaTrabalho}<br/><br/>
@@ -314,7 +334,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                                 {data.orientadores && data.orientadores.some(o => o.trim() !== '') && (
                                     <div className="space-y-1 mt-4">
                                         <span className="font-bold">
-                                            {data.orientadores.filter(o => o.trim() !== '').length > 1 ? "Orientadores:" : "Orientador:"}
+                                            {data.orientadores.filter(o => o.trim() !== '').length > 1 ? "Orientadores:" : "Orientador(a):"}
                                         </span>
                                         {data.orientadores.map((o, idx) => (
                                             o.trim() !== '' && <div key={idx}>{o}</div>
@@ -324,9 +344,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                             </div>
                         </div>
                     </div>
+
                     <div className="mt-auto uppercase">
-                        <div>{data.cidade} - {data.estado}</div>
-                        <div>{data.ano}</div>
+                        <div>{data.cidade || "CIDADE"} - {data.estado || "PA"}</div>
+                        <div>{data.ano || new Date().getFullYear()}</div>
                     </div>
                 </div>
 
