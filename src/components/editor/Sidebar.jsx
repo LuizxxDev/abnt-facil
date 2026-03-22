@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListTodo, X, GripVertical } from 'lucide-react';
+import { ListTodo, X, GripVertical, BookMarked, Layers } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -32,7 +32,7 @@ const SortableNavItem = ({ item, scrollToSection, settings, closeOnMobile }) => 
     );
 };
 
-const Sidebar = ({ sumarioItens, scrollToSection, setShowOutline, settings, onReorder }) => {
+const Sidebar = ({ sumarioItens, scrollToSection, setShowOutline, settings, onReorder, data }) => {
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -69,7 +69,10 @@ const Sidebar = ({ sumarioItens, scrollToSection, setShowOutline, settings, onRe
                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ListTodo size={12}/> Navegação</h3>
                   <button onClick={() => setShowOutline(false)} className={`p-1 rounded-md transition-colors ${settings.theme === 'dark' ? 'hover:bg-slate-800 text-slate-500 hover:text-red-400' : 'hover:bg-slate-100 text-slate-400 hover:text-red-500'}`} title="Fechar Navegação"><X size={14}/></button>
                 </div>
+                
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  
+                  {/* Itens Arrastáveis (Capítulos) */}
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={sumarioItens.map(i => i.id)} strategy={verticalListSortingStrategy}>
                         {sumarioItens.map(item => (
@@ -77,9 +80,32 @@ const Sidebar = ({ sumarioItens, scrollToSection, setShowOutline, settings, onRe
                         ))}
                     </SortableContext>
                   </DndContext>
+                  
                   {sumarioItens.length === 0 && (
                     <div className="text-center p-4 text-xs text-slate-400 italic">Adicione seções para navegar.</div>
                   )}
+
+                  {/* ELEMENTOS PÓS-TEXTUAIS (Fixos no fim da lista) */}
+                  {data && (
+                      <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
+                          <button onClick={() => { scrollToSection('referencias'); closeOnMobile(); }} className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2 font-bold ${settings.theme === 'dark' ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-800'}`}>
+                              <BookMarked size={14} className="text-slate-400" /> REFERÊNCIAS
+                          </button>
+                          
+                          {data.apendices && data.apendices.trim() !== '' && (
+                              <button onClick={() => { scrollToSection('apendices'); closeOnMobile(); }} className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2 font-bold ${settings.theme === 'dark' ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-800'}`}>
+                                  <Layers size={14} className="text-slate-400" /> APÊNDICES
+                              </button>
+                          )}
+                          
+                          {data.anexos && data.anexos.trim() !== '' && (
+                              <button onClick={() => { scrollToSection('anexos'); closeOnMobile(); }} className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2 font-bold ${settings.theme === 'dark' ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-800'}`}>
+                                  <Layers size={14} className="text-slate-400" /> ANEXOS
+                              </button>
+                          )}
+                      </div>
+                  )}
+
                 </div>
             </aside>
         </>

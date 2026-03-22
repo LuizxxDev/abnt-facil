@@ -6,6 +6,7 @@ import {
   ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText,
   Sun, Moon, Eye
 } from 'lucide-react';
+import toast from 'react-hot-toast'; 
 
 import { useAppContext } from '../contexts/AppContext';
 import { useAutosave } from '../hooks/useAutosave';
@@ -33,7 +34,7 @@ const Editor = () => {
     const [tab, setTab] = useState('editor');
     const [focusedSection, setFocusedSection] = useState(null);
     const [focusMode, setFocusMode] = useState(false);
-    // Inicia o Sumário escondido no mobile e visível no Desktop
+    
     const [showOutline, setShowOutline] = useState(window.innerWidth >= 1280);
     const [zoomLevel, setZoomLevel] = useState(window.innerWidth < 768 ? 0.45 : 0.80);
     const [mobileView, setMobileView] = useState('editor'); 
@@ -120,17 +121,39 @@ const Editor = () => {
         const newSec = [...data.secoes]; newSec[sectionIndex].conteudo += tag; setData({...data, secoes: newSec}); setAssetModal({ ...assetModal, open: false });
     };
 
+    const handleCreateFromExample = async () => {
+        const newId = await createFromExample();
+        toast.success("Exemplo clonado com sucesso!");
+        navigate(`/editor/${newId}`);
+    };
+
     if (!data) return <div className="flex h-screen items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
+
+    // --- CORREÇÃO: Cores dinâmicas para a barra superior no Modo Leitura ---
+    const headerBgClass = isReadOnly 
+        ? (settings.theme === 'dark' ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-200')
+        : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200');
+
+    const readOnlyBadgeClass = settings.theme === 'dark' 
+        ? 'bg-amber-900/50 text-amber-400 border-amber-700/50' 
+        : 'bg-amber-100 text-amber-800 border-amber-300';
 
     return (
         <div className={`flex flex-col h-screen overflow-hidden abnt-editor-app transition-colors duration-300 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-            <header className={`min-h-[4rem] py-3 lg:py-0 lg:h-16 border-b flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors gap-3 lg:gap-0 ${isReadOnly ? 'bg-orange-50 border-orange-200' : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
+            <header className={`min-h-[4rem] py-3 lg:py-0 lg:h-16 border-b flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors gap-3 lg:gap-0 ${headerBgClass}`}>
                 <div className="flex items-center justify-between w-full lg:w-auto gap-4">
                     <div className="flex items-center gap-3 w-full">
                         <button onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} className="p-2 shrink-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-400 hover:text-green-700"><ArrowLeft size={20} /></button>
                         <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
                         <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2"><h2 className="font-bold text-sm truncate max-w-[180px] sm:max-w-[250px] leading-tight">{data.titulo || "Projeto sem Título"}</h2>{isReadOnly && <span className="flex items-center shrink-0 gap-1 text-[9px] bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold uppercase border border-orange-300"><Lock size={10}/> Leitura</span>}</div>
+                            <div className="flex items-center gap-2">
+                                <h2 className={`font-bold text-sm truncate max-w-[180px] sm:max-w-[250px] leading-tight ${settings.theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{data.titulo || "Projeto sem Título"}</h2>
+                                {isReadOnly && (
+                                    <span className={`flex items-center shrink-0 gap-1 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${readOnlyBadgeClass}`}>
+                                        <Lock size={10}/> Leitura
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex items-center gap-2">{isSaving || isExporting ? <span className="flex items-center gap-1 text-[10px] text-yellow-600 font-medium"><Loader2 size={10} className="animate-spin"/> Atualizando...</span> : <span className="flex items-center gap-1 text-[10px] text-green-600 font-medium"><CheckCircle2 size={10}/> Alterações salvas</span>}</div>
                         </div>
                     </div>
@@ -183,7 +206,7 @@ const Editor = () => {
                 </div>
 
                 {!focusMode && showOutline && (
-                    <Sidebar sumarioItens={sumarioItens} scrollToSection={scrollToSection} setShowOutline={setShowOutline} settings={settings} onReorder={(oldIndex, newIndex) => { if (isReadOnly) return; const newSecoes = [...data.secoes]; const [moved] = newSecoes.splice(oldIndex, 1); newSecoes.splice(newIndex, 0, moved); setData({ ...data, secoes: newSecoes }); }} />
+                    <Sidebar data={data} sumarioItens={sumarioItens} scrollToSection={scrollToSection} setShowOutline={setShowOutline} settings={settings} onReorder={(oldIndex, newIndex) => { if (isReadOnly) return; const newSecoes = [...data.secoes]; const [moved] = newSecoes.splice(oldIndex, 1); newSecoes.splice(newIndex, 0, moved); setData({ ...data, secoes: newSecoes }); }} />
                 )}
 
                 <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} className={`lg:hidden fixed bottom-6 right-6 z-30 p-4 rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95 border-4 ${settings.theme === 'dark' ? 'bg-green-600 text-white border-slate-900 shadow-green-900/50' : 'bg-green-600 text-white border-white shadow-green-600/30'}`}>
