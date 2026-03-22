@@ -135,23 +135,28 @@ const Editor = () => {
         return { label: 'Erros', color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={12}/> };
     }, [abntErrors]);
 
-    // LÓGICA DE NUMERAÇÃO BLINDADA
+    // LÓGICA DE NUMERAÇÃO BLINDADA PARA 5 NÍVEIS (ABNT NBR 6024)
     const sumarioItens = useMemo(() => { 
         if (!data || !data.secoes) return [];
-        let currentChapter = 0;
-        let currentSub = 0;
+        let counts = [0, 0, 0, 0, 0]; // Array de contadores para H1, H2, H3, H4, H5
         
         return data.secoes.map(s => {
-            const isPrimary = Number(s.level) === 1;
-            if (isPrimary) {
-                currentChapter += 1;
-                currentSub = 0; // Reseta a subseção quando um novo capítulo começa
-                return { ...s, num: currentChapter.toString() };
-            } else {
-                currentSub += 1;
-                const parentChapter = currentChapter === 0 ? 1 : currentChapter;
-                return { ...s, num: `${parentChapter}.${currentSub}` };
+            const level = Math.min(Math.max(Number(s.level) || 1, 1), 5); // Garante nível entre 1 e 5
+            
+            counts[level - 1]++; // Incrementa o nível atual
+            
+            // Reseta todos os subníveis abaixo do atual
+            for (let k = level; k < 5; k++) {
+                counts[k] = 0;
             }
+            
+            // Constrói a string de numeração progressiva (ex: 1.2.1.1)
+            const numParts = [];
+            for (let k = 0; k < level; k++) {
+                numParts.push(counts[k] === 0 ? 1 : counts[k]); // Fallback se saltarem um nível
+            }
+            
+            return { ...s, level, num: numParts.join('.') };
         }); 
     }, [data?.secoes]);
 

@@ -108,6 +108,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     line-height: 1.5;
                     transition: transform 0.2s ease;
                     counter-reset: pagina-abnt; 
+                    
+                    overflow-wrap: break-word;
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    hyphens: auto; 
                 }
                 
                 .page { 
@@ -124,12 +129,21 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     counter-increment: pagina-abnt; 
                 }
 
+                .page:nth-of-type(even) {
+                    padding: 30mm 30mm 20mm 20mm;
+                }
+
                 .page-numbered::after {
                     content: counter(pagina-abnt);
                     position: absolute;
                     top: 20mm;
                     right: 20mm;
                     font-size: 10pt;
+                }
+
+                .page-numbered:nth-of-type(even):after {
+                    left: 20mm;
+                    right: auto;
                 }
 
                 .sumario-item {
@@ -160,13 +174,74 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     min-width: 20pt;
                 }
 
-                .abnt-p { text-align: justify; text-indent: 1.25cm; margin-bottom: 0; font-size: 12pt; }
-                .abnt-citacao-longa { margin-left: 4cm; font-size: 10pt; line-height: 1.1; text-align: justify; margin-top: 10pt; margin-bottom: 10pt; }
+                .abnt-p { 
+                    text-align: justify; 
+                    text-indent: 1.25cm; 
+                    margin-bottom: 0; 
+                    font-size: 12pt; 
+                    line-height: 1.5; 
+                }
                 
-                .abnt-h1 { font-weight: bold; text-transform: uppercase; font-size: 12pt; margin-bottom: 1.5rem; }
-                .abnt-h2 { font-weight: normal; font-size: 12pt; margin-bottom: 1rem; text-transform: uppercase; }
+                .abnt-citacao-longa { 
+                    margin-left: 4cm; 
+                    font-size: 10pt; 
+                    line-height: 1; 
+                    text-align: justify; 
+                    margin-top: 1.5em; 
+                    margin-bottom: 1.5em; 
+                }
                 
-                .abnt-center-bold { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 12pt; }
+                .abnt-title-container {
+                    display: flex;
+                    gap: 1ch;
+                    font-size: 12pt;
+                    line-height: 1.5;
+                    margin-bottom: 1.5em;
+                }
+                
+                .abnt-h1 { font-weight: bold; text-transform: uppercase; }
+                .abnt-h2 { font-weight: bold; text-transform: none; }
+                .abnt-h3 { font-weight: bold; font-style: italic; text-transform: none; }
+                .abnt-h4 { font-weight: normal; font-style: italic; text-transform: none; }
+                .abnt-h5 { font-weight: normal; font-style: normal; text-transform: none; }
+                
+                .sumario-h1 { font-weight: bold; text-transform: uppercase; }
+                .sumario-h2 { font-weight: bold; text-transform: none; }
+                .sumario-h3 { font-weight: bold; font-style: italic; text-transform: none; }
+                .sumario-h4 { font-weight: normal; font-style: italic; text-transform: none; }
+                .sumario-h5 { font-weight: normal; font-style: normal; text-transform: none; }
+                
+                .abnt-center-bold { 
+                    text-align: center; 
+                    font-weight: bold; 
+                    text-transform: uppercase; 
+                    font-size: 12pt; 
+                    margin-bottom: 1.5em; 
+                }
+
+                .abnt-natureza {
+                    margin-left: 8cm;
+                    text-align: justify;
+                    line-height: 1;
+                    font-size: 12pt;
+                    font-weight: normal;
+                    text-transform: none;
+                }
+
+                /* NOVA CLASSE PARA DEDICATÓRIA E EPÍGRAFE */
+                .abnt-pre-textual-bottom {
+                    margin-top: auto; /* Empurra para o fundo da página */
+                    margin-left: 8cm; /* Recuo exato do meio para a margem direita */
+                    text-align: justify;
+                    font-size: 12pt; /* Tamanho padrão */
+                    line-height: 1.5; /* Espaçamento padrão 1,5 */
+                }
+
+                .abnt-ref {
+                    line-height: 1;
+                    margin-bottom: 1em;
+                    text-align: left;
+                }
 
                 @media print {
                     @page { size: A4 portrait; margin: 0; }
@@ -194,17 +269,17 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
                 {/* Capa */}
-                <div className="page text-center font-bold uppercase justify-between">
+                <div className="page text-center font-bold uppercase justify-between text-[12pt]">
                     <div>
-                        <div className="text-[12pt]">{data.instituicao}</div>
-                        {data.curso && <div className="mt-2 text-[12pt]">{data.curso}</div>}
+                        <div>{data.instituicao}</div>
+                        {data.curso && <div className="mt-2">{data.curso}</div>}
                     </div>
                     <div className="mt-10 space-y-1">
                         {authors.map((a,i) => <div key={i}>{a || "AUTOR"}</div>)}
                     </div>
-                    <div className="my-auto text-[14pt] leading-tight px-10">
+                    <div className="my-auto leading-tight px-10">
                         {data.titulo || "TÍTULO DO TRABALHO"}
-                        {data.subtitulo && <div className="text-[12pt] mt-2 italic normal-case font-normal">{data.subtitulo}</div>}
+                        {data.subtitulo && <div className="mt-2 normal-case font-normal">{data.subtitulo}</div>}
                     </div>
                     <div className="mt-auto">
                         <div>{data.cidade} - {data.estado}</div>
@@ -213,12 +288,17 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 </div>
 
                 {/* Folha de Rosto */}
-                <div className="page text-center uppercase">
-                    <div className="font-bold space-y-1">{authors.map((a,i) => <div key={i}>{a || "AUTOR"}</div>)}</div>
+                <div className="page text-center text-[12pt]">
+                    <div className="uppercase space-y-1">
+                        {authors.map((a,i) => <div key={i}>{a || "AUTOR"}</div>)}
+                    </div>
                     <div className="my-auto w-full">
-                        <div className="font-bold text-[14pt] mb-12 px-10">{data.titulo}</div>
-                        <div className="flex justify-end pr-0">
-                            <div className="w-[105mm] ml-auto text-justify normal-case font-normal text-[10pt] leading-snug">
+                        <div className="mb-12 px-10 uppercase">
+                            {data.titulo}
+                            {data.subtitulo && <div className="mt-2 normal-case">{data.subtitulo}</div>}
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <div className="abnt-natureza">
                                 {data.naturezaTrabalho}<br/><br/>
                                 
                                 {data.orientadores && data.orientadores.some(o => o.trim() !== '') && (
@@ -234,7 +314,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                             </div>
                         </div>
                     </div>
-                    <div className="mt-auto font-bold">
+                    <div className="mt-auto uppercase">
                         <div>{data.cidade} - {data.estado}</div>
                         <div>{data.ano}</div>
                     </div>
@@ -243,7 +323,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Dedicatória */}
                 {data.dedicatoria && data.dedicatoria.trim() !== '' && (
                     <div className="page">
-                        <div className="mt-auto w-[105mm] ml-auto text-justify text-[10pt] italic">
+                        {/* Aplicada a classe abnt-pre-textual-bottom (Margem 8cm e Bottom) e whitespace-pre-wrap para respeitar os Enters */}
+                        <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.dedicatoria}
                         </div>
                     </div>
@@ -252,7 +333,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Agradecimentos */}
                 {data.agradecimentos && data.agradecimentos.trim() !== '' && (
                     <div className="page">
-                        <div className="abnt-center-bold mb-8">AGRADECIMENTOS</div>
+                        <div className="abnt-center-bold">AGRADECIMENTOS</div>
                         {formatConteudo(data.agradecimentos)}
                     </div>
                 )}
@@ -260,7 +341,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Epígrafe */}
                 {data.epigrafe && data.epigrafe.trim() !== '' && (
                     <div className="page">
-                        <div className="mt-auto w-[105mm] ml-auto text-justify text-[10pt] italic">
+                        {/* Aplicada a classe abnt-pre-textual-bottom (Margem 8cm e Bottom) */}
+                        <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.epigrafe}
                         </div>
                     </div>
@@ -268,7 +350,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Resumo */}
                 <div className="page">
-                    <div className="abnt-center-bold mb-8">RESUMO</div>
+                    <div className="abnt-center-bold">RESUMO</div>
                     <div className="abnt-p !indent-0">{data.resumoPt || "Texto do resumo..."}</div>
                     {data.palavrasChavePt && (
                         <div className="mt-6 text-[12pt]">
@@ -281,7 +363,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Abstract */}
                 {data.resumoEn && data.resumoEn.trim() !== '' && (
                     <div className="page">
-                        <div className="abnt-center-bold mb-8 italic">ABSTRACT</div>
+                        <div className="abnt-center-bold italic">ABSTRACT</div>
                         <div className="abnt-p !indent-0 italic">{data.resumoEn}</div>
                         {data.palavrasChaveEn && (
                             <div className="mt-6 text-[12pt] italic">
@@ -294,11 +376,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Sumário */}
                 <div className="page">
-                    <div className="abnt-center-bold mb-10">SUMÁRIO</div>
+                    <div className="abnt-center-bold">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
                         {sumarioItens && sumarioItens.map((sec) => (
                             <div key={`sumario-${sec.id}`} className="sumario-item">
-                                <div className={`sumario-label ${Number(sec.level) === 1 ? 'font-bold uppercase' : 'ml-6'}`}>
+                                <div className={`sumario-label uppercase sumario-h${Number(sec.level)}`}>
                                     {sec.num} {sec.titulo}
                                 </div>
                                 <div className="sumario-dots"></div>
@@ -335,8 +417,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     <div className="page page-numbered" key={`group-${groupIndex}`}>
                         {group.map((s) => (
                             <div key={s.id} id={`preview-sec-${s.id}`} className="mb-8">
-                                {/* CORREÇÃO NO CLASSNAME DO H1/H2 AQUI: */}
-                                <div className={Number(s.level) === 1 ? "abnt-h1" : "abnt-h2"}>{s.num} {s.titulo}</div>
+                                <div className={`abnt-title-container abnt-h${Number(s.level)}`}>
+                                    <span className="shrink-0">{s.num}</span>
+                                    <span>{s.titulo}</span>
+                                </div>
                                 <div className="abnt-content">{formatConteudo(s.conteudo)}</div>
                             </div>
                         ))}
@@ -345,10 +429,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Referências */}
                 <div id="preview-sec-referencias" className="page page-numbered">
-                    <div className="abnt-center-bold mb-10">REFERÊNCIAS</div>
-                    <div className="text-[12pt] space-y-4">
+                    <div className="abnt-center-bold">REFERÊNCIAS</div>
+                    <div className="text-[12pt]">
                         {data.referencias && data.referencias.trim().split('\n').map((ref, i) => (
-                            ref.trim() && <div key={i} className="text-justify">{ref}</div>
+                            ref.trim() && <div key={i} className="abnt-ref">{ref}</div>
                         ))}
                     </div>
                 </div>
@@ -356,7 +440,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Apêndices */}
                 {data.apendices && data.apendices.trim() !== '' && (
                     <div id="preview-sec-apendices" className="page page-numbered">
-                        <div className="abnt-center-bold mb-8">APÊNDICES</div>
+                        <div className="abnt-center-bold">APÊNDICES</div>
                         {formatConteudo(data.apendices)}
                     </div>
                 )}
@@ -364,7 +448,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Anexos */}
                 {data.anexos && data.anexos.trim() !== '' && (
                     <div id="preview-sec-anexos" className="page page-numbered">
-                        <div className="abnt-center-bold mb-8">ANEXOS</div>
+                        <div className="abnt-center-bold">ANEXOS</div>
                         {formatConteudo(data.anexos)}
                     </div>
                 )}
