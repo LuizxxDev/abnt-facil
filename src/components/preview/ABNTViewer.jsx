@@ -3,7 +3,6 @@ import { TAG_RENDERERS } from '../../utils/constants';
 
 const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
     
-    // Proteção para evitar que caracteres como < ou > digitados pelo usuário quebrem o layout
     const escapeHtml = (text) => {
         return text
             .replace(/&/g, "&amp;")
@@ -18,12 +17,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         return texto.trim().split('\n\n').map((p, i) => { 
             const m = p.trim().match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i); 
             
-            // Se for uma tag especial (Citação, Imagem, etc), renderiza normalmente
             if (m && TAG_RENDERERS[m[1].toUpperCase()]) {
                 return TAG_RENDERERS[m[1].toUpperCase()](m[2], i);
             }
             
-            // Se for texto normal, aplica a conversão de Negrito (**) e Itálico (*)
             const textoSeguro = escapeHtml(p);
             const textoFormatado = textoSeguro
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -39,7 +36,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         });
     };
 
-    // --- Cálculo Dinâmico de Páginas Atualizado ---
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
 
@@ -49,7 +45,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         if (data.agradecimentos && data.agradecimentos.trim() !== '') currentPage += 1;
         if (data.epigrafe && data.epigrafe.trim() !== '') currentPage += 1;
 
-        currentPage += 1; // Resumo
+        currentPage += 1; // Resumo Pt
 
         if (data.resumoEn && data.resumoEn.trim() !== '') {
             currentPage += 1; // Abstract
@@ -62,18 +58,15 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
         groupedSections.forEach(group => {
             let groupCharCount = 0;
-
             group.forEach(sec => {
                 const offsetPages = Math.floor(groupCharCount / CHARS_PER_PAGE);
                 mapping[sec.id] = currentPage + offsetPages;
                 groupCharCount += (sec.titulo?.length || 0) + (sec.conteudo?.length || 0);
             });
-
             const groupTotalPages = Math.max(1, Math.ceil(groupCharCount / CHARS_PER_PAGE));
             currentPage += groupTotalPages;
         });
 
-        // Páginas dos elementos Pós-Textuais
         mapping['referencias'] = currentPage;
         if (data.referencias && data.referencias.trim() !== '') {
             currentPage += Math.max(1, Math.ceil(data.referencias.length / CHARS_PER_PAGE));
@@ -129,16 +122,33 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     font-size: 10pt;
                 }
 
+                /* UI/UX REFINEMENT: Pontos do Sumário Elegantes */
+                .sumario-item {
+                    display: flex;
+                    align-items: baseline;
+                    width: 100%;
+                    margin-bottom: 4pt;
+                    text-decoration: none;
+                    color: black;
+                }
+
+                .sumario-label {
+                    flex-shrink: 0;
+                    max-width: 85%;
+                }
+
                 .sumario-dots {
-                    flex: 1;
-                    margin: 0 10px;
-                    background-image: radial-gradient(circle, #000 1px, transparent 1.5px);
-                    background-position: bottom;
-                    background-size: 6px 4px;
-                    background-repeat: repeat-x;
-                    height: 12pt;
+                    flex-grow: 1;
+                    border-bottom: 1pt dotted black;
+                    margin: 0 4pt;
                     position: relative;
-                    top: -4px;
+                    top: -4pt;
+                }
+
+                .sumario-page {
+                    flex-shrink: 0;
+                    text-align: right;
+                    min-width: 20pt;
                 }
 
                 .abnt-p { text-align: justify; text-indent: 1.25cm; margin-bottom: 0; font-size: 12pt; }
@@ -168,14 +178,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                         page-break-after: auto !important;
                         break-after: auto !important;
                     }
-                    .sumario-dots {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
                 }
             `}</style>
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
+                {/* Capa */}
                 <div className="page text-center font-bold uppercase justify-between">
                     <div>
                         <div className="text-[12pt]">{data.instituicao}</div>
@@ -245,6 +252,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 )}
 
+                {/* Resumo */}
                 <div className="page">
                     <div className="abnt-center-bold mb-8">RESUMO</div>
                     <div className="abnt-p !indent-0">{data.resumoPt || "Texto do resumo..."}</div>
@@ -256,6 +264,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     )}
                 </div>
 
+                {/* Abstract */}
                 {data.resumoEn && data.resumoEn.trim() !== '' && (
                     <div className="page">
                         <div className="abnt-center-bold mb-8 italic">ABSTRACT</div>
@@ -269,56 +278,45 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 )}
 
-                {/* Sumário Atualizado */}
+                {/* Sumário Refinado */}
                 <div className="page">
                     <div className="abnt-center-bold mb-10">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
-                        {/* Capítulos */}
                         {data.secoes && data.secoes.map((sec) => (
-                            <div key={`sumario-${sec.id}`} className="flex justify-between items-end mb-4 leading-tight">
-                                <div className={sec.level === 1 ? "font-bold uppercase flex-shrink-0" : "uppercase ml-6 flex-shrink-0"}>
+                            <div key={`sumario-${sec.id}`} className="sumario-item">
+                                <div className={`sumario-label ${sec.level === 1 ? 'font-bold uppercase' : 'ml-6'}`}>
                                     {sec.num} {sec.titulo}
                                 </div>
                                 <div className="sumario-dots"></div>
-                                <div className="w-8 text-right font-normal flex-shrink-0">
-                                    {getPageNumber(sec.id)}
-                                </div>
+                                <div className="sumario-page">{getPageNumber(sec.id)}</div>
                             </div>
                         ))}
 
-                        {/* Referências */}
-                        <div className="flex justify-between items-end mb-4 leading-tight">
-                            <div className="font-bold uppercase flex-shrink-0">REFERÊNCIAS</div>
+                        <div className="sumario-item font-bold uppercase">
+                            <div className="sumario-label">REFERÊNCIAS</div>
                             <div className="sumario-dots"></div>
-                            <div className="w-8 text-right font-normal flex-shrink-0">
-                                {getPageNumber('referencias')}
-                            </div>
+                            <div className="sumario-page">{getPageNumber('referencias')}</div>
                         </div>
 
-                        {/* Apêndices */}
                         {data.apendices && data.apendices.trim() !== '' && (
-                            <div className="flex justify-between items-end mb-4 leading-tight">
-                                <div className="font-bold uppercase flex-shrink-0">APÊNDICES</div>
+                            <div className="sumario-item font-bold uppercase">
+                                <div className="sumario-label">APÊNDICES</div>
                                 <div className="sumario-dots"></div>
-                                <div className="w-8 text-right font-normal flex-shrink-0">
-                                    {getPageNumber('apendices')}
-                                </div>
+                                <div className="sumario-page">{getPageNumber('apendices')}</div>
                             </div>
                         )}
 
-                        {/* Anexos */}
                         {data.anexos && data.anexos.trim() !== '' && (
-                            <div className="flex justify-between items-end mb-4 leading-tight">
-                                <div className="font-bold uppercase flex-shrink-0">ANEXOS</div>
+                            <div className="sumario-item font-bold uppercase">
+                                <div className="sumario-label">ANEXOS</div>
                                 <div className="sumario-dots"></div>
-                                <div className="w-8 text-right font-normal flex-shrink-0">
-                                    {getPageNumber('anexos')}
-                                </div>
+                                <div className="sumario-page">{getPageNumber('anexos')}</div>
                             </div>
                         )}
                     </div>
                 </div>
 
+                {/* Conteúdo Textual */}
                 {groupedSections.map((group, groupIndex) => (
                     <div className="page page-numbered" key={`group-${groupIndex}`}>
                         {group.map((s) => (
@@ -330,6 +328,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 ))}
 
+                {/* Referências */}
                 <div id="preview-sec-referencias" className="page page-numbered">
                     <div className="abnt-center-bold mb-10">REFERÊNCIAS</div>
                     <div className="text-[12pt] space-y-4">
@@ -339,6 +338,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 </div>
 
+                {/* Apêndices */}
                 {data.apendices && data.apendices.trim() !== '' && (
                     <div id="preview-sec-apendices" className="page page-numbered">
                         <div className="abnt-center-bold mb-8">APÊNDICES</div>
@@ -346,6 +346,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 )}
 
+                {/* Anexos */}
                 {data.anexos && data.anexos.trim() !== '' && (
                     <div id="preview-sec-anexos" className="page page-numbered">
                         <div className="abnt-center-bold mb-8">ANEXOS</div>

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { 
   Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
   Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck, Heart, LayoutTemplate, Layers
+  UserCheck, Heart, LayoutTemplate, Layers, Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -129,7 +129,7 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
     );
 };
 
-const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, focusedSection, setFocusedSection, onOpenAssetModal, onOpenRefModal }) => {
+const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, focusedSection, setFocusedSection, onOpenAssetModal, onOpenRefModal, onOpenAttachmentModal }) => {
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -297,12 +297,28 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             <section className="space-y-4 pb-10">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
               
-              <div id="edit-sec-apendices">
-                  <textarea readOnly={isReadOnly} placeholder="Apêndices (Documentos elaborados pelo próprio autor para complementar a argumentação)..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.apendices || ''} onChange={e => setData({...data, apendices: e.target.value})} />
+              <div id="edit-sec-apendices" className="space-y-2">
+                  <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apêndices (Do Autor)</label>
+                      {!isReadOnly && (
+                          <button onClick={() => onOpenAttachmentModal('apendice')} className="text-[9px] font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1 uppercase transition-all bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
+                              <Plus size={10}/> Gerar Automático
+                          </button>
+                      )}
+                  </div>
+                  <textarea readOnly={isReadOnly} placeholder="Documentos elaborados pelo próprio autor para complementar a argumentação..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.apendices || ''} onChange={e => setData({...data, apendices: e.target.value})} />
               </div>
               
-              <div id="edit-sec-anexos">
-                  <textarea readOnly={isReadOnly} placeholder="Anexos (Documentos NÃO elaborados pelo autor, ex: leis, mapas de terceiros)..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.anexos || ''} onChange={e => setData({...data, anexos: e.target.value})} />
+              <div id="edit-sec-anexos" className="space-y-2 mt-6">
+                  <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Anexos (De Terceiros)</label>
+                      {!isReadOnly && (
+                          <button onClick={() => onOpenAttachmentModal('anexo')} className="text-[9px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 flex items-center gap-1 uppercase transition-all bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded-md">
+                              <Plus size={10}/> Gerar Automático
+                          </button>
+                      )}
+                  </div>
+                  <textarea readOnly={isReadOnly} placeholder="Documentos NÃO elaborados pelo autor, ex: leis, mapas de terceiros..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.anexos || ''} onChange={e => setData({...data, anexos: e.target.value})} />
               </div>
             </section>
         </div>
