@@ -259,7 +259,7 @@ const LandingPage = () => {
                             onClick={() => navigate('/dashboard')}
                             className="bg-emerald-600 text-white px-10 md:px-12 py-4 md:py-5 rounded-2xl font-black text-sm md:text-base hover:bg-emerald-500 transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-95 flex items-center justify-center gap-3 mx-auto"
                         >
-                            Aceder Editor Grátis <ArrowRight size={20} />
+                            Acessar Editor Grátis <ArrowRight size={20} />
                         </button>
                     </div>
                 </section>
