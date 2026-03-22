@@ -5,13 +5,14 @@ import {
     Trash2, Star, BookTemplate, Eye, Sparkles, MoreVertical,
     RotateCcw, Copy, Box, Clock, CheckCircle2, FileEdit, Ghost,
     ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
-    Sun, Moon, Cloud, CloudOff, User, Home
+    Sun, Moon, Cloud, CloudOff, User, Home, MessageSquare, SearchX, X, Bug, Heart, Send
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { ABNT_TIPS, EXAMPLE_ID, PROJECT_TYPES } from '../utils/constants'; 
 import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal } from '../components/common/Modals';
+import { supabase } from '../lib/supabase'; // Adicionado para o Feedback
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -35,6 +36,12 @@ const Dashboard = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [newProjectTitle, setNewProjectTitle] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
+
+    // Estados para Feedback
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackType, setFeedbackType] = useState('bug');
+    const [feedbackText, setFeedbackText] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isLoadingGlobal = isAuthLoading || isDataLoading;
 
@@ -103,6 +110,23 @@ const Dashboard = () => {
 
     const toggleTheme = () => {
         setSettings(s => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }));
+    };
+
+    const handleSendFeedback = async () => {
+        if (!feedbackText.trim()) return;
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabase.from('feedback').insert([{ type: feedbackType, message: feedbackText }]);
+            if (error) throw error;
+            toast.success('Feedback enviado com sucesso! Muito obrigado pela ajuda.');
+            setShowFeedback(false);
+            setFeedbackText('');
+        } catch (error) {
+            console.error('Erro ao enviar feedback:', error);
+            toast.error('Ocorreu um erro ao enviar o feedback. Tente novamente mais tarde.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const counts = useMemo(() => ({
@@ -193,11 +217,11 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="flex items-center gap-2 md:gap-3 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500 overflow-x-auto pb-2 xl:pb-0" style={{ scrollbarWidth: 'none' }}>
-                        <div className={`${theme.cardBg} px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-sm border flex items-center gap-3 shrink-0`}>
+                        <div className={`${theme.cardBg} hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-sm border flex items-center gap-3 shrink-0`}>
                             <div className="bg-blue-50 text-blue-600 p-1.5 md:p-2 rounded-lg"><FileText size={16} /></div>
                             <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Total</p><p className={`text-lg font-black leading-none mt-1 ${theme.text}`}>{stats.total}</p></div>
                         </div>
-                        <div className={`${theme.cardBg} px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-sm border flex items-center gap-3 shrink-0`}>
+                        <div className={`${theme.cardBg} hover:border-green-300 dark:hover:border-green-500/50 transition-colors px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-sm border flex items-center gap-3 shrink-0`}>
                             <div className="bg-green-50 text-green-600 p-1.5 md:p-2 rounded-lg"><CheckCircle2 size={16} /></div>
                             <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Concluídos</p><p className={`text-lg font-black leading-none mt-1 ${theme.text}`}>{stats.completed}</p></div>
                         </div>
@@ -205,6 +229,10 @@ const Dashboard = () => {
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
                         
                         <div className="flex gap-2 shrink-0">
+                            {/* Novo botão de Feedback no Header */}
+                            <button onClick={() => setShowFeedback(true)} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-blue-500 hover:text-blue-600 dark:hover:text-blue-400`} title="Enviar Feedback / Reportar Bug">
+                                <MessageSquare size={18} />
+                            </button>
                             <button onClick={toggleTheme} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
                                 {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                             </button>
@@ -328,7 +356,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Lista de Projetos */}
+                {/* Lista de Projetos (Com Empty States Inteligentes) */}
                 <div className={viewMode === 'grid' && window.innerWidth >= 768 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-2.5"}>
                     {processedProjects.map((p, idx) => (
                         <div key={p.id} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 30}ms` }}>
@@ -347,11 +375,38 @@ const Dashboard = () => {
                             />
                         </div>
                     ))}
+                    
+                    {/* Empty States Dinâmicos */}
                     {processedProjects.length === 0 && (
-                        <div className="text-center py-12 opacity-50 border-2 border-dashed rounded-3xl border-slate-300 dark:border-slate-700 mt-4">
-                            <Ghost size={40} className="mx-auto mb-3 text-slate-400"/>
-                            <p className="text-sm font-bold">Nenhum projeto por aqui.</p>
-                            <p className="text-xs mt-1">Cria um novo TCC ou clona um modelo acima.</p>
+                        <div className="text-center py-16 opacity-70 border-2 border-dashed rounded-3xl border-slate-300 dark:border-slate-700 mt-4 bg-slate-50/50 dark:bg-slate-800/20">
+                            {searchTerm ? (
+                                <>
+                                    <SearchX size={48} className="mx-auto mb-4 text-slate-400"/>
+                                    <p className="text-sm font-bold">Nenhum resultado encontrado.</p>
+                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Não conseguimos encontrar nenhum projeto correspondente a "{searchTerm}".</p>
+                                </>
+                            ) : filterTab === 'favorites' ? (
+                                <>
+                                    <Star size={48} className="mx-auto mb-4 text-slate-400"/>
+                                    <p className="text-sm font-bold">Sem projetos favoritos.</p>
+                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Clica na estrela de um projeto para o guardar aqui.</p>
+                                </>
+                            ) : filterTab === 'trash' ? (
+                                <>
+                                    <Trash2 size={48} className="mx-auto mb-4 text-slate-400"/>
+                                    <p className="text-sm font-bold">A lixeira está vazia.</p>
+                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Os projetos eliminados aparecerão aqui.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <Ghost size={48} className="mx-auto mb-4 text-slate-400"/>
+                                    <p className="text-sm font-bold">Nenhum projeto por aqui.</p>
+                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Cria um novo projeto do zero ou clona um dos nossos modelos para começares a escrever.</p>
+                                    <button onClick={() => setIsTitleModalOpen(true)} className="mt-6 inline-flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-green-500 transition-colors">
+                                        <PlusCircle size={14}/> Começar Novo Projeto
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -368,6 +423,67 @@ const Dashboard = () => {
                     logout={logout}
                 />
             </div>
+
+            {/* MODAL DE FEEDBACK (INTEGRADO NO DASHBOARD) */}
+            {showFeedback && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <MessageSquare size={20} className="text-blue-500"/> Enviar Feedback
+                            </h3>
+                            <button onClick={() => setShowFeedback(false)} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors bg-slate-100 dark:bg-slate-800 p-2 rounded-full focus:outline-none">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-6 flex-1">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                                Encontrou algum erro no editor ou tem uma ideia para melhorar a plataforma? A sua ajuda é vital!
+                            </p>
+
+                            <div className="flex gap-2 p-1.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                                <button
+                                    onClick={() => setFeedbackType('bug')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold transition-all focus:outline-none ${feedbackType === 'bug' ? 'bg-white dark:bg-slate-800 text-red-500 dark:text-red-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                >
+                                    <Bug size={16}/> Reportar Bug
+                                </button>
+                                <button
+                                    onClick={() => setFeedbackType('suggestion')}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold transition-all focus:outline-none ${feedbackType === 'suggestion' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                >
+                                    <Heart size={16}/> Sugerir Melhoria
+                                </button>
+                            </div>
+
+                            <div>
+                                <textarea
+                                    value={feedbackText}
+                                    onChange={(e) => setFeedbackText(e.target.value)}
+                                    placeholder={feedbackType === 'bug' ? 'Descreva o problema ou onde a formatação falhou...' : 'O que acha que falta no ABNTFácil?'}
+                                    className="w-full h-36 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none font-medium disabled:opacity-50"
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-3">
+                            <button onClick={() => setShowFeedback(false)} disabled={isSubmitting} className="px-5 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus:outline-none disabled:opacity-50">
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleSendFeedback}
+                                disabled={!feedbackText.trim() || isSubmitting}
+                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] flex items-center gap-2 focus:outline-none"
+                            >
+                                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16}/>} 
+                                {isSubmitting ? 'A enviar...' : 'Enviar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -394,14 +510,14 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
                 
                 <div className="flex items-center gap-1 shrink-0">
                     {!isTrash && (
-                        <button onClick={onFav} className={`p-2 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}>
+                        <button onClick={onFav} className={`p-2 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300 hover:text-orange-300'}`}>
                             <Star size={16} fill={project.favorite ? "currentColor" : "none"} />
                         </button>
                     )}
                     <div className="relative">
                         <button onClick={onToggleMenu} className="p-2 text-slate-300 hover:text-slate-800 dark:hover:text-white"><MoreVertical size={16}/></button>
                         {isMenuOpen && (
-                            <div className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:border-slate-600">
+                            <div className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:border-slate-600 animate-in fade-in zoom-in-95 duration-100">
                                 {isTrash ? (
                                     <button onClick={onRestore} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg flex items-center gap-2"><RotateCcw size={14}/> Restaurar</button>
                                 ) : (
@@ -424,30 +540,46 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
         <div className={`${theme.cardBg} rounded-2xl border-2 border-transparent hover:border-green-600 transition-all p-5 group flex flex-col relative h-full shadow-sm hover:shadow-md project-menu-container`}>
             <div className="flex justify-between mb-3">
                 <div onClick={!isTrash ? onLoad : undefined} className={`p-2.5 rounded-xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 dark:bg-slate-800 cursor-default text-slate-400' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-pointer'}`}><FileText size={20} /></div>
+                
                 <div className="flex items-center gap-0.5">
+                    {/* Ações Rápidas (Visíveis em Hover apenas em Desktop) */}
+                    <div className="hidden lg:flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                         {!isTrash ? (
+                             <>
+                                <button onClick={onLoad} className="p-1.5 text-slate-400 hover:text-green-600 transition-colors" title="Abrir Editor"><FileEdit size={14}/></button>
+                                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
+                                <button onClick={onDel} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Mover para Lixeira"><Trash2 size={14}/></button>
+                             </>
+                         ) : (
+                             <button onClick={onRestore} className="p-1.5 text-slate-400 hover:text-green-600 transition-colors" title="Restaurar Projeto"><RotateCcw size={14}/></button>
+                         )}
+                    </div>
+
                     {!isTrash && (
-                        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={`p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300'}`}>
+                        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={`p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-orange-400' : 'text-slate-300 hover:text-orange-300'}`}>
                             <Star size={16} fill={project.favorite ? "currentColor" : "none"} />
                         </button>
                     )}
-                    <button onClick={onToggleMenu} className="p-1.5 rounded-full text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"><MoreVertical size={16} /></button>
-                    {isMenuOpen && (
-                        <div className="absolute right-6 top-14 w-44 bg-white dark:bg-slate-700 dark:text-white dark:border-slate-600 rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800">
-                            {isTrash ? (
-                                <>
-                                    <button onClick={onRestore} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 rounded-lg flex items-center gap-2"><RotateCcw size={14} /> Restaurar</button>
-                                    <button onClick={onDeletePermanent} className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Eliminar</button>
-                                </>
-                            ) : (
-                                <>
-                                    <button onClick={onLoad} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><FileEdit size={14} /> Abrir</button>
-                                    <button onClick={onDuplicate} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><Copy size={14} /> Duplicar</button>
-                                    <div className="h-px w-full bg-slate-100 dark:bg-slate-600 my-1"></div>
-                                    <button onClick={onDel} className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Lixeira</button>
-                                </>
-                            )}
-                        </div>
-                    )}
+                    <div className="relative">
+                        <button onClick={onToggleMenu} className="p-1.5 rounded-full text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"><MoreVertical size={16} /></button>
+                        {isMenuOpen && (
+                            <div className="absolute right-6 top-10 w-44 bg-white dark:bg-slate-700 dark:text-white dark:border-slate-600 rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                                {isTrash ? (
+                                    <>
+                                        <button onClick={onRestore} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 rounded-lg flex items-center gap-2"><RotateCcw size={14} /> Restaurar</button>
+                                        <button onClick={onDeletePermanent} className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Eliminar</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button onClick={onLoad} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><FileEdit size={14} /> Abrir</button>
+                                        <button onClick={onDuplicate} className="w-full text-left px-3 py-2 text-[10px] font-bold hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><Copy size={14} /> Duplicar</button>
+                                        <div className="h-px w-full bg-slate-100 dark:bg-slate-600 my-1"></div>
+                                        <button onClick={onDel} className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Lixeira</button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             
