@@ -57,6 +57,14 @@ const WordCounter = ({ text, min = 150, max = 500 }) => {
     );
 };
 
+const LEVEL_NAMES = {
+    1: 'Primária',
+    2: 'Secundária',
+    3: 'Terciária',
+    4: 'Quaternária',
+    5: 'Quinária'
+};
+
 const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onAddSubsection, onOpenRefModal }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
     const textareaRef = useRef(null);
@@ -106,8 +114,10 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
         }, 0);
     };
 
+    const currentLevel = Number(s.level) || 1;
+
     return (
-        <div ref={setNodeRef} style={style} className={`p-4 border rounded-xl space-y-3 transition-all ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${Number(s.level) > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
+        <div ref={setNodeRef} style={style} className={`p-4 border rounded-xl space-y-3 transition-all ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${currentLevel > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     {!isReadOnly && (
@@ -115,19 +125,32 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
                             <GripVertical size={16}/>
                         </button>
                     )}
-                    <span className={`text-[8px] font-black uppercase tracking-tighter ${Number(s.level) > 1 ? 'text-slate-400' : 'text-green-500'}`}>
-                        {Number(s.level) === 1 ? 'Seção' : 'Subseção'}
+                    <span className={`text-[8px] font-black uppercase tracking-tighter ${currentLevel > 1 ? 'text-slate-400' : 'text-green-500'}`}>
+                        Seção {LEVEL_NAMES[currentLevel] || 'Secundária'}
                     </span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-2">
+                    {/* Controladores dos 5 níveis hierárquicos ABNT */}
                     {!isReadOnly && (
-                        <button 
-                            onClick={() => onUpdate(i, 'level', Number(s.level) === 1 ? 2 : 1)} 
-                            title={Number(s.level) === 1 ? "Transformar em Subseção" : "Promover a Seção Primária"} 
-                            className={`p-1 rounded transition-colors ${Number(s.level) === 1 ? 'text-slate-300 hover:text-blue-500 hover:bg-blue-50' : 'text-blue-500 hover:text-blue-700 hover:bg-blue-100'}`}
-                        >
-                            {Number(s.level) === 1 ? <ArrowRight size={12}/> : <ArrowLeft size={12}/>}
-                        </button>
+                        <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded p-0.5">
+                            <button 
+                                onClick={() => onUpdate(i, 'level', Math.max(1, currentLevel - 1))} 
+                                disabled={currentLevel === 1}
+                                title="Promover Nível (Esquerda)" 
+                                className={`p-1 rounded transition-colors ${currentLevel === 1 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-blue-500 hover:text-blue-700 hover:bg-white dark:hover:bg-slate-600 shadow-sm'}`}
+                            >
+                                <ArrowLeft size={12}/>
+                            </button>
+                            <span className="text-[9px] font-bold w-3 text-center my-auto text-slate-500 dark:text-slate-400">{currentLevel}</span>
+                            <button 
+                                onClick={() => onUpdate(i, 'level', Math.min(5, currentLevel + 1))} 
+                                disabled={currentLevel === 5}
+                                title="Rebaixar Nível (Direita)" 
+                                className={`p-1 rounded transition-colors ${currentLevel === 5 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-blue-500 hover:text-blue-700 hover:bg-white dark:hover:bg-slate-600 shadow-sm'}`}
+                            >
+                                <ArrowRight size={12}/>
+                            </button>
+                        </div>
                     )}
                     
                     <button onClick={() => insertTemplate(i, s.titulo)} title="Inserir Modelo" className="p-1 text-slate-300 hover:text-purple-500 hover:bg-purple-50 rounded"><Wand2 size={12}/></button>
@@ -137,9 +160,10 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
             
             <input 
                 readOnly={isReadOnly} 
-                className={`font-bold text-xs uppercase w-full bg-transparent border-b focus:border-green-600 outline-none pb-1 ${settings.theme === 'dark' ? 'border-slate-600 text-white' : 'border-slate-200 text-slate-800'}`} 
+                className={`font-bold text-xs ${currentLevel === 1 ? 'uppercase' : ''} w-full bg-transparent border-b focus:border-green-600 outline-none pb-1 ${settings.theme === 'dark' ? 'border-slate-600 text-white' : 'border-slate-200 text-slate-800'}`} 
                 value={s.titulo} 
                 onChange={e => onUpdate(i, 'titulo', e.target.value)} 
+                placeholder={`Título da Seção Nível ${currentLevel}`}
             />
 
             {!isReadOnly && <EditorToolbar onAction={handleToolbarAction} />}
@@ -169,13 +193,13 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
                     <button onClick={() => onOpenAssetModal('box', i)} className="text-[8px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 flex items-center gap-1 hover:bg-indigo-100"><Box size={10}/> Quadro</button>
                 </div>
                 
-                {!isReadOnly && (
+                {!isReadOnly && currentLevel < 5 && (
                     <button 
-                        onClick={() => onAddSubsection(i)} 
+                        onClick={() => onAddSubsection(i, currentLevel)} 
                         className="text-[9px] font-bold text-slate-500 hover:text-green-700 dark:hover:text-green-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-1 rounded border border-transparent hover:border-green-200 dark:hover:border-green-800 flex items-center gap-1 transition-all uppercase"
-                        title="Adicionar uma Subseção diretamente abaixo deste bloco"
+                        title={`Adicionar uma subseção Nível ${currentLevel + 1} diretamente abaixo`}
                     >
-                        <Plus size={10}/> Subseção
+                        <Plus size={10}/> Subseção Nvl {currentLevel + 1}
                     </button>
                 )}
             </div>
@@ -201,7 +225,6 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
         }
     };
 
-    // ATUALIZAÇÃO FUNCIONAL PARA EVITAR STALE CLOSURES
     const handleUpdateSection = (index, field, value) => {
         setData(prev => {
             if (!prev) return prev;
@@ -212,16 +235,16 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
         });
     };
 
-    // ATUALIZAÇÃO FUNCIONAL DE ARRAY COM SPLICE CORRIGIDO
-    const handleAddSubsection = (currentIndex) => {
+    const handleAddSubsection = (currentIndex, parentLevel) => {
         setData(prev => {
             if (!prev) return prev;
+            const newLevel = Math.min(5, parentLevel + 1);
             const newSecoes = [...prev.secoes];
             newSecoes.splice(currentIndex + 1, 0, { 
                 id: generateId(), 
-                titulo: 'Nova Subseção', 
+                titulo: `Nova Seção Nível ${newLevel}`, 
                 conteudo: '', 
-                level: 2 
+                level: newLevel 
             });
             return { ...prev, secoes: newSecoes };
         });
