@@ -5,18 +5,6 @@ import {
 } from 'lucide-react';
 import { generateId } from './helpers';
 
-// --- NOVO: AVATARES DISPONÍVEIS ---
-export const AVATAR_OPTIONS = [
-  { id: 'user', icon: <User size={24} />, label: 'Padrão' },
-  { id: 'student', icon: <GraduationCap size={24} />, label: 'Estudante' },
-  { id: 'pro', icon: <UserCheck size={24} />, label: 'Pesquisador' },
-  { id: 'dev', icon: <Code2 size={24} />, label: 'Dev' },
-  { id: 'tech', icon: <Cpu size={24} />, label: 'Hardware' },
-  { id: 'ai', icon: <BrainCircuit size={24} />, label: 'IA' },
-  { id: 'ghost', icon: <Ghost size={24} />, label: 'Fantasma' },
-  { id: 'it', icon: <Monitor size={24} />, label: 'Técnico' }
-];
-
 export const ABNT_TIPS = [
   "ABNT: Tabelas devem ter as laterais abertas (sem bordas verticais).",
   "ABNT: Figuras sempre precisam de título (acima) e fonte (abaixo).",

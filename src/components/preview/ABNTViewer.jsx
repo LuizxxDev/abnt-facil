@@ -18,11 +18,9 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             const m = p.trim().match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i); 
             
             if (m && TAG_RENDERERS[m[1].toUpperCase()]) {
-                // SE FOR IMAGEM: Procura no dicionário de assets oculto
                 if (m[1].toUpperCase() === 'IMAGEM') {
                     let [title, source, urlStr] = m[2].split('|').map(s => s?.trim() || '');
                     
-                    // Se urlStr bater certo com uma chave em data.assets, troca pelo Base64
                     if (urlStr && data?.assets && data.assets[urlStr]) {
                         urlStr = data.assets[urlStr];
                     }
@@ -51,7 +49,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
 
-        // CORREÇÃO AQUI: Capa (1) + Folha de Rosto (2). O próximo elemento entra na página 3.
         let currentPage = 3; 
         
         if (data.dedicatoria && data.dedicatoria.trim() !== '') currentPage += 1;
@@ -67,7 +64,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         currentPage += 1; // Sumário
 
         const mapping = {};
-        // Ajustado para 2200 para calcular o espaço com maior precisão quando existem subsecções
         const CHARS_PER_PAGE = 2200; 
 
         groupedSections.forEach(group => {
@@ -166,8 +162,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 .abnt-p { text-align: justify; text-indent: 1.25cm; margin-bottom: 0; font-size: 12pt; }
                 .abnt-citacao-longa { margin-left: 4cm; font-size: 10pt; line-height: 1.1; text-align: justify; margin-top: 10pt; margin-bottom: 10pt; }
+                
                 .abnt-h1 { font-weight: bold; text-transform: uppercase; font-size: 12pt; margin-bottom: 1.5rem; }
-                .abnt-h2 { font-weight: bold; font-size: 12pt; margin-bottom: 1rem; text-transform: uppercase; }
+                .abnt-h2 { font-weight: normal; font-size: 12pt; margin-bottom: 1rem; text-transform: uppercase; }
+                
                 .abnt-center-bold { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 12pt; }
 
                 @media print {
@@ -222,14 +220,17 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                         <div className="flex justify-end pr-0">
                             <div className="w-[105mm] ml-auto text-justify normal-case font-normal text-[10pt] leading-snug">
                                 {data.naturezaTrabalho}<br/><br/>
-                                <div className="space-y-1">
-                                    <span className="font-bold">
-                                        {(data.orientadores || []).length > 1 ? "Orientadores:" : "Orientador:"}
-                                    </span>
-                                    {(data.orientadores || ["Não informado"]).map((o, idx) => (
-                                        <div key={idx}>{o}</div>
-                                    ))}
-                                </div>
+                                
+                                {data.orientadores && data.orientadores.some(o => o.trim() !== '') && (
+                                    <div className="space-y-1 mt-4">
+                                        <span className="font-bold">
+                                            {data.orientadores.filter(o => o.trim() !== '').length > 1 ? "Orientadores:" : "Orientador:"}
+                                        </span>
+                                        {data.orientadores.map((o, idx) => (
+                                            o.trim() !== '' && <div key={idx}>{o}</div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -291,14 +292,13 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 )}
 
-                {/* Sumário Refinado */}
+                {/* Sumário */}
                 <div className="page">
                     <div className="abnt-center-bold mb-10">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
-                        {/* CORREÇÃO AQUI: Iteramos em sumarioItens em vez de data.secoes para obter o número .num exato */}
                         {sumarioItens && sumarioItens.map((sec) => (
                             <div key={`sumario-${sec.id}`} className="sumario-item">
-                                <div className={`sumario-label ${sec.level === 1 ? 'font-bold uppercase' : 'ml-6'}`}>
+                                <div className={`sumario-label ${Number(sec.level) === 1 ? 'font-bold uppercase' : 'ml-6'}`}>
                                     {sec.num} {sec.titulo}
                                 </div>
                                 <div className="sumario-dots"></div>
@@ -335,7 +335,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     <div className="page page-numbered" key={`group-${groupIndex}`}>
                         {group.map((s) => (
                             <div key={s.id} id={`preview-sec-${s.id}`} className="mb-8">
-                                <div className={s.level === 1 ? "abnt-h1" : "abnt-h2"}>{s.num} {s.titulo}</div>
+                                {/* CORREÇÃO NO CLASSNAME DO H1/H2 AQUI: */}
+                                <div className={Number(s.level) === 1 ? "abnt-h1" : "abnt-h2"}>{s.num} {s.titulo}</div>
                                 <div className="abnt-content">{formatConteudo(s.conteudo)}</div>
                             </div>
                         ))}

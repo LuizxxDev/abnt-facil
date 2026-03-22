@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { 
   Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
   Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck, Heart, LayoutTemplate, Layers, Plus, AlertTriangle
+  UserCheck, Heart, LayoutTemplate, Layers, Plus, AlertTriangle, ArrowRight, ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -26,7 +26,6 @@ import { SECTION_GUIDES, SECTION_TEMPLATES, ESTADOS_BR } from '../../utils/const
 import { generateId } from '../../utils/helpers';
 import { EditorToolbar } from './EditorToolbar';
 
-// --- COMPONENTE UTILITÁRIO: Contador de Palavras ABNT ---
 const WordCounter = ({ text, min = 150, max = 500 }) => {
     const countWords = (str) => {
         if (!str) return 0;
@@ -35,7 +34,6 @@ const WordCounter = ({ text, min = 150, max = 500 }) => {
 
     const count = countWords(text);
     
-    // Estado inicial (Vazio ou quase vazio)
     let colorClass = 'text-slate-400 bg-slate-100 border-transparent dark:bg-slate-800';
     let statusText = '';
 
@@ -59,7 +57,7 @@ const WordCounter = ({ text, min = 150, max = 500 }) => {
     );
 };
 
-const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onOpenRefModal }) => {
+const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onAddSubsection, onOpenRefModal }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
     const textareaRef = useRef(null);
     
@@ -109,7 +107,7 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
     };
 
     return (
-        <div ref={setNodeRef} style={style} className={`p-4 border rounded-xl space-y-3 transition-all ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${s.level > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
+        <div ref={setNodeRef} style={style} className={`p-4 border rounded-xl space-y-3 transition-all ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${Number(s.level) > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     {!isReadOnly && (
@@ -117,11 +115,21 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
                             <GripVertical size={16}/>
                         </button>
                     )}
-                    <span className={`text-[8px] font-black uppercase tracking-tighter ${s.level > 1 ? 'text-green-500' : 'text-slate-300'}`}>
-                        {s.level === 1 ? 'Primária' : 'Secundária'}
+                    <span className={`text-[8px] font-black uppercase tracking-tighter ${Number(s.level) > 1 ? 'text-slate-400' : 'text-green-500'}`}>
+                        {Number(s.level) === 1 ? 'Seção' : 'Subseção'}
                     </span>
                 </div>
                 <div className="flex gap-1">
+                    {!isReadOnly && (
+                        <button 
+                            onClick={() => onUpdate(i, 'level', Number(s.level) === 1 ? 2 : 1)} 
+                            title={Number(s.level) === 1 ? "Transformar em Subseção" : "Promover a Seção Primária"} 
+                            className={`p-1 rounded transition-colors ${Number(s.level) === 1 ? 'text-slate-300 hover:text-blue-500 hover:bg-blue-50' : 'text-blue-500 hover:text-blue-700 hover:bg-blue-100'}`}
+                        >
+                            {Number(s.level) === 1 ? <ArrowRight size={12}/> : <ArrowLeft size={12}/>}
+                        </button>
+                    )}
+                    
                     <button onClick={() => insertTemplate(i, s.titulo)} title="Inserir Modelo" className="p-1 text-slate-300 hover:text-purple-500 hover:bg-purple-50 rounded"><Wand2 size={12}/></button>
                     {!isReadOnly && <button onClick={() => onDelete(s.id)} className="p-1 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 size={12}/></button>}
                 </div>
@@ -152,11 +160,24 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
                     {SECTION_GUIDES[Object.keys(SECTION_GUIDES).find(k => s.titulo.toUpperCase().includes(k))]}
                 </div>
             )}
-            <div className="flex flex-wrap gap-1 mt-2">
-                <button onClick={() => onOpenAssetModal('cit', i)} className="text-[8px] font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100 flex items-center gap-1 hover:bg-green-100"><Quote size={10}/> Citação</button>
-                <button onClick={() => onOpenAssetModal('img', i)} className="text-[8px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100"><ImageIcon size={10}/> Imagem</button>
-                <button onClick={() => onOpenAssetModal('tab', i)} className="text-[8px] font-bold text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 flex items-center gap-1 hover:bg-orange-100"><TableIcon size={10}/> Tabela</button>
-                <button onClick={() => onOpenAssetModal('box', i)} className="text-[8px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 flex items-center gap-1 hover:bg-indigo-100"><Box size={10}/> Quadro</button>
+            
+            <div className="flex justify-between items-center mt-2">
+                <div className="flex flex-wrap gap-1">
+                    <button onClick={() => onOpenAssetModal('cit', i)} className="text-[8px] font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100 flex items-center gap-1 hover:bg-green-100"><Quote size={10}/> Citação</button>
+                    <button onClick={() => onOpenAssetModal('img', i)} className="text-[8px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100"><ImageIcon size={10}/> Imagem</button>
+                    <button onClick={() => onOpenAssetModal('tab', i)} className="text-[8px] font-bold text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 flex items-center gap-1 hover:bg-orange-100"><TableIcon size={10}/> Tabela</button>
+                    <button onClick={() => onOpenAssetModal('box', i)} className="text-[8px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 flex items-center gap-1 hover:bg-indigo-100"><Box size={10}/> Quadro</button>
+                </div>
+                
+                {!isReadOnly && (
+                    <button 
+                        onClick={() => onAddSubsection(i)} 
+                        className="text-[9px] font-bold text-slate-500 hover:text-green-700 dark:hover:text-green-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-1 rounded border border-transparent hover:border-green-200 dark:hover:border-green-800 flex items-center gap-1 transition-all uppercase"
+                        title="Adicionar uma Subseção diretamente abaixo deste bloco"
+                    >
+                        <Plus size={10}/> Subseção
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -171,17 +192,52 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
     const handleDragEnd = (event) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = data.secoes.findIndex(s => s.id === active.id);
-            const newIndex = data.secoes.findIndex(s => s.id === over.id);
-            setData({ ...data, secoes: arrayMove(data.secoes, oldIndex, newIndex) });
+            setData(prev => {
+                const oldIndex = prev.secoes.findIndex(s => s.id === active.id);
+                const newIndex = prev.secoes.findIndex(s => s.id === over.id);
+                return { ...prev, secoes: arrayMove(prev.secoes, oldIndex, newIndex) };
+            });
             toast.success("Ordem das seções atualizada!");
         }
     };
 
+    // ATUALIZAÇÃO FUNCIONAL PARA EVITAR STALE CLOSURES
     const handleUpdateSection = (index, field, value) => {
-        const n = [...data.secoes];
-        n[index][field] = value;
-        setData({...data, secoes: n});
+        setData(prev => {
+            if (!prev) return prev;
+            const newSecoes = prev.secoes.map((sec, i) => 
+                i === index ? { ...sec, [field]: value } : sec
+            );
+            return { ...prev, secoes: newSecoes };
+        });
+    };
+
+    // ATUALIZAÇÃO FUNCIONAL DE ARRAY COM SPLICE CORRIGIDO
+    const handleAddSubsection = (currentIndex) => {
+        setData(prev => {
+            if (!prev) return prev;
+            const newSecoes = [...prev.secoes];
+            newSecoes.splice(currentIndex + 1, 0, { 
+                id: generateId(), 
+                titulo: 'Nova Subseção', 
+                conteudo: '', 
+                level: 2 
+            });
+            return { ...prev, secoes: newSecoes };
+        });
+    };
+
+    const handleAddSection = () => {
+        setData(prev => {
+            if (!prev) return prev;
+            const newSecoes = [...prev.secoes, { 
+                id: generateId(), 
+                titulo: 'NOVA SEÇÃO', 
+                conteudo: '', 
+                level: 1 
+            }];
+            return { ...prev, secoes: newSecoes };
+        });
     };
 
     const handleDeleteSection = (id) => {
@@ -205,7 +261,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                     </button>
                     <button 
                         onClick={() => {
-                            setData({...data, secoes: data.secoes.filter(s => s.id !== id)});
+                            setData(prev => ({...prev, secoes: prev.secoes.filter(s => s.id !== id)}));
                             toast.dismiss(t.id);
                             toast.success("Seção removida com sucesso.");
                         }} 
@@ -250,9 +306,14 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                         </button>
                         <button 
                             onClick={() => {
-                                const newSec = [...data.secoes];
-                                newSec[index].conteudo = (newSec[index].conteudo + "\n\n" + SECTION_TEMPLATES[key]).trim();
-                                setData({...data, secoes: newSec});
+                                setData(prev => {
+                                    const newSecoes = [...prev.secoes];
+                                    newSecoes[index] = { 
+                                        ...newSecoes[index], 
+                                        conteudo: (newSecoes[index].conteudo + "\n\n" + SECTION_TEMPLATES[key]).trim() 
+                                    };
+                                    return { ...prev, secoes: newSecoes };
+                                });
                                 toast.dismiss(t.id);
                                 toast.success("Modelo inserido!");
                             }} 
@@ -280,10 +341,10 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Identificação */}
             <section className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
-              <input readOnly={isReadOnly} placeholder="Instituição" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.instituicao} onChange={e => setData({...data, instituicao: e.target.value})} />
-              <input readOnly={isReadOnly} placeholder="Nome do Curso" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.curso} onChange={e => setData({...data, curso: e.target.value})} />
-              <input readOnly={isReadOnly} placeholder="Título Oficial" className={`w-full p-2.5 border rounded-lg text-sm font-bold outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.titulo} onChange={e => setData({...data, titulo: e.target.value})} />
-              <input readOnly={isReadOnly} placeholder="Subtítulo" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.subtitulo} onChange={e => setData({...data, subtitulo: e.target.value})} />
+              <input readOnly={isReadOnly} placeholder="Instituição" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.instituicao} onChange={e => setData(prev => ({...prev, instituicao: e.target.value}))} />
+              <input readOnly={isReadOnly} placeholder="Nome do Curso" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.curso} onChange={e => setData(prev => ({...prev, curso: e.target.value}))} />
+              <input readOnly={isReadOnly} placeholder="Título Oficial" className={`w-full p-2.5 border rounded-lg text-sm font-bold outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.titulo} onChange={e => setData(prev => ({...prev, titulo: e.target.value}))} />
+              <input readOnly={isReadOnly} placeholder="Subtítulo" className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.subtitulo} onChange={e => setData(prev => ({...prev, subtitulo: e.target.value}))} />
               
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Natureza do Trabalho (Folha de Rosto)</label>
@@ -292,13 +353,13 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                     placeholder="Ex: Trabalho de Conclusão de Curso apresentado ao IFPA..." 
                     className={`w-full p-2.5 border rounded-lg text-xs h-20 outline-none focus:border-green-600 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} 
                     value={data.naturezaTrabalho} 
-                    onChange={e => setData({...data, naturezaTrabalho: e.target.value})} 
+                    onChange={e => setData(prev => ({...prev, naturezaTrabalho: e.target.value}))} 
                 />
               </div>
 
               <div className="flex gap-2">
-                <input readOnly={isReadOnly} placeholder="Cidade" className={`flex-1 p-2 border rounded text-xs outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.cidade} onChange={e => setData({...data, cidade: e.target.value})} />
-                <select disabled={isReadOnly} className={`p-2 border rounded text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.estado} onChange={e => setData({...data, estado: e.target.value})}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select>
+                <input readOnly={isReadOnly} placeholder="Cidade" className={`flex-1 p-2 border rounded text-xs outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.cidade} onChange={e => setData(prev => ({...prev, cidade: e.target.value}))} />
+                <select disabled={isReadOnly} className={`p-2 border rounded text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.estado} onChange={e => setData(prev => ({...prev, estado: e.target.value}))}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select>
               </div>
             </section>
             
@@ -327,20 +388,20 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 <div className="space-y-2">
                     {(data.orientadores || ['']).map((o, i) => (
                         <div key={i} className="flex gap-2">
-                            <input readOnly={isReadOnly} className={`flex-1 p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={o} onChange={e => { const n = [...(data.orientadores || [''])]; n[i] = e.target.value; setData({...data, orientadores: n}); }} placeholder="Nome do Orientador/Coorientador" />
-                            {!isReadOnly && (data.orientadores || ['']).length > 1 && <button onClick={() => setData({...data, orientadores: data.orientadores.filter((_, idx) => idx !== i)})} className="text-red-300"><Trash2 size={16}/></button>}
+                            <input readOnly={isReadOnly} className={`flex-1 p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={o} onChange={e => { setData(prev => { const n = [...(prev.orientadores || [''])]; n[i] = e.target.value; return {...prev, orientadores: n}; }); }} placeholder="Nome do Orientador/Coorientador" />
+                            {!isReadOnly && (data.orientadores || ['']).length > 1 && <button onClick={() => setData(prev => ({...prev, orientadores: prev.orientadores.filter((_, idx) => idx !== i)}))} className="text-red-300"><Trash2 size={16}/></button>}
                         </div>
                     ))}
-                    {!isReadOnly && <button onClick={() => setData({...data, orientadores: [...(data.orientadores || ['']), '']})} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR ORIENTADOR</button>}
+                    {!isReadOnly && <button onClick={() => setData(prev => ({...prev, orientadores: [...(prev.orientadores || ['']), '']}))} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR ORIENTADOR</button>}
                 </div>
             </section>
             
             {/* Elementos Pré-Textuais Opcionais */}
             <section className="space-y-4">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Heart size={12}/> Elementos Pré-Textuais Opcionais</h3>
-              <textarea readOnly={isReadOnly} placeholder="Dedicatória..." className={`w-full p-3 border rounded-lg text-xs h-20 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.dedicatoria || ''} onChange={e => setData({...data, dedicatoria: e.target.value})} />
-              <textarea readOnly={isReadOnly} placeholder="Agradecimentos..." className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.agradecimentos || ''} onChange={e => setData({...data, agradecimentos: e.target.value})} />
-              <textarea readOnly={isReadOnly} placeholder="Epígrafe (Citação que inspira o trabalho)..." className={`w-full p-3 border rounded-lg text-xs h-20 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.epigrafe || ''} onChange={e => setData({...data, epigrafe: e.target.value})} />
+              <textarea readOnly={isReadOnly} placeholder="Dedicatória..." className={`w-full p-3 border rounded-lg text-xs h-20 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.dedicatoria || ''} onChange={e => setData(prev => ({...prev, dedicatoria: e.target.value}))} />
+              <textarea readOnly={isReadOnly} placeholder="Agradecimentos..." className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.agradecimentos || ''} onChange={e => setData(prev => ({...prev, agradecimentos: e.target.value}))} />
+              <textarea readOnly={isReadOnly} placeholder="Epígrafe (Citação que inspira o trabalho)..." className={`w-full p-3 border rounded-lg text-xs h-20 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.epigrafe || ''} onChange={e => setData(prev => ({...prev, epigrafe: e.target.value}))} />
             </section>
 
             {/* Resumos com Contador Inteligente */}
@@ -348,22 +409,22 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos e Abstract</h3>
               
               <div className="space-y-1">
-                  <textarea readOnly={isReadOnly} placeholder="Resumo (PT)" className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoPt} onChange={e => setData({...data, resumoPt: e.target.value})} />
+                  <textarea readOnly={isReadOnly} placeholder="Resumo (PT)" className={`w-full p-3 border rounded-lg text-xs h-32 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoPt} onChange={e => setData(prev => ({...prev, resumoPt: e.target.value}))} />
                   <div className="flex justify-end">
                       <WordCounter text={data.resumoPt} min={150} max={500} />
                   </div>
               </div>
 
-              <input readOnly={isReadOnly} placeholder="Palavras-chave" className={`w-full p-2 border rounded-lg text-xs mb-2 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChavePt} onChange={e => setData({...data, palavrasChavePt: e.target.value})} />
+              <input readOnly={isReadOnly} placeholder="Palavras-chave" className={`w-full p-2 border rounded-lg text-xs mb-2 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChavePt} onChange={e => setData(prev => ({...prev, palavrasChavePt: e.target.value}))} />
               
               <div className="space-y-1">
-                  <textarea readOnly={isReadOnly} placeholder="Abstract (EN)" className={`w-full p-3 border rounded-lg text-xs h-32 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoEn} onChange={e => setData({...data, resumoEn: e.target.value})} />
+                  <textarea readOnly={isReadOnly} placeholder="Abstract (EN)" className={`w-full p-3 border rounded-lg text-xs h-32 italic ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.resumoEn} onChange={e => setData(prev => ({...prev, resumoEn: e.target.value}))} />
                   <div className="flex justify-end">
                       <WordCounter text={data.resumoEn} min={150} max={500} />
                   </div>
               </div>
 
-              <input readOnly={isReadOnly} placeholder="Keywords (EN)" className={`w-full p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChaveEn} onChange={e => setData({...data, palavrasChaveEn: e.target.value})} />
+              <input readOnly={isReadOnly} placeholder="Keywords (EN)" className={`w-full p-2 border rounded-lg text-xs ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.palavrasChaveEn} onChange={e => setData(prev => ({...prev, palavrasChaveEn: e.target.value}))} />
             </section>
             
             {/* Seções/Capítulos */}
@@ -387,22 +448,19 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                         insertTemplate={insertTemplate}
                         onDelete={handleDeleteSection}
                         onOpenAssetModal={onOpenAssetModal}
-                        onOpenRefModal={onOpenRefModal}
                         onUpdate={handleUpdateSection}
+                        onAddSubsection={handleAddSubsection}
+                        onOpenRefModal={onOpenRefModal}
                       />
                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
 
-              {/* Novos botões movidos para o final da lista */}
               {!isReadOnly && (
-                <div className="flex gap-2 pt-2">
-                  <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'NOVA SEÇÃO', conteudo: '', level: 1 }]})} className="flex-1 py-2.5 border-2 border-dashed border-green-300 dark:border-green-800 rounded-lg text-[10px] font-bold text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex justify-center items-center gap-1 uppercase">
-                    <Plus size={14}/> Adicionar Seção
-                  </button>
-                  <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'Nova Subseção', conteudo: '', level: 2 }]})} className="flex-1 py-2.5 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex justify-center items-center gap-1 uppercase">
-                    <Plus size={14}/> Adicionar Subseção
+                <div className="flex pt-2">
+                  <button onClick={handleAddSection} className="w-full py-2.5 border-2 border-dashed border-green-300 dark:border-green-800 rounded-lg text-[10px] font-bold text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex justify-center items-center gap-1 uppercase">
+                    <Plus size={14}/> Adicionar Nova Seção
                   </button>
                 </div>
               )}
@@ -414,7 +472,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookMarked size={12}/> Referências</h3>
                 {!isReadOnly && <button onClick={onOpenRefModal} className="text-[9px] font-bold text-green-700 hover:underline uppercase transition-all">Gerar NBR 6023</button>}
               </div>
-              <textarea readOnly={isReadOnly} placeholder="Cole as referências..." className={`w-full p-3 border rounded-lg text-[10px] font-mono h-40 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.referencias} onChange={e => setData({...data, referencias: e.target.value})} />
+              <textarea readOnly={isReadOnly} placeholder="Cole as referências..." className={`w-full p-3 border rounded-lg text-[10px] font-mono h-40 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.referencias} onChange={e => setData(prev => ({...prev, referencias: e.target.value}))} />
             </section>
 
             {/* Elementos Pós-Textuais Opcionais */}
@@ -430,7 +488,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                           </button>
                       )}
                   </div>
-                  <textarea readOnly={isReadOnly} placeholder="Documentos elaborados pelo próprio autor para complementar a argumentação..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.apendices || ''} onChange={e => setData({...data, apendices: e.target.value})} />
+                  <textarea readOnly={isReadOnly} placeholder="Documentos elaborados pelo próprio autor para complementar a argumentação..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.apendices || ''} onChange={e => setData(prev => ({...prev, apendices: e.target.value}))} />
               </div>
               
               <div id="edit-sec-anexos" className="space-y-2 mt-6">
@@ -442,7 +500,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                           </button>
                       )}
                   </div>
-                  <textarea readOnly={isReadOnly} placeholder="Documentos NÃO elaborados pelo autor, ex: leis, mapas de terceiros..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.anexos || ''} onChange={e => setData({...data, anexos: e.target.value})} />
+                  <textarea readOnly={isReadOnly} placeholder="Documentos NÃO elaborados pelo autor, ex: leis, mapas de terceiros..." className={`w-full p-3 border rounded-lg text-xs h-32 outline-none ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={data.anexos || ''} onChange={e => setData(prev => ({...prev, anexos: e.target.value}))} />
               </div>
             </section>
         </div>
