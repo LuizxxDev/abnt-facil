@@ -231,7 +231,7 @@ const Dashboard = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm">Modo Local (Sem Backup)</h3>
-                                <p className="text-[10px] text-blue-100 max-w-xl">Os projetos estão guardados neste navegador. Faz login para não perderes nada.</p>
+                                <p className="text-[10px] text-blue-100 max-w-xl">Os projetos estão guardados neste navegador. Faça login para não perder nada.</p>
                             </div>
                         </div>
                         <button onClick={loginWithGoogle} className="w-full md:w-auto bg-white text-blue-700 px-4 py-2 rounded-lg font-bold text-xs shadow-md hover:bg-blue-50 transition-all flex items-center justify-center gap-2 relative z-10">
