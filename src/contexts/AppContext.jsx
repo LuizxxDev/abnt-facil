@@ -178,8 +178,7 @@ export const AppProvider = ({ children }) => {
         console.error("Falha na comunicação de logout:", error);
     } finally {
         // Este bloco corre SEMPRE, mesmo que a nuvem falhe
-        
-        setUser(null); // Remove os dados visuais imediatamente
+        setUser(null); 
         
         // Puxa os dados locais para não deixar a tela vazia
         const saved = localStorage.getItem('ifpa_projects_final_v6');
@@ -224,7 +223,8 @@ export const AppProvider = ({ children }) => {
       ], 
       referencias: '',
       apendices: '',
-      anexos: '' 
+      anexos: '',
+      assets: {} // <-- DICIONÁRIO DE ASSETS ORA INICIALIZADO
     }
   });
 
@@ -267,7 +267,8 @@ export const AppProvider = ({ children }) => {
         secoes: model.sections.map(s => ({ ...s, id: generateId() })),
         referencias: '',
         apendices: '',
-        anexos: ''
+        anexos: '',
+        assets: {} // <-- DICIONÁRIO
     };
     
     const newProj = prepareProjectObject(title, customData);
@@ -298,6 +299,7 @@ export const AppProvider = ({ children }) => {
         epigrafe: '',
         apendices: '',
         anexos: '',
+        assets: {}, // <-- DICIONÁRIO
         secoes: EXAMPLE_PROJECT.data.secoes.map(s => ({...s, id: generateId(), conteudo: ''}))
     };
     const newProj = prepareProjectObject(title, customData);

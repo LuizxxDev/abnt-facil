@@ -19,7 +19,7 @@ import ABNTViewer from '../components/preview/ABNTViewer';
 
 import ReferenceModal from '../components/editor/ReferenceModal';
 import AssetModal from '../components/common/AssetModal';
-import AttachmentModal from '../components/editor/AttachmentModal'; // NOVO IMPORT
+import AttachmentModal from '../components/editor/AttachmentModal';
 
 const Editor = () => {
     const { id } = useParams();
@@ -43,9 +43,9 @@ const Editor = () => {
     const [mobileView, setMobileView] = useState('editor'); 
     
     const [isRefModalOpen, setIsRefModalOpen] = useState(false);
-    const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [] });
+    // ADICIONADO localBase64 NO ESTADO INICIAL
+    const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     
-    // NOVO ESTADO: Modal de Apêndices e Anexos
     const [attachmentModal, setAttachmentModal] = useState({ open: false, type: 'apendice' });
 
     useEffect(() => {
@@ -127,15 +127,36 @@ const Editor = () => {
         if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
+    // --- LÓGICA DE INSERÇÃO DE IMAGENS ATUALIZADA (OPÇÃO 1) ---
     const confirmAssetInsert = () => {
         if(isReadOnly) return;
-        const { type, sectionIndex, title, source, url, content, tableData } = assetModal;
+        const { type, sectionIndex, title, source, url, content, tableData, localBase64 } = assetModal;
+        
+        let newData = { ...data };
+        if (!newData.assets) newData.assets = {}; // Garante que o objeto existe
+        
+        let finalUrl = url;
+        
+        // Se for imagem local, salva no dicionário e gera um ID limpo para o texto
+        if (type === 'img' && localBase64) {
+            const assetId = 'local_img_' + Date.now().toString(36);
+            newData.assets[assetId] = localBase64;
+            finalUrl = assetId; 
+        }
+
         let tag = '';
         if (type === 'cit') tag = `\n\n[CITAÇÃO]: ${content}`;
-        else if (type === 'img') tag = `\n\n[IMAGEM]: ${title} | ${source} | ${url}`;
+        else if (type === 'img') tag = `\n\n[IMAGEM]: ${title} | ${source} | ${finalUrl}`;
         else if (type === 'tab') tag = `\n\n[TABELA]: ${title} | ${source} | ${JSON.stringify(tableData)}`;
         else if (type === 'box') tag = `\n\n[QUADRO]: ${title} | ${source} | ${content || 'Conteúdo...'}`;
-        const newSec = [...data.secoes]; newSec[sectionIndex].conteudo += tag; setData({...data, secoes: newSec}); setAssetModal({ ...assetModal, open: false });
+        
+        const newSec = [...newData.secoes]; 
+        newSec[sectionIndex].conteudo += tag; 
+        newData.secoes = newSec;
+        
+        setData(newData); 
+        // Reseta o modal limpando o base64
+        setAssetModal({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     };
 
     const handleCreateFromExample = async () => {
@@ -216,7 +237,7 @@ const Editor = () => {
                                 isReadOnly={isReadOnly} 
                                 focusedSection={focusedSection} 
                                 setFocusedSection={setFocusedSection} 
-                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [] })} 
+                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [], localBase64: null })} 
                                 onOpenRefModal={() => setIsRefModalOpen(true)}
                                 onOpenAttachmentModal={(type) => setAttachmentModal({ open: true, type })} 
                              />

@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { X, Eye, ImageIcon, TableIcon, Box, Quote, Upload } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Eye, ImageIcon, TableIcon, Box, Quote, UploadCloud, ImagePlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TABLE_PRESETS, TAG_RENDERERS } from '../../utils/constants';
 // IMPORTAMOS O CONTEXTO PARA SABER O TEMA
@@ -7,12 +7,13 @@ import { useAppContext } from '../../contexts/AppContext';
 
 const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) => {
     const fileInputRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
     // PEGAMOS AS CONFIGURAÇÕES (settings) ONDE ESTÁ O TEMA
     const { settings } = useAppContext();
 
     if (!isOpen) return null;
 
-    const { type, tableData, rows, cols } = assetModal;
+    const { type, tableData, rows, cols, localBase64, url } = assetModal;
     const isDark = settings.theme === 'dark';
 
     const applyTablePreset = (preset) => {
@@ -30,9 +31,14 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
         setAssetModal({ ...assetModal, tableData: newData }); 
     };
 
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
+    // FUNÇÃO CENTRALIZADA DE PROCESSAMENTO DE IMAGEM (BASE64)
+    const processFile = (file) => {
         if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast.error("Formato inválido. Por favor, seleciona uma imagem.");
+            return;
+        }
 
         if (file.size > 500 * 1024) {
             toast.error("Imagem muito grande! Máximo 500KB.");
@@ -41,10 +47,35 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            setAssetModal({ ...assetModal, url: event.target.result });
-            toast.success("Imagem carregada!");
+            // Guarda em localBase64 e limpa a URL, já que usaremos a imagem local
+            setAssetModal({ ...assetModal, localBase64: event.target.result, url: '' });
+            toast.success("Imagem carregada com sucesso!");
         };
         reader.readAsDataURL(file);
+    };
+
+    const handleFileUpload = (e) => {
+        processFile(e.target.files[0]);
+    };
+
+    // EVENTOS DE DRAG & DROP
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processFile(e.dataTransfer.files[0]);
+            e.dataTransfer.clearData();
+        }
     };
 
     return (
@@ -137,27 +168,50 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
               )}
               
               {type === 'img' && (
-                  <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase">URL ou Upload Local</label>
-                      <div className="flex gap-2 mt-1">
-                        <input 
-                            className={`flex-1 p-3 border rounded-xl text-sm focus:ring-1 focus:ring-green-500 outline-none
-                                ${isDark ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 placeholder:text-slate-400'}`} 
-                            placeholder="Cole uma URL ou clique no ícone ao lado" 
-                            value={assetModal.url} 
-                            onChange={e => setAssetModal({...assetModal, url: e.target.value})} 
-                        />
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                        <button 
-                            onClick={() => fileInputRef.current.click()} 
-                            className={`p-3 rounded-xl transition-colors shrink-0 
-                                ${isDark ? 'bg-blue-900/30 text-blue-400 hover:bg-blue-900/50' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`} 
-                            title="Carregar do computador"
-                        >
-                            <Upload size={20}/>
-                        </button>
+                  <div className="space-y-4">
+                      <label className="text-xs font-bold text-slate-500 uppercase">Upload de Imagem Local</label>
+                      
+                      {/* ÁREA DE DRAG AND DROP */}
+                      <div 
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current.click()}
+                        className={`w-full p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-300 text-center
+                            ${isDragging 
+                                ? 'border-green-500 bg-green-500/10 scale-[1.02]' 
+                                : isDark 
+                                    ? 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/50' 
+                                    : 'border-slate-300 hover:border-blue-500/50 hover:bg-slate-50'
+                            }`}
+                      >
+                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                          
+                          <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-green-500 text-white' : localBase64 ? 'bg-green-100 text-green-600' : isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                              {isDragging || localBase64 ? <ImagePlus size={32} /> : <UploadCloud size={32} />}
+                          </div>
+                          
+                          <div>
+                              <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                                  {isDragging ? 'Larga a imagem aqui...' : localBase64 ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}
+                              </p>
+                              <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  Suporta JPG, PNG, GIF (Máx. 500KB)
+                              </p>
+                          </div>
                       </div>
-                      <p className={`text-[10px] mt-1 italic ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>* Dica: Prefira imagens menores que 500KB para garantir a performance.</p>
+
+                      {/* INPUT DE URL ALTERNATIVO */}
+                      <div className="pt-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Ou usa um link da internet (URL)</label>
+                        <input 
+                            className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-blue-500 outline-none
+                                ${isDark ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 placeholder:text-slate-400'}`} 
+                            placeholder="https://exemplo.com/imagem.png" 
+                            value={url} 
+                            onChange={e => setAssetModal({...assetModal, url: e.target.value, localBase64: null})} 
+                        />
+                      </div>
                   </div>
               )}
 
@@ -175,10 +229,10 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                 <p className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-2"><Eye size={12}/> Pré-visualização</p>
                 <div className={`p-4 rounded-xl border min-h-[100px] flex items-center justify-center 
                     ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                    <div className={`p-4 shadow-sm w-full text-sm ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-                        {/* A pré-visualização agora herda as cores do fundo, mas mantém a estrutura intacta */}
+                    <div className={`p-4 shadow-sm w-full text-sm overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                        {/* A pré-visualização herda o base64 se existir, ou o link */}
                         <div className={`${isDark ? 'text-slate-200' : 'text-black'}`}>
-                            {type === 'img' && TAG_RENDERERS['IMAGEM'](`${assetModal.title}|${assetModal.source}|${assetModal.url}`, 0)}
+                            {type === 'img' && TAG_RENDERERS['IMAGEM'](`${assetModal.title}|${assetModal.source}|${localBase64 || url}`, 0)}
                             {type === 'tab' && TAG_RENDERERS['TABELA'](`${assetModal.title}|${assetModal.source}|${JSON.stringify(assetModal.tableData)}`, 0)}
                             {type === 'box' && TAG_RENDERERS['QUADRO'](`${assetModal.title}|${assetModal.source}|${assetModal.content}`, 0)}
                             {type === 'cit' && TAG_RENDERERS['CITAÇÃO'](assetModal.content, 0)}
@@ -191,13 +245,13 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
             <div className="mt-8 flex gap-3 shrink-0">
                 <button 
                     onClick={onClose} 
-                    className={`flex-1 py-3 font-bold transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`flex-1 py-3 font-bold transition-colors rounded-xl ${isDark ? 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200'}`}
                 >
                     Cancelar
                 </button>
                 <button 
                     onClick={onConfirm} 
-                    className="flex-[2] py-3 bg-green-700 text-white rounded-xl font-bold shadow-lg hover:bg-green-600 transition-colors"
+                    className="flex-[2] py-3 bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-green-600 hover:-translate-y-0.5 transition-all"
                 >
                     Inserir no Texto
                 </button>
