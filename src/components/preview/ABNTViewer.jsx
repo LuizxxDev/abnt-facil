@@ -18,6 +18,18 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             const m = p.trim().match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i); 
             
             if (m && TAG_RENDERERS[m[1].toUpperCase()]) {
+                // SE FOR IMAGEM: Procura no dicionário de assets oculto
+                if (m[1].toUpperCase() === 'IMAGEM') {
+                    let [title, source, urlStr] = m[2].split('|').map(s => s?.trim() || '');
+                    
+                    // Se urlStr bater certo com uma chave em data.assets, troca pelo Base64
+                    if (urlStr && data?.assets && data.assets[urlStr]) {
+                        urlStr = data.assets[urlStr];
+                    }
+                    
+                    return TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i);
+                }
+                
                 return TAG_RENDERERS[m[1].toUpperCase()](m[2], i);
             }
             
@@ -122,7 +134,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     font-size: 10pt;
                 }
 
-                /* UI/UX REFINEMENT: Pontos do Sumário Elegantes */
                 .sumario-item {
                     display: flex;
                     align-items: baseline;
