@@ -9,21 +9,21 @@ import Editor from './views/Editor';
 export default function App() {
   return (
     <AppProvider>
-      {/* UI/UX POLISH: Toaster Moderno e Sensível ao Tema */}
+      {/* UI/UX POLISH: Toaster posicionado no topo-centro (campo de visão) e com formato mais quadrado */}
       {/* A classe containerClassName garante que os alertas nunca fiquem no PDF gerado */}
       <Toaster 
-        position="bottom-center" 
+        position="top-center" 
         containerClassName="print:hidden print-hidden"
         toastOptions={{ 
           duration: 3000,
           // O className permite que o toast obedeça ao .dark do HTML dinamicamente
           className: 'dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-2xl',
           style: {
-            borderRadius: '999px', // Estilo "Pílula" muito moderno (App Feel)
-            padding: '12px 24px',
-            fontWeight: '700',
-            fontSize: '13px',
-            letterSpacing: '0.025em'
+            borderRadius: '6px', // Estilo Quadrado / Profissional
+            padding: '16px 24px',
+            fontWeight: '600',
+            fontSize: '14px',
+            marginTop: '32px' // Desce a notificação um pouco mais para o centro do olhar
           },
           success: {
             iconTheme: {
