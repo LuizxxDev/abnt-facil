@@ -6,7 +6,7 @@ import {
   ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText,
   Sun, Moon, Eye
 } from 'lucide-react';
-import toast from 'react-hot-toast'; 
+import toast from 'react-hot-toast';
 
 import { useAppContext } from '../contexts/AppContext';
 import { useAutosave } from '../hooks/useAutosave';
@@ -31,6 +31,9 @@ const Editor = () => {
     const [checklist, setChecklist] = useState(DEFAULT_CHECKLIST);
     const [fontFamily, setFontFamily] = useState(settings.defaultFont);
 
+    // PROTEÇÃO CRÍTICA: Estado para saber se já carregámos o projeto atual
+    const [loadedId, setLoadedId] = useState(null);
+
     const [tab, setTab] = useState('editor');
     const [focusedSection, setFocusedSection] = useState(null);
     const [focusMode, setFocusMode] = useState(false);
@@ -48,15 +51,28 @@ const Editor = () => {
 
     useEffect(() => {
         if (!id) return;
+        
+        // Se já carregámos os dados DESTE projeto, não faz reload (evita loops com a Dashboard)
+        if (loadedId === id) return;
+
         if (id === EXAMPLE_ID) {
-            setData(EXAMPLE_PROJECT.data); setAuthors(EXAMPLE_PROJECT.authors); setChecklist(DEFAULT_CHECKLIST); return;
+            setData(EXAMPLE_PROJECT.data); 
+            setAuthors(EXAMPLE_PROJECT.authors); 
+            setChecklist(DEFAULT_CHECKLIST); 
+            setLoadedId(id);
+            return;
         }
         if (projects.length > 0) {
             const proj = projects.find(p => p.id === id);
-            if (proj) { setData(proj.data); setAuthors(proj.authors); setChecklist(proj.checklist || DEFAULT_CHECKLIST); } 
+            if (proj) { 
+                setData(proj.data); 
+                setAuthors(proj.authors); 
+                setChecklist(proj.checklist || DEFAULT_CHECKLIST); 
+                setLoadedId(id);
+            } 
             else { navigate('/dashboard'); }
         }
-    }, [id, projects, navigate]);
+    }, [id, projects, navigate, loadedId]);
 
     const isReadOnly = id === EXAMPLE_ID;
     const { isSaving, triggerManualSave } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
@@ -129,7 +145,6 @@ const Editor = () => {
 
     if (!data) return <div className="flex h-screen items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
 
-    // --- CORREÇÃO: Cores dinâmicas para a barra superior no Modo Leitura ---
     const headerBgClass = isReadOnly 
         ? (settings.theme === 'dark' ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-200')
         : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200');
@@ -206,7 +221,7 @@ const Editor = () => {
                 </div>
 
                 {!focusMode && showOutline && (
-                    <Sidebar data={data} sumarioItens={sumarioItens} scrollToSection={scrollToSection} setShowOutline={setShowOutline} settings={settings} onReorder={(oldIndex, newIndex) => { if (isReadOnly) return; const newSecoes = [...data.secoes]; const [moved] = newSecoes.splice(oldIndex, 1); newSecoes.splice(newIndex, 0, moved); setData({ ...data, secoes: newSecoes }); }} />
+                    <Sidebar sumarioItens={sumarioItens} scrollToSection={scrollToSection} setShowOutline={setShowOutline} settings={settings} onReorder={(oldIndex, newIndex) => { if (isReadOnly) return; const newSecoes = [...data.secoes]; const [moved] = newSecoes.splice(oldIndex, 1); newSecoes.splice(newIndex, 0, moved); setData({ ...data, secoes: newSecoes }); }} data={data} />
                 )}
 
                 <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} className={`lg:hidden fixed bottom-6 right-6 z-30 p-4 rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95 border-4 ${settings.theme === 'dark' ? 'bg-green-600 text-white border-slate-900 shadow-green-900/50' : 'bg-green-600 text-white border-white shadow-green-600/30'}`}>
