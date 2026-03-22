@@ -299,12 +299,6 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             <section className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookOpen size={12}/> Capítulos</h3>
-                {!isReadOnly && (
-                  <div className="flex gap-1">
-                    <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'Nova Subseção', conteudo: '', level: 2 }]})} className="text-[9px] bg-slate-100 px-2 py-1 rounded font-bold uppercase hover:bg-slate-200 transition-all text-slate-700">+ Subseção</button>
-                    <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'NOVA SEÇÃO', conteudo: '', level: 1 }]})} className="text-[9px] bg-green-700 text-white px-2 py-1 rounded font-bold uppercase hover:bg-green-800 transition-all">+ Seção</button>
-                  </div>
-                )}
               </div>
 
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -329,6 +323,18 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                   </div>
                 </SortableContext>
               </DndContext>
+
+              {/* Novos botões movidos para o final da lista */}
+              {!isReadOnly && (
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'NOVA SEÇÃO', conteudo: '', level: 1 }]})} className="flex-1 py-2.5 border-2 border-dashed border-green-300 dark:border-green-800 rounded-lg text-[10px] font-bold text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex justify-center items-center gap-1 uppercase">
+                    <Plus size={14}/> Adicionar Seção
+                  </button>
+                  <button onClick={() => setData({...data, secoes: [...data.secoes, { id: generateId(), titulo: 'Nova Subseção', conteudo: '', level: 2 }]})} className="flex-1 py-2.5 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex justify-center items-center gap-1 uppercase">
+                    <Plus size={14}/> Adicionar Subseção
+                  </button>
+                </div>
+              )}
             </section>
             
             {/* Referências */}
