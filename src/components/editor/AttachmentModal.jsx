@@ -43,7 +43,6 @@ const AttachmentModal = ({ isOpen, onClose, type, currentText, onAdd }) => {
             return;
         }
 
-        // Formatação ABNT: Em negrito (**), Caixa Alta, com Hífen
         const formattedString = `**${labelUpper} ${nextLetter} - ${title.toUpperCase()}**\n\n${content}`;
         
         onAdd(formattedString);
