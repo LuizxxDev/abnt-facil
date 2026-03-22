@@ -25,10 +25,19 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                         urlStr = data.assets[urlStr];
                     }
                     
-                    return TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i);
+                    // Envolvido em div com classe abnt-asset-container para controlar o line-height da legenda/fonte
+                    return (
+                        <div key={i} className="abnt-asset-container">
+                            {TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i)}
+                        </div>
+                    );
                 }
                 
-                return TAG_RENDERERS[m[1].toUpperCase()](m[2], i);
+                return (
+                    <div key={i} className="abnt-asset-container">
+                        {TAG_RENDERERS[m[1].toUpperCase()](m[2], i)}
+                    </div>
+                );
             }
             
             const textoSeguro = escapeHtml(p);
@@ -129,21 +138,12 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     counter-increment: pagina-abnt; 
                 }
 
-                .page:nth-of-type(even) {
-                    padding: 30mm 30mm 20mm 20mm;
-                }
-
                 .page-numbered::after {
                     content: counter(pagina-abnt);
                     position: absolute;
                     top: 20mm;
                     right: 20mm;
                     font-size: 10pt;
-                }
-
-                .page-numbered:nth-of-type(even):after {
-                    left: 20mm;
-                    right: auto;
                 }
 
                 .sumario-item {
@@ -182,10 +182,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     line-height: 1.5; 
                 }
                 
+                /* Citação longa com espaçamento simples (1.0) conforme NBR 14724 */
                 .abnt-citacao-longa { 
                     margin-left: 4cm; 
                     font-size: 10pt; 
-                    line-height: 1; 
+                    line-height: 1.0; 
                     text-align: justify; 
                     margin-top: 1.5em; 
                     margin-bottom: 1.5em; 
@@ -222,25 +223,34 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 .abnt-natureza {
                     margin-left: 8cm;
                     text-align: justify;
-                    line-height: 1;
+                    line-height: 1.0; /* Natureza do trabalho é simples */
                     font-size: 12pt;
                     font-weight: normal;
                     text-transform: none;
                 }
 
-                /* NOVA CLASSE PARA DEDICATÓRIA E EPÍGRAFE */
                 .abnt-pre-textual-bottom {
-                    margin-top: auto; /* Empurra para o fundo da página */
-                    margin-left: 8cm; /* Recuo exato do meio para a margem direita */
+                    margin-top: auto; 
+                    margin-left: 8cm; 
                     text-align: justify;
-                    font-size: 12pt; /* Tamanho padrão */
-                    line-height: 1.5; /* Espaçamento padrão 1,5 */
+                    font-size: 12pt; 
+                    line-height: 1.5; 
                 }
 
+                /* Referências com espaçamento simples (1.0) e separadas por um espaço simples entre elas */
                 .abnt-ref {
-                    line-height: 1;
-                    margin-bottom: 1em;
+                    line-height: 1.0;
+                    margin-bottom: 12pt;
                     text-align: left;
+                    font-size: 12pt;
+                }
+
+                /* Container para Ilustrações e Tabelas garantindo espaçamento simples nas legendas e fontes */
+                .abnt-asset-container {
+                    line-height: 1.0;
+                    font-size: 10pt;
+                    margin-top: 1.5em;
+                    margin-bottom: 1.5em;
                 }
 
                 @media print {
@@ -323,7 +333,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Dedicatória */}
                 {data.dedicatoria && data.dedicatoria.trim() !== '' && (
                     <div className="page">
-                        {/* Aplicada a classe abnt-pre-textual-bottom (Margem 8cm e Bottom) e whitespace-pre-wrap para respeitar os Enters */}
                         <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.dedicatoria}
                         </div>
@@ -341,7 +350,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Epígrafe */}
                 {data.epigrafe && data.epigrafe.trim() !== '' && (
                     <div className="page">
-                        {/* Aplicada a classe abnt-pre-textual-bottom (Margem 8cm e Bottom) */}
                         <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.epigrafe}
                         </div>
@@ -363,7 +371,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Abstract */}
                 {data.resumoEn && data.resumoEn.trim() !== '' && (
                     <div className="page">
-                        <div className="abnt-center-bold italic">ABSTRACT</div>
+                        <div className="abnt-center-bold">ABSTRACT</div>
                         <div className="abnt-p !indent-0 italic">{data.resumoEn}</div>
                         {data.palavrasChaveEn && (
                             <div className="mt-6 text-[12pt] italic">
