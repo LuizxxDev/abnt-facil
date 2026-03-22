@@ -39,37 +39,55 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         });
     };
 
-    // --- NOVO: Cálculo Dinâmico de Páginas ---
+    // --- Cálculo Dinâmico de Páginas Atualizado ---
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
 
-        // Páginas pré-textuais fixas: Capa(1), Rosto(2), Resumo(3), Sumário(4)
-        let currentPage = 4;
+        let currentPage = 2;
+        
+        if (data.dedicatoria && data.dedicatoria.trim() !== '') currentPage += 1;
+        if (data.agradecimentos && data.agradecimentos.trim() !== '') currentPage += 1;
+        if (data.epigrafe && data.epigrafe.trim() !== '') currentPage += 1;
+
+        currentPage += 1; // Resumo
+
         if (data.resumoEn && data.resumoEn.trim() !== '') {
-            currentPage += 1; // Abstract adiciona uma página extra
+            currentPage += 1; // Abstract
         }
 
+        currentPage += 1; // Sumário
+
         const mapping = {};
-        // Uma página ABNT padrão suporta aproximadamente 2500 caracteres
         const CHARS_PER_PAGE = 2500;
 
         groupedSections.forEach(group => {
             let groupCharCount = 0;
 
             group.forEach(sec => {
-                // Calcula em qual página desta seção estamos (baseado no texto acumulado do grupo)
                 const offsetPages = Math.floor(groupCharCount / CHARS_PER_PAGE);
                 mapping[sec.id] = currentPage + offsetPages;
-
-                // Adiciona o tamanho desta seção ao total do grupo
                 groupCharCount += (sec.titulo?.length || 0) + (sec.conteudo?.length || 0);
             });
 
-            // Avança a página atual baseada no tamanho total que este grupo ocupou
-            // Usa Math.max(1, ...) para garantir que o grupo ocupa pelo menos a página onde começou
             const groupTotalPages = Math.max(1, Math.ceil(groupCharCount / CHARS_PER_PAGE));
             currentPage += groupTotalPages;
         });
+
+        // Páginas dos elementos Pós-Textuais
+        mapping['referencias'] = currentPage;
+        if (data.referencias && data.referencias.trim() !== '') {
+            currentPage += Math.max(1, Math.ceil(data.referencias.length / CHARS_PER_PAGE));
+        }
+
+        if (data.apendices && data.apendices.trim() !== '') {
+            mapping['apendices'] = currentPage;
+            currentPage += Math.max(1, Math.ceil(data.apendices.length / CHARS_PER_PAGE));
+        }
+
+        if (data.anexos && data.anexos.trim() !== '') {
+            mapping['anexos'] = currentPage;
+            currentPage += Math.max(1, Math.ceil(data.anexos.length / CHARS_PER_PAGE));
+        }
 
         return mapping;
     }, [data, groupedSections]);
@@ -201,6 +219,32 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 </div>
 
+                {/* Dedicatória */}
+                {data.dedicatoria && data.dedicatoria.trim() !== '' && (
+                    <div className="page">
+                        <div className="mt-auto w-[105mm] ml-auto text-justify text-[10pt] italic">
+                            {data.dedicatoria}
+                        </div>
+                    </div>
+                )}
+
+                {/* Agradecimentos */}
+                {data.agradecimentos && data.agradecimentos.trim() !== '' && (
+                    <div className="page">
+                        <div className="abnt-center-bold mb-8">AGRADECIMENTOS</div>
+                        {formatConteudo(data.agradecimentos)}
+                    </div>
+                )}
+
+                {/* Epígrafe */}
+                {data.epigrafe && data.epigrafe.trim() !== '' && (
+                    <div className="page">
+                        <div className="mt-auto w-[105mm] ml-auto text-justify text-[10pt] italic">
+                            {data.epigrafe}
+                        </div>
+                    </div>
+                )}
+
                 <div className="page">
                     <div className="abnt-center-bold mb-8">RESUMO</div>
                     <div className="abnt-p !indent-0">{data.resumoPt || "Texto do resumo..."}</div>
@@ -225,9 +269,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 )}
 
+                {/* Sumário Atualizado */}
                 <div className="page">
                     <div className="abnt-center-bold mb-10">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
+                        {/* Capítulos */}
                         {data.secoes && data.secoes.map((sec) => (
                             <div key={`sumario-${sec.id}`} className="flex justify-between items-end mb-4 leading-tight">
                                 <div className={sec.level === 1 ? "font-bold uppercase flex-shrink-0" : "uppercase ml-6 flex-shrink-0"}>
@@ -239,6 +285,37 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                                 </div>
                             </div>
                         ))}
+
+                        {/* Referências */}
+                        <div className="flex justify-between items-end mb-4 leading-tight">
+                            <div className="font-bold uppercase flex-shrink-0">REFERÊNCIAS</div>
+                            <div className="sumario-dots"></div>
+                            <div className="w-8 text-right font-normal flex-shrink-0">
+                                {getPageNumber('referencias')}
+                            </div>
+                        </div>
+
+                        {/* Apêndices */}
+                        {data.apendices && data.apendices.trim() !== '' && (
+                            <div className="flex justify-between items-end mb-4 leading-tight">
+                                <div className="font-bold uppercase flex-shrink-0">APÊNDICES</div>
+                                <div className="sumario-dots"></div>
+                                <div className="w-8 text-right font-normal flex-shrink-0">
+                                    {getPageNumber('apendices')}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Anexos */}
+                        {data.anexos && data.anexos.trim() !== '' && (
+                            <div className="flex justify-between items-end mb-4 leading-tight">
+                                <div className="font-bold uppercase flex-shrink-0">ANEXOS</div>
+                                <div className="sumario-dots"></div>
+                                <div className="w-8 text-right font-normal flex-shrink-0">
+                                    {getPageNumber('anexos')}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -253,7 +330,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 ))}
 
-                <div className="page page-numbered">
+                <div id="preview-sec-referencias" className="page page-numbered">
                     <div className="abnt-center-bold mb-10">REFERÊNCIAS</div>
                     <div className="text-[12pt] space-y-4">
                         {data.referencias && data.referencias.trim().split('\n').map((ref, i) => (
@@ -261,6 +338,20 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                         ))}
                     </div>
                 </div>
+
+                {data.apendices && data.apendices.trim() !== '' && (
+                    <div id="preview-sec-apendices" className="page page-numbered">
+                        <div className="abnt-center-bold mb-8">APÊNDICES</div>
+                        {formatConteudo(data.apendices)}
+                    </div>
+                )}
+
+                {data.anexos && data.anexos.trim() !== '' && (
+                    <div id="preview-sec-anexos" className="page page-numbered">
+                        <div className="abnt-center-bold mb-8">ANEXOS</div>
+                        {formatConteudo(data.anexos)}
+                    </div>
+                )}
             </div>
         </section>
     );
