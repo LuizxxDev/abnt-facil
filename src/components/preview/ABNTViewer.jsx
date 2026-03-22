@@ -274,13 +274,11 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             `}</style>
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
-                {/* Capa conforme Manual IFPA 2022 */}
+                {/* Capa */}
                 <div className="page text-center text-[12pt] justify-between flex flex-col">
                     <div className="font-bold uppercase space-y-0">
-                        <div>MINISTÉRIO DA EDUCAÇÃO</div>
-                        <div>INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ</div>
-                        {data.campus && <div>CAMPUS {data.campus}</div>}
-                        {data.curso && <div className="mt-4">{data.curso}</div>}
+                        <div>{data.instituicao || "NOME DA INSTITUIÇÃO"}</div>
+                        {data.curso && <div className="mt-2">{data.curso}</div>}
                     </div>
 
                     <div className="mt-10 uppercase">
@@ -308,7 +306,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 </div>
 
-                {/* Folha de Rosto conforme Manual IFPA 2022 */}
+                {/* Folha de Rosto */}
                 <div className="page text-center text-[12pt] flex flex-col">
                     <div className="uppercase space-y-1">
                         {authors.map((a, i) => (
@@ -317,7 +315,6 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                     
                     <div className="my-auto w-full">
-                        {/* Título agora em NEGRITO conforme solicitado e Manual IFPA */}
                         <div className="mb-12 px-10 uppercase font-bold">
                             {data.titulo || "TÍTULO DO TRABALHO"}
                             {data.subtitulo && (
@@ -334,7 +331,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                                 {data.orientadores && data.orientadores.some(o => o.trim() !== '') && (
                                     <div className="space-y-1 mt-4">
                                         <span className="font-bold">
-                                            {data.orientadores.filter(o => o.trim() !== '').length > 1 ? "Orientadores:" : "Orientador(a):"}
+                                            {data.orientadores.filter(o => o.trim() !== '').length > 1 
+                                                ? (data.generoOrientador === 'F' ? "Orientadoras:" : "Orientadores:") 
+                                                : (data.generoOrientador === 'F' ? "Orientadora:" : "Orientador:")
+                                            }
                                         </span>
                                         {data.orientadores.map((o, idx) => (
                                             o.trim() !== '' && <div key={idx}>{o}</div>
