@@ -6,99 +6,78 @@ export const useAutosave = (data, authors, checklist, id, projects, setProjects,
     const [isSaving, setIsSaving] = useState(false);
     const { user } = useAppContext();
     
-    // PROTEÇÃO CRÍTICA: Memoriza a última versão exata que foi guardada.
-    const lastSavedStringRef = useRef(null); 
+    // Rastreador mutável: capta a versão exata sem engatilhar cálculos de diff caros
+    const latestDataRef = useRef({ data, authors, checklist });
+    const timerRef = useRef(null);
 
-    const saveToCloud = useCallback(async (currentData, currentAuthors, currentChecklist) => {
-        if (!id || isReadOnly || !user) return;
-        try {
-            const now = new Date().toISOString();
-            const { error } = await supabase
-                .from('projects')
-                .update({
-                    data: currentData,
-                    authors: currentAuthors,
-                    checklist: currentChecklist,
-                    updated_at: now
-                })
-                .eq('id', id);
+    // Atualiza apenas as referências de memória. Muito mais rápido que JSON.stringify no Main Thread.
+    useEffect(() => {
+        latestDataRef.current = { data, authors, checklist };
+    }, [data, authors, checklist]);
 
-            if (error) throw error;
-        } catch (error) {
-            console.error('Erro ao salvar na nuvem:', error);
-        }
-    }, [id, isReadOnly, user]);
-
-    const saveToLocal = useCallback((currentData, currentAuthors, currentChecklist) => {
+    const executeSave = useCallback(async (currentData, currentAuthors, currentChecklist) => {
         if (!id || isReadOnly) return;
+        setIsSaving(true);
+        
+        const now = new Date().toISOString();
 
-        // Atualização funcional: não depende do array 'projects' para evitar loops
-        setProjects(prevProjects => {
-            const updatedProjects = prevProjects.map(p => {
-                if (p.id === id) {
-                    return {
-                        ...p,
+        try {
+            if (user) {
+                const { error } = await supabase
+                    .from('projects')
+                    .update({
                         data: currentData,
                         authors: currentAuthors,
                         checklist: currentChecklist,
-                        updatedAt: new Date().toISOString()
-                    };
+                        updated_at: now
+                    })
+                    .eq('id', id);
+
+                if (error) throw error;
+            }
+
+            // Atualização funcional local para evitar loops infinitos ou dependência do array completo
+            setProjects(prevProjects => {
+                const updatedProjects = prevProjects.map(p => 
+                    p.id === id ? { ...p, data: currentData, authors: currentAuthors, checklist: currentChecklist, updatedAt: now } : p
+                );
+                
+                if (!user) {
+                    localStorage.setItem('ifpa_projects_final_v6', JSON.stringify(updatedProjects));
                 }
-                return p;
+                return updatedProjects;
             });
-            localStorage.setItem('ifpa_projects_final_v6', JSON.stringify(updatedProjects));
-            return updatedProjects;
-        });
-    }, [id, isReadOnly, setProjects]);
+            
+        } catch (error) {
+            console.error('Falha crítica no autosave:', error);
+        } finally {
+            setTimeout(() => setIsSaving(false), 500);
+        }
+    }, [id, isReadOnly, user, setProjects]);
 
     useEffect(() => {
         if (!settings.autoSave || isReadOnly || !data) return;
 
-        const currentString = JSON.stringify({ data, authors, checklist });
-        
-        // Se for a primeira vez que o hook corre, armazena o estado inicial e aborta
-        if (lastSavedStringRef.current === null) {
-            lastSavedStringRef.current = currentString;
-            return;
-        }
+        // Limpa a fila do debounce se o usuário continuou escrevendo ativamente
+        if (timerRef.current) clearTimeout(timerRef.current);
 
-        // Se nada mudou desde a última gravação, aborta a gravação! Fim do loop.
-        if (lastSavedStringRef.current === currentString) {
-            return; 
-        }
-
-        const timer = setTimeout(async () => {
-            setIsSaving(true);
-            
-            if (user) {
-                await saveToCloud(data, authors, checklist);
-            } else {
-                saveToLocal(data, authors, checklist);
-            }
-
-            // Atualiza o estado salvo após a gravação
-            lastSavedStringRef.current = currentString;
-            
-            setTimeout(() => setIsSaving(false), 500);
+        // Agendamento isolado para o salvamento (Debounce de 1.5s)
+        timerRef.current = setTimeout(() => {
+            const current = latestDataRef.current;
+            executeSave(current.data, current.authors, current.checklist);
         }, 1500);
 
-        return () => clearTimeout(timer);
-    }, [data, authors, checklist, settings.autoSave, isReadOnly, user, saveToCloud, saveToLocal]);
+        return () => clearTimeout(timerRef.current);
+    }, [data, authors, checklist, settings.autoSave, isReadOnly, executeSave]);
 
     const triggerManualSave = async () => {
         if (isReadOnly) return;
-        setIsSaving(true);
         
-        const currentString = JSON.stringify({ data, authors, checklist });
-        lastSavedStringRef.current = currentString;
-
-        if (user) {
-            await saveToCloud(data, authors, checklist);
-        } else {
-            saveToLocal(data, authors, checklist);
-        }
+        // Se houver um save pendente na fila, limpa para evitar duplicidade na execução
+        if (timerRef.current) clearTimeout(timerRef.current);
         
-        setTimeout(() => setIsSaving(false), 500);
+        const current = latestDataRef.current;
+        await executeSave(current.data, current.authors, current.checklist);
     };
 
     return { isSaving, triggerManualSave };
