@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Lock, Loader2, Save, CheckCircle2, AlertTriangle, AlertCircle, 
-  ZoomOut, ZoomIn, List, Minimize2, Maximize2, Printer, FileEdit, 
+  ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle, 
+  ZoomOut, ZoomIn, List, Printer, FileEdit, 
   ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText,
   Sun, Moon, Eye
 } from 'lucide-react';
@@ -33,10 +33,11 @@ const Editor = () => {
     const [fontFamily, setFontFamily] = useState(settings.defaultFont);
 
     const [loadedId, setLoadedId] = useState(null);
+    const [abntErrors, setAbntErrors] = useState([]); // Desacoplado da renderização principal
 
     const [tab, setTab] = useState('editor');
     const [focusedSection, setFocusedSection] = useState(null);
-    const [focusMode, setFocusMode] = useState(false);
+    const [focusMode] = useState(false);
     
     const [showOutline, setShowOutline] = useState(window.innerWidth >= 1280);
     const [zoomLevel, setZoomLevel] = useState(window.innerWidth < 768 ? 0.45 : 0.80);
@@ -75,51 +76,53 @@ const Editor = () => {
     }, [id, projects, navigate, loadedId]);
 
     const isReadOnly = id === EXAMPLE_ID;
-    const { isSaving, triggerManualSave } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
+    const { isSaving } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
     const { handleExportPDF, isExporting } = useExport(data || {}, authors, fontFamily);
 
-    const abntErrors = useMemo(() => {
-        if (!data) return [];
-        const errs = [];
+    // DEBOUNCE APLICADO: Previne congelamento da Main Thread por regex excessiva
+    useEffect(() => {
+        if (!data) return;
         
-        if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
-        if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
-        if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
-        if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
-        if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
+        const timeoutId = setTimeout(() => {
+            const errs = [];
+            if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
+            if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
+            if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
+            if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
+            if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
 
-        if (data.secoes && data.referencias) {
-            const fullText = data.secoes.map(s => s.conteudo).join(' ');
-            const citationRegex = /\(([A-ZÀ-ÖØ-Þ\s;]+?)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)/g;
-            let match;
-            const citedAuthors = new Set();
-            
-            while ((match = citationRegex.exec(fullText)) !== null) {
-                const authorsStr = match[1];
-                const authorsList = authorsStr.split(';').map(a => a.trim().toUpperCase());
-                authorsList.forEach(author => {
-                    if (author.length > 2) citedAuthors.add(author); 
-                });
-            }
-
-            const refsUpper = data.referencias.toUpperCase();
-            const missing = [];
-            
-            citedAuthors.forEach(author => {
-                if (!refsUpper.includes(author)) {
-                    missing.push(author);
+            if (data.secoes && data.referencias) {
+                const fullText = data.secoes.map(s => s.conteudo).join(' ');
+                const citationRegex = /\(([A-ZÀ-ÖØ-Þ\s;]+?)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)/g;
+                let match;
+                const citedAuthors = new Set();
+                
+                while ((match = citationRegex.exec(fullText)) !== null) {
+                    const authorsStr = match[1];
+                    const authorsList = authorsStr.split(';').map(a => a.trim().toUpperCase());
+                    authorsList.forEach(author => {
+                        if (author.length > 2) citedAuthors.add(author); 
+                    });
                 }
-            });
 
-            if (missing.length > 0) {
-                errs.push({
-                    msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
-                    explain: `Atenção: Citaste "${missing[0]}" no texto, mas não o incluíste na lista final de Referências. A banca desconta nota por isso!`
+                const refsUpper = data.referencias.toUpperCase();
+                const missing = [];
+                
+                citedAuthors.forEach(author => {
+                    if (!refsUpper.includes(author)) missing.push(author);
                 });
+
+                if (missing.length > 0) {
+                    errs.push({
+                        msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
+                        explain: `Atenção: Citaste "${missing[0]}" no texto, mas não o incluíste na lista final de Referências. A banca desconta nota por isso!`
+                    });
+                }
             }
-        }
-        
-        return errs;
+            setAbntErrors(errs);
+        }, 800);
+
+        return () => clearTimeout(timeoutId);
     }, [data]);
 
     const stats = useMemo(() => {
@@ -135,27 +138,15 @@ const Editor = () => {
         return { label: 'Erros', color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={12}/> };
     }, [abntErrors]);
 
-    // LÓGICA DE NUMERAÇÃO BLINDADA PARA 5 NÍVEIS (ABNT NBR 6024)
     const sumarioItens = useMemo(() => { 
         if (!data || !data.secoes) return [];
-        let counts = [0, 0, 0, 0, 0]; // Array de contadores para H1, H2, H3, H4, H5
-        
+        let counts = [0, 0, 0, 0, 0];
         return data.secoes.map(s => {
-            const level = Math.min(Math.max(Number(s.level) || 1, 1), 5); // Garante nível entre 1 e 5
-            
-            counts[level - 1]++; // Incrementa o nível atual
-            
-            // Reseta todos os subníveis abaixo do atual
-            for (let k = level; k < 5; k++) {
-                counts[k] = 0;
-            }
-            
-            // Constrói a string de numeração progressiva (ex: 1.2.1.1)
+            const level = Math.min(Math.max(Number(s.level) || 1, 1), 5); 
+            counts[level - 1]++;
+            for (let k = level; k < 5; k++) counts[k] = 0;
             const numParts = [];
-            for (let k = 0; k < level; k++) {
-                numParts.push(counts[k] === 0 ? 1 : counts[k]); // Fallback se saltarem um nível
-            }
-            
+            for (let k = 0; k < level; k++) numParts.push(counts[k] === 0 ? 1 : counts[k]);
             return { ...s, level, num: numParts.join('.') };
         }); 
     }, [data?.secoes]);
@@ -171,10 +162,10 @@ const Editor = () => {
         return groups;
     }, [data?.secoes, sumarioItens]);
 
-    const scrollToSection = (id) => {
-        const editEl = document.getElementById(`edit-sec-${id}`);
+    const scrollToSection = (secId) => {
+        const editEl = document.getElementById(`edit-sec-${secId}`);
         if (editEl) editEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const previewEl = document.getElementById(`preview-sec-${id}`);
+        const previewEl = document.getElementById(`preview-sec-${secId}`);
         if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
@@ -187,7 +178,6 @@ const Editor = () => {
             if (!newData.assets) newData.assets = {}; 
             
             let finalUrl = url;
-            
             if (type === 'img' && localBase64) {
                 const assetId = 'local_img_' + Date.now().toString(36);
                 newData.assets[assetId] = localBase64;
@@ -294,7 +284,7 @@ const Editor = () => {
                          ) : (
                             <div className={`flex-1 overflow-y-auto p-6 space-y-8 ${settings.theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}>
                                 <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"><ShieldCheck size={14} className="text-green-600"/> Saúde do Documento</h3>{abntErrors.length === 0 ? <div className="text-center py-6"><CheckCircle2 size={40} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Tudo Certo!</p><p className="text-xs text-slate-400">Nenhum problema estrutural encontrado.</p></div> : <ul className="space-y-2">{abntErrors.map((err, i) => (<li key={i} className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded"><div className="flex items-center gap-2 font-bold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div><div className="pl-6 opacity-75">{err.explain}</div></li>))}</ul>}</section>
-                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2"><ListTodo size={14} className="text-blue-600"/> Checklist TCC</h3><span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / checklist.length)*100)}%</span></div><div className="space-y-3">{checklist.map(item => (<div key={item.id} onClick={() => !item.auto && !isReadOnly && setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (settings.theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-100')} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:border-blue-300' : 'cursor-default opacity-80'}`}><div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</div><div className="flex-1"><span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : 'text-slate-600 dark:text-slate-300'}`}>{item.text}</span>{item.auto && <span className="text-[9px] text-slate-400 block mt-0.5 uppercase tracking-wide">Automático</span>}</div></div>))}</div></section>
+                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2"><ListTodo size={14} className="text-blue-600"/> Checklist TCC</h3><span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / (checklist.length || 1))*100)}%</span></div><div className="space-y-3">{checklist.map(item => (<div key={item.id} onClick={() => !item.auto && !isReadOnly && setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (settings.theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-100')} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:border-blue-300' : 'cursor-default opacity-80'}`}><div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</div><div className="flex-1"><span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : 'text-slate-600 dark:text-slate-300'}`}>{item.text}</span>{item.auto && <span className="text-[9px] text-slate-400 block mt-0.5 uppercase tracking-wide">Automático</span>}</div></div>))}</div></section>
                             </div>
                          )}
                     </aside>

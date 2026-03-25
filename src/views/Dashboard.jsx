@@ -2,17 +2,17 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Settings2, PlusCircle, Lightbulb, Search,
-    Trash2, Star, BookTemplate, Eye, Sparkles, MoreVertical,
-    RotateCcw, Copy, Box, Clock, CheckCircle2, FileEdit, Ghost,
+    Trash2, Star, BookTemplate, Eye, MoreVertical,
+    RotateCcw, Copy, Clock, CheckCircle2, FileEdit, Ghost,
     ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
-    Sun, Moon, Cloud, CloudOff, User, Home, MessageSquare, SearchX, X, Bug, Heart, Send
+    Sun, Moon, Cloud, CloudOff, User, MessageSquare, SearchX
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { ABNT_TIPS, EXAMPLE_ID, PROJECT_TYPES } from '../utils/constants'; 
 import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal } from '../components/common/Modals';
-import { supabase } from '../lib/supabase'; // Adicionado para o Feedback
+import { FeedbackModal } from '../components/common/FeedbackModal';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -34,14 +34,9 @@ const Dashboard = () => {
     const [tipIndex, setTipIndex] = useState(0);
     const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [newProjectTitle, setNewProjectTitle] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
-
-    // Estados para Feedback
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [feedbackType, setFeedbackType] = useState('bug');
-    const [feedbackText, setFeedbackText] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const isLoadingGlobal = isAuthLoading || isDataLoading;
 
@@ -112,23 +107,6 @@ const Dashboard = () => {
         setSettings(s => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }));
     };
 
-    const handleSendFeedback = async () => {
-        if (!feedbackText.trim()) return;
-        setIsSubmitting(true);
-        try {
-            const { error } = await supabase.from('feedback').insert([{ type: feedbackType, message: feedbackText }]);
-            if (error) throw error;
-            toast.success('Feedback enviado com sucesso! Muito obrigado pela ajuda.');
-            setShowFeedback(false);
-            setFeedbackText('');
-        } catch (error) {
-            console.error('Erro ao enviar feedback:', error);
-            toast.error('Ocorreu um erro ao enviar o feedback. Tente novamente mais tarde.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     const counts = useMemo(() => ({
         all: projects.filter(p => !p.deleted).length,
         favorites: projects.filter(p => !p.deleted && p.favorite).length,
@@ -192,7 +170,6 @@ const Dashboard = () => {
         <div className={`h-screen overflow-y-auto font-sans p-4 md:p-8 scroll-smooth transition-colors duration-300 ${theme.bg} ${theme.text}`}>
             <div className="max-w-7xl mx-auto space-y-6 pb-24">
                 
-                {/* Header Responsivo */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
                     <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left duration-500">
                         <div className="relative group cursor-pointer shrink-0" onClick={() => setIsSettingsModalOpen(true)}>
@@ -229,8 +206,7 @@ const Dashboard = () => {
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
                         
                         <div className="flex gap-2 shrink-0">
-                            {/* Novo botão de Feedback no Header */}
-                            <button onClick={() => setShowFeedback(true)} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-blue-500 hover:text-blue-600 dark:hover:text-blue-400`} title="Enviar Feedback / Reportar Bug">
+                            <button onClick={() => setIsFeedbackModalOpen(true)} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-blue-500 hover:text-blue-600 dark:hover:text-blue-400`} title="Enviar Feedback / Reportar Bug">
                                 <MessageSquare size={18} />
                             </button>
                             <button onClick={toggleTheme} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
@@ -269,20 +245,15 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {/* --- UI COMPACTA: Dica + Modelos na mesma área --- */}
                 {filterTab === 'all' && !searchTerm && (
                     <div className="space-y-4 animate-in fade-in zoom-in-95 duration-700">
-                        {/* Dica Ultra Fina */}
                         <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-2 flex items-center gap-2 text-blue-800 dark:text-blue-300">
                             <Lightbulb size={14} className="text-blue-500 shrink-0 ml-1"/>
                             <p className="text-[10px] md:text-xs"><span className="font-bold uppercase mr-1 opacity-70">Dica:</span> {ABNT_TIPS[tipIndex]}</p>
                         </div>
 
-                        {/* Carrossel de Modelos e Exemplo (Compacto) */}
                         <div>
                             <div className="flex overflow-x-auto gap-3 pb-2 snap-x" style={{ scrollbarWidth: 'none' }}>
-                                
-                                {/* 1. Cartão Especial: Exemplo Completo */}
                                 <div className={`${settings.theme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} p-4 rounded-[1.2rem] border-2 flex flex-col min-w-[220px] max-w-[220px] snap-center shrink-0 relative overflow-hidden group`}>
                                     <div className="absolute -right-4 -top-4 text-blue-500/10 pointer-events-none"><BookTemplate size={80} /></div>
                                     <div className="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center mb-2 z-10 shadow-sm"><Star size={14} /></div>
@@ -294,7 +265,6 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                {/* 2. Cartões de Modelos Normais */}
                                 {Object.keys(PROJECT_TYPES).map((key) => (
                                     <button 
                                         key={key}
@@ -314,7 +284,6 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {/* Filtros e Pesquisa */}
                 <div className={`flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 p-1.5 rounded-2xl shadow-sm border ${theme.cardBg}`}>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                         <div className={`flex overflow-x-auto p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`} style={{ scrollbarWidth: 'none' }}>
@@ -356,7 +325,6 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Lista de Projetos (Com Empty States Inteligentes) */}
                 <div className={viewMode === 'grid' && window.innerWidth >= 768 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-2.5"}>
                     {processedProjects.map((p, idx) => (
                         <div key={p.id} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 30}ms` }}>
@@ -376,7 +344,6 @@ const Dashboard = () => {
                         </div>
                     ))}
                     
-                    {/* Empty States Dinâmicos */}
                     {processedProjects.length === 0 && (
                         <div className="text-center py-16 opacity-70 border-2 border-dashed rounded-3xl border-slate-300 dark:border-slate-700 mt-4 bg-slate-50/50 dark:bg-slate-800/20">
                             {searchTerm ? (
@@ -423,67 +390,8 @@ const Dashboard = () => {
                     logout={logout}
                 />
             </div>
-
-            {/* MODAL DE FEEDBACK (INTEGRADO NO DASHBOARD) */}
-            {showFeedback && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                                <MessageSquare size={20} className="text-blue-500"/> Enviar Feedback
-                            </h3>
-                            <button onClick={() => setShowFeedback(false)} className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors bg-slate-100 dark:bg-slate-800 p-2 rounded-full focus:outline-none">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 space-y-6 flex-1">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                                Encontrou algum erro no editor ou tem uma ideia para melhorar a plataforma? A sua ajuda é vital!
-                            </p>
-
-                            <div className="flex gap-2 p-1.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
-                                <button
-                                    onClick={() => setFeedbackType('bug')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold transition-all focus:outline-none ${feedbackType === 'bug' ? 'bg-white dark:bg-slate-800 text-red-500 dark:text-red-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                                >
-                                    <Bug size={16}/> Reportar Bug
-                                </button>
-                                <button
-                                    onClick={() => setFeedbackType('suggestion')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold transition-all focus:outline-none ${feedbackType === 'suggestion' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                                >
-                                    <Heart size={16}/> Sugerir Melhoria
-                                </button>
-                            </div>
-
-                            <div>
-                                <textarea
-                                    value={feedbackText}
-                                    onChange={(e) => setFeedbackText(e.target.value)}
-                                    placeholder={feedbackType === 'bug' ? 'Descreva o problema ou onde a formatação falhou...' : 'O que acha que falta no ABNTFácil?'}
-                                    className="w-full h-36 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none font-medium disabled:opacity-50"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-end gap-3">
-                            <button onClick={() => setShowFeedback(false)} disabled={isSubmitting} className="px-5 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors focus:outline-none disabled:opacity-50">
-                                Cancelar
-                            </button>
-                            <button 
-                                onClick={handleSendFeedback}
-                                disabled={!feedbackText.trim() || isSubmitting}
-                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] flex items-center gap-2 focus:outline-none"
-                            >
-                                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16}/>} 
-                                {isSubmitting ? 'A enviar...' : 'Enviar'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            
+            <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
         </div>
     );
 };
@@ -542,7 +450,6 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
                 <div onClick={!isTrash ? onLoad : undefined} className={`p-2.5 rounded-xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 dark:bg-slate-800 cursor-default text-slate-400' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-pointer'}`}><FileText size={20} /></div>
                 
                 <div className="flex items-center gap-0.5">
-                    {/* Ações Rápidas (Visíveis em Hover apenas em Desktop) */}
                     <div className="hidden lg:flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                          {!isTrash ? (
                              <>

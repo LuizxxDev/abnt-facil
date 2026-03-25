@@ -1,8 +1,32 @@
+/* ========================================================================== *
+ * *    .         . .    .                 . .
+.+'|      .+'| |`+. |`+. |~~|=|~~| .+'| |`+.
+|  |      |  | |  | |  | |.+' |  | |  | |  |
+|  |      |  | |  | |  |      |.+' .' .`. `.
+|  |      |  | |  | |  |    .='    |  | |  |
+|  |    . |  | |  | |  | .+'|    . |  | |  |
+|  | .+'| |  | |  | |  | |  | .+'| |  | |  |
+`+.|=|.+' `+.|=|.+' |.+' |..|=|..| `+.| |.+'
+ * *
+ * -------------------------------------------------------------------------- *
+ * AUTOR: Luiz Felipe Batista Rodrigues                                     *
+ * PROJETO: ABNT Editor Web                                                  *
+ * DESCRIÇÃO: Motor de renderização e formatação ABNT rigorosa.              *
+ * DIREITOS: Reservados. Cópia ou alteração estrutural não autorizada.       *
+ * ========================================================================== */
+
 import React, { useMemo } from 'react';
 import { TAG_RENDERERS } from '../../utils/constants';
 
 const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
     
+    // CONFIGURAÇÃO DE PAGINAÇÃO:
+    // Se a sua instituição exige que a numeração comece do "1" apenas na Introdução, alterar para 'false'.
+    const STRICT_ABNT_PAGINATION = true; 
+    
+    // Define dinamicamente se as páginas pré-textuais incrementam o contador CSS baseado na constante acima
+    const preTextualClass = STRICT_ABNT_PAGINATION ? "page page-count" : "page";
+
     const escapeHtml = (text) => {
         return text
             .replace(/&/g, "&amp;")
@@ -57,19 +81,22 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
 
-        let currentPage = 3; 
+        let preTextualPages = 1; // Folha de Rosto sempre existe no escopo
         
-        if (data.dedicatoria && data.dedicatoria.trim() !== '') currentPage += 1;
-        if (data.agradecimentos && data.agradecimentos.trim() !== '') currentPage += 1;
-        if (data.epigrafe && data.epigrafe.trim() !== '') currentPage += 1;
+        if (data.dedicatoria && data.dedicatoria.trim() !== '') preTextualPages += 1;
+        if (data.agradecimentos && data.agradecimentos.trim() !== '') preTextualPages += 1;
+        if (data.epigrafe && data.epigrafe.trim() !== '') preTextualPages += 1;
 
-        currentPage += 1; // Resumo Pt
+        preTextualPages += 1; // Resumo Pt
 
         if (data.resumoEn && data.resumoEn.trim() !== '') {
-            currentPage += 1; // Abstract
+            preTextualPages += 1; // Abstract
         }
 
-        currentPage += 1; // Sumário
+        preTextualPages += 1; // Sumário
+
+        // Se STRICT_ABNT_PAGINATION for false, o sumário e o CSS resetam e o conteúdo textual assume página 1
+        let currentPage = STRICT_ABNT_PAGINATION ? (preTextualPages + 1) : 1;
 
         const mapping = {};
         const CHARS_PER_PAGE = 2200; 
@@ -101,7 +128,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         }
 
         return mapping;
-    }, [data, groupedSections]);
+    }, [data, groupedSections, STRICT_ABNT_PAGINATION]);
 
     const getPageNumber = (secId) => {
         return pageMapping[secId] || "";
@@ -115,7 +142,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     color: black;
                     line-height: 1.5;
                     transition: transform 0.2s ease;
-                    counter-reset: pagina-abnt; 
+                    counter-reset: pagina-abnt 0; 
                     
                     overflow-wrap: break-word;
                     word-wrap: break-word;
@@ -134,6 +161,9 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     flex-direction: column; 
                     box-sizing: border-box; 
                     position: relative;
+                }
+
+                .page-count {
                     counter-increment: pagina-abnt; 
                 }
 
@@ -152,6 +182,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     margin-bottom: 4pt;
                     text-decoration: none;
                     color: black;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                 }
 
                 .sumario-label {
@@ -174,20 +206,28 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 }
 
                 .abnt-p { 
-                    text-align: justify; 
+                    text-align: justify !important; 
+                    text-justify: inter-word;
                     text-indent: 1.25cm; 
                     margin-bottom: 0; 
                     font-size: 12pt; 
                     line-height: 1.5; 
+                    orphans: 2;
+                    widows: 2;
                 }
                 
                 .abnt-citacao-longa { 
                     margin-left: 4cm; 
                     font-size: 10pt; 
                     line-height: 1.0; 
-                    text-align: justify; 
+                    text-align: justify !important; 
+                    text-justify: inter-word;
                     margin-top: 1.5em; 
                     margin-bottom: 1.5em; 
+                    orphans: 2;
+                    widows: 2;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                 }
                 
                 .abnt-title-container {
@@ -196,6 +236,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     font-size: 12pt;
                     line-height: 1.5;
                     margin-bottom: 1.5em;
+                    page-break-after: avoid;
+                    break-after: avoid;
                 }
                 
                 .abnt-h1 { font-weight: bold; text-transform: uppercase; }
@@ -216,23 +258,31 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     text-transform: uppercase; 
                     font-size: 12pt; 
                     margin-bottom: 1.5em; 
+                    page-break-after: avoid;
+                    break-after: avoid;
                 }
 
                 .abnt-natureza {
                     margin-left: 8cm;
-                    text-align: justify;
+                    text-align: justify !important;
+                    text-justify: inter-word;
                     line-height: 1.0;
                     font-size: 12pt;
                     font-weight: normal;
                     text-transform: none;
+                    orphans: 2;
+                    widows: 2;
                 }
 
                 .abnt-pre-textual-bottom {
                     margin-top: auto; 
                     margin-left: 8cm; 
-                    text-align: justify;
+                    text-align: justify !important;
+                    text-justify: inter-word;
                     font-size: 12pt; 
                     line-height: 1.5; 
+                    orphans: 2;
+                    widows: 2;
                 }
 
                 .abnt-ref {
@@ -240,6 +290,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     margin-bottom: 12pt;
                     text-align: left;
                     font-size: 12pt;
+                    orphans: 2;
+                    widows: 2;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                 }
 
                 .abnt-asset-container {
@@ -247,6 +301,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     font-size: 10pt;
                     margin-top: 1.5em;
                     margin-bottom: 1.5em;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                 }
 
                 @media print {
@@ -274,7 +330,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
             `}</style>
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
-                {/* Capa */}
+                {/* Capa (Nunca é contada pela ABNT) */}
                 <div className="page text-center text-[12pt] justify-between flex flex-col">
                     <div className="font-bold uppercase space-y-0">
                         <div>{data.instituicao || "NOME DA INSTITUIÇÃO"}</div>
@@ -307,7 +363,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 </div>
 
                 {/* Folha de Rosto */}
-                <div className="page text-center text-[12pt] flex flex-col">
+                <div className={`${preTextualClass} text-center text-[12pt] flex flex-col`}>
                     <div className="uppercase space-y-1">
                         {authors.map((a, i) => (
                             <div key={i}>{a || "NOME DO AUTOR"}</div>
@@ -353,7 +409,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Dedicatória */}
                 {data.dedicatoria && data.dedicatoria.trim() !== '' && (
-                    <div className="page">
+                    <div className={preTextualClass}>
                         <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.dedicatoria}
                         </div>
@@ -362,7 +418,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Agradecimentos */}
                 {data.agradecimentos && data.agradecimentos.trim() !== '' && (
-                    <div className="page">
+                    <div className={preTextualClass}>
                         <div className="abnt-center-bold">AGRADECIMENTOS</div>
                         {formatConteudo(data.agradecimentos)}
                     </div>
@@ -370,7 +426,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Epígrafe */}
                 {data.epigrafe && data.epigrafe.trim() !== '' && (
-                    <div className="page">
+                    <div className={preTextualClass}>
                         <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">
                             {data.epigrafe}
                         </div>
@@ -378,7 +434,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 )}
 
                 {/* Resumo */}
-                <div className="page">
+                <div className={preTextualClass}>
                     <div className="abnt-center-bold">RESUMO</div>
                     <div className="abnt-p !indent-0">{data.resumoPt || "Texto do resumo..."}</div>
                     {data.palavrasChavePt && (
@@ -391,7 +447,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Abstract */}
                 {data.resumoEn && data.resumoEn.trim() !== '' && (
-                    <div className="page">
+                    <div className={preTextualClass}>
                         <div className="abnt-center-bold">ABSTRACT</div>
                         <div className="abnt-p !indent-0 italic">{data.resumoEn}</div>
                         {data.palavrasChaveEn && (
@@ -404,7 +460,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 )}
 
                 {/* Sumário */}
-                <div className="page">
+                <div className={preTextualClass}>
                     <div className="abnt-center-bold">SUMÁRIO</div>
                     <div className="flex flex-col w-full text-[12pt]">
                         {sumarioItens && sumarioItens.map((sec) => (
@@ -441,9 +497,9 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 </div>
 
-                {/* Conteúdo Textual */}
+                {/* Conteúdo Textual (Introdução, Desenvolvimento, Conclusão) */}
                 {groupedSections.map((group, groupIndex) => (
-                    <div className="page page-numbered" key={`group-${groupIndex}`}>
+                    <div className="page page-count page-numbered" key={`group-${groupIndex}`}>
                         {group.map((s) => (
                             <div key={s.id} id={`preview-sec-${s.id}`} className="mb-8">
                                 <div className={`abnt-title-container abnt-h${Number(s.level)}`}>
@@ -457,7 +513,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 ))}
 
                 {/* Referências */}
-                <div id="preview-sec-referencias" className="page page-numbered">
+                <div id="preview-sec-referencias" className="page page-count page-numbered">
                     <div className="abnt-center-bold">REFERÊNCIAS</div>
                     <div className="text-[12pt]">
                         {data.referencias && data.referencias.trim().split('\n').map((ref, i) => (
@@ -468,7 +524,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Apêndices */}
                 {data.apendices && data.apendices.trim() !== '' && (
-                    <div id="preview-sec-apendices" className="page page-numbered">
+                    <div id="preview-sec-apendices" className="page page-count page-numbered">
                         <div className="abnt-center-bold">APÊNDICES</div>
                         {formatConteudo(data.apendices)}
                     </div>
@@ -476,7 +532,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Anexos */}
                 {data.anexos && data.anexos.trim() !== '' && (
-                    <div id="preview-sec-anexos" className="page page-numbered">
+                    <div id="preview-sec-anexos" className="page page-count page-numbered">
                         <div className="abnt-center-bold">ANEXOS</div>
                         {formatConteudo(data.anexos)}
                     </div>

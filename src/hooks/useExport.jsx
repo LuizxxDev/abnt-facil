@@ -1,23 +1,24 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-export const useExport = (data, authors, fontFamily) => {
+export const useExport = () => {
     const [isExporting, setIsExporting] = useState(false);
 
-    // FUNÇÃO DE PDF NATIVA (Otimizada para ABNT via Browser)
-    const handleExportPDF = () => {
+    const handleExportPDF = useCallback(() => {
         setIsExporting(true);
-        toast.success("A preparar documento para PDF...", { duration: 2000 });
+        
+        // Alerta Crítico para o utilizador desativar o Localhost do Navegador
+        toast.error("⚠️ IMPORTANTE: Desmarque a opção 'Cabeçalhos e rodapés' na tela de impressão para remover o localhost e a data!", { 
+            duration: 8000, 
+            icon: '🚨',
+            style: { fontWeight: 'bold', border: '2px solid red' }
+        });
         
         setTimeout(() => {
             setIsExporting(false);
-            toast.success("Dica: No menu de impressão, escolha 'Guardar como PDF' como destino.", { 
-                duration: 6000, 
-                icon: '🖨️' 
-            });
             window.print();
-        }, 800);
-    };
+        }, 1500);
+    }, []);
 
     return { isExporting, handleExportPDF };
 };
