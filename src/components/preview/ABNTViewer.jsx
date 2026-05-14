@@ -37,46 +37,76 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
     };
 
     const formatConteudo = (texto) => {
-        if (!texto) return null;
-        return texto.trim().split('\n\n').map((p, i) => { 
-            const m = p.trim().match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i); 
-            
-            if (m && TAG_RENDERERS[m[1].toUpperCase()]) {
-                if (m[1].toUpperCase() === 'IMAGEM') {
-                    let [title, source, urlStr] = m[2].split('|').map(s => s?.trim() || '');
-                    
-                    if (urlStr && data?.assets && data.assets[urlStr]) {
-                        urlStr = data.assets[urlStr];
-                    }
-                    
-                    return (
-                        <div key={i} className="abnt-asset-container">
-                            {TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i)}
-                        </div>
-                    );
+    if (!texto || typeof texto !== 'string') return null;
+ 
+    // Divide o texto em blocos separados por uma ou mais linhas em branco
+    const blocos = texto.trim().split(/\n{2,}/);
+ 
+    return blocos.map((bloco, i) => {
+        const trimmed = bloco.trim();
+ 
+        // Ignora blocos completamente vazios
+        if (!trimmed) return null;
+ 
+        // ── Detecta tags especiais ──────────────────────────────────────
+        const matchTag = trimmed.match(
+            /^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i
+        );
+ 
+        if (matchTag && TAG_RENDERERS[matchTag[1].toUpperCase()]) {
+            const tipoTag = matchTag[1].toUpperCase();
+            const conteudoTag = matchTag[2];
+ 
+            if (tipoTag === 'IMAGEM') {
+                let [title, source, urlStr] = conteudoTag
+                    .split('|')
+                    .map(s => s?.trim() || '');
+ 
+                // Resolve asset local se existir
+                if (urlStr && data?.assets && data.assets[urlStr]) {
+                    urlStr = data.assets[urlStr];
                 }
-                
+ 
                 return (
                     <div key={i} className="abnt-asset-container">
-                        {TAG_RENDERERS[m[1].toUpperCase()](m[2], i)}
+                        {TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i)}
                     </div>
                 );
             }
-            
-            const textoSeguro = escapeHtml(p);
-            const textoFormatado = textoSeguro
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                .replace(/\*(.*?)\*/g, '<em>$1</em>');            
-            
+ 
             return (
-                <p 
-                    key={i} 
-                    className="abnt-p" 
-                    dangerouslySetInnerHTML={{ __html: textoFormatado }} 
-                />
+                <div key={i} className="abnt-asset-container">
+                    {TAG_RENDERERS[tipoTag](conteudoTag, i)}
+                </div>
             );
-        });
-    };
+        }
+ 
+        const linhas = trimmed.split('\n');
+      
+        const htmlFormatado = linhas
+            .map(linha => {
+                const segura = linha
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+ 
+                return segura
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+            })
+            .join('<br/>');
+ 
+        return (
+            <p
+                key={i}
+                className="abnt-p"
+                dangerouslySetInnerHTML={{ __html: htmlFormatado }}
+            />
+        );
+    });
+};
 
     const pageMapping = useMemo(() => {
         if (!data || !groupedSections) return {};
@@ -153,7 +183,10 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 .page { 
                     background: white; 
                     width: 210mm; 
-                    min-height: 297mm; 
+                    height: 297mm;
+                    overflow: hidden;       /* <- impede o vazamento */
+                    page-break-after: always;
+                    break-after: page; 
                     padding: 30mm 20mm 20mm 30mm; 
                     margin: 0 auto 30px auto; 
                     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
@@ -205,15 +238,19 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     min-width: 20pt;
                 }
 
-                .abnt-p { 
-                    text-align: justify !important; 
-                    text-justify: inter-word;
-                    text-indent: 1.25cm; 
-                    margin-bottom: 0; 
-                    font-size: 12pt; 
-                    line-height: 1.5; 
-                    orphans: 2;
-                    widows: 2;
+                .abnt-p {
+                text-align: justify !important;
+                text-indent: 1.25cm;
+                font-size: 12pt;
+                line-height: 1.5;
+                margin-bottom: 0;
+                /* ADICIONE: */
+                overflow-wrap: break-word;
+                word-break: break-word;
+                hyphens: auto;
+                -webkit-hyphens: auto;
+                white-space: normal;
+
                 }
                 
                 .abnt-citacao-longa { 
@@ -436,7 +473,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {/* Resumo */}
                 <div className={preTextualClass}>
                     <div className="abnt-center-bold">RESUMO</div>
-                    <div className="abnt-p !indent-0">{data.resumoPt || "Texto do resumo..."}</div>
+                    <div className="abnt-p indent-0!">{data.resumoPt || "Texto do resumo..."}</div>
                     {data.palavrasChavePt && (
                         <div className="mt-6 text-[12pt]">
                             <span className="font-bold">Palavras-chave: </span> 
@@ -449,7 +486,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                 {data.resumoEn && data.resumoEn.trim() !== '' && (
                     <div className={preTextualClass}>
                         <div className="abnt-center-bold">ABSTRACT</div>
-                        <div className="abnt-p !indent-0 italic">{data.resumoEn}</div>
+                        <div className="abnt-p indent-0! italic">{data.resumoEn}</div>
                         {data.palavrasChaveEn && (
                             <div className="mt-6 text-[12pt] italic">
                                 <span className="font-bold">Keywords: </span> 
@@ -499,17 +536,19 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
 
                 {/* Conteúdo Textual (Introdução, Desenvolvimento, Conclusão) */}
                 {groupedSections.map((group, groupIndex) => (
-                    <div className="page page-count page-numbered" key={`group-${groupIndex}`}>
-                        {group.map((s) => (
-                            <div key={s.id} id={`preview-sec-${s.id}`} className="mb-8">
-                                <div className={`abnt-title-container abnt-h${Number(s.level)}`}>
-                                    <span className="shrink-0">{s.num}</span>
-                                    <span>{s.titulo}</span>
-                                </div>
-                                <div className="abnt-content">{formatConteudo(s.conteudo)}</div>
+                    group.map((s, si) => (
+                        <div 
+                            className={`page page-count page-numbered ${si > 0 ? '' : ''}`} 
+                            key={s.id}
+                            id={`preview-sec-${s.id}`}
+                        >
+                            <div className={`abnt-title-container abnt-h${Number(s.level)}`}>
+                                <span className="shrink-0">{s.num}</span>
+                                <span>{s.titulo}</span>
                             </div>
-                        ))}
-                    </div>
+                            <div className="abnt-content">{formatConteudo(s.conteudo)}</div>
+                        </div>
+                    ))
                 ))}
 
                 {/* Referências */}

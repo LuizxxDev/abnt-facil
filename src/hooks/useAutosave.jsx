@@ -10,7 +10,7 @@ export const useAutosave = (data, authors, checklist, id, projects, setProjects,
     const latestDataRef = useRef({ data, authors, checklist });
     const timerRef = useRef(null);
 
-    // Atualiza apenas as referências de memória. Muito mais rápido que JSON.stringify no Main Thread.
+    
     useEffect(() => {
         latestDataRef.current = { data, authors, checklist };
     }, [data, authors, checklist]);
