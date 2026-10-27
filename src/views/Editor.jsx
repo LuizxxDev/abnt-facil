@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useDeferredValue, lazy, Suspense }
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle,
-  ZoomOut, ZoomIn, List, Printer, FileEdit, Copy,
+  ZoomOut, ZoomIn, List, FileEdit, Copy, Download, FileText,
   ListTodo, ShieldCheck, CheckSquare, Settings2,
   Sun, Moon, Eye, FileCog, Globe, BookOpen, BookMarked
 } from 'lucide-react';
@@ -79,7 +79,7 @@ const Editor = () => {
 
     const isReadOnly = id === EXAMPLE_ID;
     const { isSaving } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
-    const { handleExportPDF, isExporting } = useExport(data || {}, authors, fontFamily);
+    const { handleExportPDF, handleExportDocx, isExporting } = useExport(data, authors, fontFamily);
 
     // DEBOUNCE APLICADO: Previne congelamento da Main Thread por regex excessiva
     useEffect(() => {
@@ -303,7 +303,10 @@ const Editor = () => {
                     <button onClick={() => setShowOutline(!showOutline)} aria-label="Alternar navegação" aria-pressed={showOutline} className={`p-2 rounded-lg transition-colors ${showOutline ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><List size={18}/></button>
                     <button onClick={() => setSettings(s => ({...s, theme: s.theme === 'dark' ? 'light' : 'dark'}))} aria-label="Alternar tema" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{isDark ? <Sun size={18}/> : <Moon size={18}/>}</button>
                     {!isReadOnly ? (
-                        <button onClick={handleExportPDF} className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors"><Printer size={16}/><span className="hidden sm:inline">Gerar PDF</span></button>
+                        <>
+                            <button onClick={handleExportDocx} disabled={isExporting} title="Baixar no formato do Word (.docx)" className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 border transition-colors disabled:opacity-60 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-200 hover:bg-slate-50'}`}><FileText size={16}/><span className="hidden sm:inline">Word</span></button>
+                            <button onClick={handleExportPDF} disabled={isExporting} title="Baixar o PDF em A4" className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors disabled:opacity-60">{isExporting ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}<span className="hidden sm:inline">Baixar PDF</span></button>
+                        </>
                     ) : (
                         <button onClick={handleCreateFromExample} className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors"><Copy size={15}/><span className="hidden sm:inline">Usar como base</span></button>
                     )}
