@@ -1,14 +1,15 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; 
-import { AppProvider } from './contexts/AppContext';
 import LandingPage from './views/LandingPage';
-import Dashboard from './views/Dashboard';
-import Editor from './views/Editor';
+import PageLoader from './components/common/PageLoader';
+
+// Supabase, painel e editor ficam fora do arquivo inicial: a landing page abre sem baixá-los
+const AppShell = lazy(() => import('./AppShell'));
 
 export default function App() {
   return (
-    <AppProvider>
+    <>
       {/* UI/UX POLISH: Toaster posicionado no topo-centro (campo de visão) e com formato mais quadrado */}
       {/* A classe containerClassName garante que os alertas nunca fiquem no PDF gerado */}
       <Toaster 
@@ -42,10 +43,8 @@ export default function App() {
       
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/editor/:id" element={<Editor />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/*" element={<Suspense fallback={<PageLoader />}><AppShell /></Suspense>} />
       </Routes>
-    </AppProvider>
+    </>
   );
 }

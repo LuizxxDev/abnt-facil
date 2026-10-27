@@ -31,22 +31,3 @@ export const calculateProgress = (data) => {
     if (score === 100) { status = 'blue'; label = 'Completo'; }
     return { percent: score, status, label };
 };
-
-// FUNÇÃO ATUALIZADA: Mais robusta para evitar o erro de 'html2pdf is not defined'
-export const loadHtml2Pdf = () => {
-    return new Promise((resolve, reject) => {
-        if (window.html2pdf) {
-            resolve(window.html2pdf);
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        script.async = true;
-        script.onload = () => {
-            if (window.html2pdf) resolve(window.html2pdf);
-            else reject(new Error("Biblioteca carregada, mas objeto html2pdf não encontrado."));
-        };
-        script.onerror = () => reject(new Error("Erro ao carregar a biblioteca de PDF."));
-        document.head.appendChild(script);
-    });
-};

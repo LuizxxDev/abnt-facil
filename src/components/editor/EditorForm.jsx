@@ -96,7 +96,7 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
     const currentLevel = Number(s.level) || 1;
 
     return (
-        <div ref={setNodeRef} style={style} className={`p-4 border rounded-xl space-y-3 transition-all ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${currentLevel > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
+        <div ref={setNodeRef} id={`edit-sec-${s.id}`} style={style} className={`p-4 border rounded-xl space-y-3 transition-all scroll-mt-4 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${currentLevel > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     {!isReadOnly && <button {...attributes} {...listeners} className="cursor-grab p-1 text-slate-300 hover:text-slate-500 active:cursor-grabbing touch-none"><GripVertical size={16}/></button>}
@@ -159,7 +159,7 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
     );
 };
 
-const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, focusedSection, setFocusedSection, onOpenAssetModal, onOpenRefModal, onOpenAttachmentModal }) => {
+const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, focusedSection, setFocusedSection, onOpenAssetModal, onOpenRefModal, onOpenAttachmentModal, panel = 'capitulos', next }) => {
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
     const handleDragEnd = (event) => {
@@ -242,6 +242,8 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20">
+            {panel === 'documento' && (
+            <div className="space-y-8">
             {/* Tipo de documento */}
             <section className="space-y-2">
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><FileType size={12}/> Tipo de Documento</h3>
@@ -378,6 +380,11 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             </section>
             )}
 
+            </div>
+            )}
+
+            {panel === 'pretextuais' && (
+            <div className="space-y-8">
             {/* Elementos Pré-Textuais */}
             {(hasElement(docType, 'dedicatoria') || hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos') || hasElement(docType, 'epigrafe')) && (
             <section className="space-y-4">
@@ -414,6 +421,11 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             </section>
             )}
 
+            </div>
+            )}
+
+            {panel === 'capitulos' && (
+            <div className="space-y-8">
             {/* Capítulos */}
             <section className="space-y-4">
               <div className="flex justify-between items-center">
@@ -430,8 +442,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               </DndContext>
               {!isReadOnly && (
                 <div className="flex pt-2">
-                  {/* CORREÇÃO DO BOTÃO ADICIONAR NOVA SEÇÃO AQUI */}
-                  <button 
+                        <button 
                     onClick={handleAddSection} 
                     className="w-full py-2.5 border-2 border-dashed border-green-300 dark:border-green-800 rounded-lg text-[10px] font-bold text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex items-center justify-center gap-1 uppercase"
                   >
@@ -441,6 +452,11 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               )}
             </section>
             
+            </div>
+            )}
+
+            {panel === 'referencias' && (
+            <div className="space-y-8">
             {/* Referências */}
             <section id="edit-sec-referencias" className="space-y-4">
               <div className="flex justify-between items-center">
@@ -452,7 +468,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
             {/* Pós-Textuais */}
             {(hasElement(docType, 'glossario') || hasElement(docType, 'apendices') || hasElement(docType, 'anexos')) && (
-            <section className="space-y-4 pb-10">
+            <section className="space-y-4 ">
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
               {hasElement(docType, 'glossario') && (
                 <div id="edit-sec-glossario" className="space-y-2">
@@ -479,6 +495,18 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 </div>
               )}
             </section>
+            )}
+            </div>
+            )}
+
+            {next && (
+                <button onClick={next.onClick} className={`w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${settings.theme === 'dark' ? 'border-slate-800 hover:border-green-700 hover:bg-slate-800/60' : 'border-slate-200 hover:border-green-500 hover:bg-green-50/50'}`}>
+                    <span>
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">Próxima etapa</span>
+                        <span className="block text-sm font-semibold">{next.label}</span>
+                    </span>
+                    <ArrowRight size={16} className="text-green-600 shrink-0" />
+                </button>
             )}
         </div>
     );

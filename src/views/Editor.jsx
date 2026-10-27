@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle, 
-  ZoomOut, ZoomIn, List, Printer, FileEdit, 
-  ListTodo, ShieldCheck, CheckSquare, Settings2, Sparkles, AlignLeft, FileText,
-  Sun, Moon, Eye
+import {
+  ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle,
+  ZoomOut, ZoomIn, List, Printer, FileEdit, Copy,
+  ListTodo, ShieldCheck, CheckSquare, Settings2,
+  Sun, Moon, Eye, FileCog, Globe, BookOpen, BookMarked
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,9 +18,10 @@ import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
 import ABNTViewer from '../components/preview/ABNTViewer';
 
-import ReferenceModal from '../components/editor/ReferenceModal';
-import AssetModal from '../components/common/AssetModal';
-import AttachmentModal from '../components/editor/AttachmentModal';
+// Modais só são baixados quando abertos pela primeira vez
+const ReferenceModal = lazy(() => import('../components/editor/ReferenceModal'));
+const AssetModal = lazy(() => import('../components/common/AssetModal'));
+const AttachmentModal = lazy(() => import('../components/editor/AttachmentModal'));
 
 const Editor = () => {
     const { id } = useParams();
@@ -36,11 +37,11 @@ const Editor = () => {
     const [loadedId, setLoadedId] = useState(null);
     const [abntErrors, setAbntErrors] = useState([]); // Desacoplado da renderização principal
 
-    const [tab, setTab] = useState('editor');
+    const [panel, setPanel] = useState(null);
     const [focusedSection, setFocusedSection] = useState(null);
     const [focusMode] = useState(false);
     
-    const [showOutline, setShowOutline] = useState(window.innerWidth >= 1280);
+    const [showOutline, setShowOutline] = useState(window.innerWidth >= 1536);
     const [zoomLevel, setZoomLevel] = useState(window.innerWidth < 768 ? 0.45 : 0.80);
     const [mobileView, setMobileView] = useState('editor'); 
     
@@ -164,9 +165,9 @@ const Editor = () => {
     }, [data]);
 
     const abntStatus = useMemo(() => {
-        if (abntErrors.length === 0) return { label: 'ABNT OK', color: 'bg-green-100 text-green-700', icon: <CheckCircle2 size={12}/> };
-        if (abntErrors.length <= 2) return { label: 'Ajustes', color: 'bg-yellow-100 text-yellow-700', icon: <AlertCircle size={12}/> };
-        return { label: 'Erros', color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={12}/> };
+        if (abntErrors.length === 0) return { label: 'ABNT OK', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 size={14}/> };
+        if (abntErrors.length <= 2) return { label: `${abntErrors.length} ajuste${abntErrors.length > 1 ? 's' : ''}`, color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', icon: <AlertCircle size={14}/> };
+        return { label: `${abntErrors.length} pendências`, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: <AlertTriangle size={14}/> };
     }, [abntErrors]);
 
     const numberSections = getDocType(data).numberedSections !== false;
@@ -194,9 +195,17 @@ const Editor = () => {
         return groups;
     }, [data?.secoes, sumarioItens]);
 
+    const previewData = useDeferredValue(data);
+    const previewAuthors = useDeferredValue(authors);
+    const previewSections = useDeferredValue(groupedSections);
+
     const scrollToSection = (secId) => {
-        const editEl = document.getElementById(`edit-sec-${secId}`);
-        if (editEl) editEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Abre a etapa onde o item é editado antes de rolar até ele
+        setPanel(['referencias', 'glossario', 'apendices', 'anexos'].includes(secId) ? 'referencias' : 'capitulos');
+        requestAnimationFrame(() => {
+            const editEl = document.getElementById(`edit-sec-${secId}`);
+            if (editEl) editEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
         const previewEl = document.getElementById(`preview-sec-${secId}`);
         if (previewEl) previewEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -247,129 +256,210 @@ const Editor = () => {
         ? 'bg-amber-900/50 text-amber-400 border-amber-700/50' 
         : 'bg-amber-100 text-amber-800 border-amber-300';
 
+    const docType = getDocType(data);
+    const isArticle = docType.layout === 'article';
+    const hasPreTextual = ['dedicatoria', 'agradecimentos', 'agradecimentosPos', 'epigrafe', 'resumoPt', 'resumoEn'].some(el => hasElement(docType, el));
+    const panels = [
+        { id: 'documento', label: 'Documento', icon: FileCog },
+        ...(hasPreTextual ? [{ id: 'pretextuais', label: isArticle ? 'Resumo' : 'Pré-textuais', icon: Globe }] : []),
+        { id: 'capitulos', label: isArticle ? 'Texto' : 'Capítulos', icon: BookOpen },
+        { id: 'referencias', label: 'Referências', icon: BookMarked },
+        { id: 'revisao', label: 'Revisão', icon: ShieldCheck, badge: abntErrors.length },
+    ];
+    // Documento novo começa pela identificação; os demais abrem direto no texto
+    const currentPanel = panels.some(p => p.id === panel) ? panel : (data.titulo ? 'capitulos' : 'documento');
+    const nextPanel = panels[panels.findIndex(p => p.id === currentPanel) + 1];
+
+    const isDark = settings.theme === 'dark';
+
     return (
-        <div className={`flex flex-col h-dvh overflow-hidden abnt-editor-app transition-colors duration-300 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-            <header className={`min-h-[4rem] py-3 lg:py-0 lg:h-16 border-b flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors gap-3 lg:gap-0 ${headerBgClass}`}>
-                <div className="flex items-center justify-between w-full lg:w-auto gap-4">
-                    <div className="flex items-center gap-3 w-full">
-                        <button onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} className="p-2 shrink-0 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-400 hover:text-green-700"><ArrowLeft size={20} /></button>
-                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-                        <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                                <h2 className={`font-bold text-sm truncate max-w-[180px] sm:max-w-[250px] leading-tight ${settings.theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{data.titulo || "Projeto sem Título"}</h2>
-                                {isReadOnly && (
-                                    <span className={`flex items-center shrink-0 gap-1 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${readOnlyBadgeClass}`}>
-                                        <Lock size={10}/> Leitura
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">{isSaving || isExporting ? <span className="flex items-center gap-1 text-[10px] text-yellow-600 font-medium"><Loader2 size={10} className="animate-spin"/> Atualizando...</span> : <span className="flex items-center gap-1 text-[10px] text-green-600 font-medium"><CheckCircle2 size={10}/> Alterações salvas</span>}</div>
+        <div className={`flex flex-col h-dvh overflow-hidden abnt-editor-app transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+            <header className={`h-14 lg:h-16 border-b flex items-center justify-between gap-3 px-3 lg:px-5 shrink-0 z-30 print:hidden transition-colors ${headerBgClass}`}>
+                <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                    <button onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} aria-label="Voltar ao painel" className="p-2 shrink-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-green-700"><ArrowLeft size={20} /></button>
+                    <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <h1 className={`font-semibold text-sm truncate leading-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{data.titulo || "Documento sem título"}</h1>
+                            {isReadOnly && (
+                                <span className={`flex items-center shrink-0 gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold border ${readOnlyBadgeClass}`}>
+                                    <Lock size={10}/> Leitura
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 min-w-0">
+                            <span className="truncate hidden sm:inline">{docType.label}</span>
+                            <span className="hidden sm:inline" aria-hidden="true">·</span>
+                            {isSaving || isExporting
+                                ? <span className="flex items-center gap-1 text-amber-600 shrink-0"><Loader2 size={10} className="animate-spin"/> Salvando</span>
+                                : <span className="flex items-center gap-1 text-green-600 dark:text-green-400 shrink-0"><CheckCircle2 size={10}/> Salvo</span>}
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 lg:gap-4 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 justify-start lg:justify-end shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {!isReadOnly && (
-                        <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 gap-1 border border-slate-200 dark:border-slate-700 shrink-0">
-                            <div className="flex items-center px-2"><button onClick={() => setZoomLevel(z => Math.max(0.3, z - 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomOut size={16}/></button><span className="text-[11px] font-bold w-12 text-center text-slate-500">{Math.round(zoomLevel * 100)}%</span><button onClick={() => setZoomLevel(z => Math.min(2, z + 0.1))} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"><ZoomIn size={16}/></button></div>
-                            <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1" />
-                            <div className="flex p-0.5 gap-1"><button onClick={() => setFontFamily('Arial')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Arial' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>ARIAL</button><button onClick={() => setFontFamily('Times New Roman')} className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all ${fontFamily === 'Times New Roman' ? 'bg-white dark:bg-slate-700 shadow-sm text-green-700 dark:text-green-400' : 'text-slate-400 hover:text-slate-600'}`}>TIMES</button></div>
-                        </div>
+                <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
+                    <button onClick={() => { setPanel('revisao'); setMobileView('editor'); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${abntStatus.color}`} title="Ver revisão ABNT">
+                        {abntStatus.icon}<span className="hidden sm:inline">{abntStatus.label}</span>
+                    </button>
+                    <button onClick={() => setShowOutline(!showOutline)} aria-label="Alternar navegação" aria-pressed={showOutline} className={`p-2 rounded-lg transition-colors ${showOutline ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><List size={18}/></button>
+                    <button onClick={() => setSettings(s => ({...s, theme: s.theme === 'dark' ? 'light' : 'dark'}))} aria-label="Alternar tema" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{isDark ? <Sun size={18}/> : <Moon size={18}/>}</button>
+                    {!isReadOnly ? (
+                        <button onClick={handleExportPDF} className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors"><Printer size={16}/><span className="hidden sm:inline">Gerar PDF</span></button>
+                    ) : (
+                        <button onClick={handleCreateFromExample} className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors"><Copy size={15}/><span className="hidden sm:inline">Usar como base</span></button>
                     )}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex flex-col items-end hidden sm:flex"><span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter leading-none">Métricas</span><div className="flex gap-2 text-[10px] font-bold text-slate-500"><span className="flex items-center gap-1"><AlignLeft size={10}/> {stats.words} pal.</span><span className="flex items-center gap-1"><FileText size={10}/> ~{stats.pages} pág.</span></div></div>
-                        <button onClick={() => setTab(tab === 'checklist' ? 'editor' : 'checklist')} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all ${abntStatus.color}`}>{abntStatus.icon} {abntStatus.label}</button>
-                    </div>
-                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
-                    <div className="flex items-center gap-2 shrink-0 pr-4 lg:pr-0">
-                        <button onClick={() => setSettings(s => ({...s, theme: s.theme === 'dark' ? 'light' : 'dark'}))} className="p-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-all" title="Alternar Tema">{settings.theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}</button>
-                        
-                        <button onClick={() => setShowOutline(!showOutline)} className={`flex p-2 rounded-xl transition-all ${showOutline ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`} title="Alternar Sumário Lateral"><List size={20}/></button>
-                        
-                        {!isReadOnly ? (
-                            <button onClick={handleExportPDF} className="bg-green-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-green-800 shadow-lg shadow-green-900/20 transition-all"><Printer size={16}/><span className="hidden sm:inline">Gerar PDF</span></button>
-                        ) : (
-                            <button onClick={handleCreateFromExample} className="bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-orange-700 shadow-lg shadow-orange-900/10 transition-all"><Sparkles size={14}/> Clonar</button>
-                        )}
-                    </div>
                 </div>
             </header>
 
             <main className="flex flex-1 overflow-hidden relative">
                 {!focusMode && (
-                    <aside className={`absolute inset-0 z-10 lg:relative lg:z-auto w-full lg:w-[450px] border-r flex-col print:hidden transition-all duration-300 ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} ${isReadOnly ? 'opacity-80' : ''} ${settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                         <div className={`flex border-b shrink-0 ${settings.theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}><button onClick={() => setTab('editor')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'editor' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><FileEdit size={14}/> Conteúdo</button><button onClick={() => setTab('checklist')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 ${tab === 'checklist' ? 'text-green-600 border-b-2 border-green-600 bg-green-50/10' : 'text-slate-400'}`}><ListTodo size={14}/> Assistente</button></div>
-                         {tab === 'editor' ? (
-                             <EditorForm 
-                                data={data} 
-                                setData={setData} 
-                                authors={authors} 
-                                setAuthors={setAuthors} 
-                                settings={settings} 
-                                isReadOnly={isReadOnly} 
-                                focusedSection={focusedSection} 
-                                setFocusedSection={setFocusedSection} 
-                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [], localBase64: null })} 
+                    <aside className={`absolute inset-0 z-10 lg:relative lg:z-auto w-full lg:w-[440px] border-r flex-col print:hidden ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} ${isReadOnly ? 'opacity-90' : ''} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        {/* Etapas do documento */}
+                        <nav aria-label="Etapas do documento" className={`grid shrink-0 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`} style={{ gridTemplateColumns: `repeat(${panels.length}, minmax(0, 1fr))` }}>
+                            {panels.map(p => {
+                                const active = currentPanel === p.id;
+                                return (
+                                    <button key={p.id} onClick={() => setPanel(p.id)} aria-current={active ? 'step' : undefined}
+                                        className={`relative flex flex-col items-center gap-1 pt-2.5 pb-2 text-[11px] font-medium transition-colors border-b-2 -mb-px ${active ? 'text-green-700 dark:text-green-400 border-green-600' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200'}`}>
+                                        <p.icon size={16} aria-hidden="true" />
+                                        <span className="truncate max-w-full px-1">{p.label}</span>
+                                        {p.badge > 0 && <span className="absolute top-1.5 right-[calc(50%-18px)] min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold leading-4 tabular">{p.badge}</span>}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+
+                        {currentPanel !== 'revisao' ? (
+                            <EditorForm
+                                data={data}
+                                setData={setData}
+                                authors={authors}
+                                setAuthors={setAuthors}
+                                settings={settings}
+                                isReadOnly={isReadOnly}
+                                focusedSection={focusedSection}
+                                setFocusedSection={setFocusedSection}
+                                panel={currentPanel}
+                                next={nextPanel && { label: nextPanel.label, onClick: () => setPanel(nextPanel.id) }}
+                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [], localBase64: null })}
                                 onOpenRefModal={() => setIsRefModalOpen(true)}
-                                onOpenAttachmentModal={(type) => setAttachmentModal({ open: true, type })} 
-                             />
-                         ) : (
-                            <div className={`flex-1 overflow-y-auto p-6 space-y-8 ${settings.theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}>
-                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2 mb-4"><ShieldCheck size={14} className="text-green-600"/> Saúde do Documento</h3>{abntErrors.length === 0 ? <div className="text-center py-6"><CheckCircle2 size={40} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-bold text-slate-700 dark:text-slate-300">Tudo Certo!</p><p className="text-xs text-slate-400">Nenhum problema estrutural encontrado.</p></div> : <ul className="space-y-2">{abntErrors.map((err, i) => (<li key={i} className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded"><div className="flex items-center gap-2 font-bold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div><div className="pl-6 opacity-75">{err.explain}</div></li>))}</ul>}</section>
-                                <section className={`p-6 rounded-2xl shadow-sm border ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}><div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2"><ListTodo size={14} className="text-blue-600"/> Checklist TCC</h3><span className="text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / (checklist.length || 1))*100)}%</span></div><div className="space-y-3">{checklist.map(item => (<div key={item.id} onClick={() => !item.auto && !isReadOnly && setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (settings.theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-100')} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:border-blue-300' : 'cursor-default opacity-80'}`}><div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</div><div className="flex-1"><span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : 'text-slate-600 dark:text-slate-300'}`}>{item.text}</span>{item.auto && <span className="text-[9px] text-slate-400 block mt-0.5 uppercase tracking-wide">Automático</span>}</div></div>))}</div></section>
+                                onOpenAttachmentModal={(type) => setAttachmentModal({ open: true, type })}
+                            />
+                        ) : (
+                            <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                                <section className="grid grid-cols-2 gap-3">
+                                    <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Palavras</p>
+                                        <p className="tabular text-2xl font-semibold mt-1">{stats.words.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Norma</p>
+                                        <p className="text-sm font-semibold mt-1.5">{docType.norma}</p>
+                                    </div>
+                                </section>
+                                <section className={`p-5 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                    <h3 className="text-sm font-semibold flex items-center gap-2 mb-4"><ShieldCheck size={16} className="text-green-600"/> Conferência ABNT</h3>
+                                    {abntErrors.length === 0 ? (
+                                        <div className="text-center py-6"><CheckCircle2 size={36} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-semibold">Tudo certo</p><p className="text-xs text-slate-500 dark:text-slate-400">Nenhum problema estrutural encontrado.</p></div>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {abntErrors.map((err, i) => (
+                                                <li key={i} className="text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-300 p-3 rounded-lg">
+                                                    <div className="flex items-center gap-2 font-semibold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div>
+                                                    <div className="pl-6 opacity-80 leading-relaxed">{err.explain}</div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </section>
+                                <section className={`p-5 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-sm font-semibold flex items-center gap-2"><ListTodo size={16} className="text-green-600"/> Checklist do trabalho</h3>
+                                        <span className="tabular text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / (checklist.length || 1))*100)}%</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {checklist.map(item => (
+                                            <button key={item.id} disabled={item.auto || isReadOnly} onClick={() => setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))}
+                                                className={`w-full text-left flex items-center gap-3 p-3 rounded-lg border transition-colors disabled:cursor-default ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')} ${!item.auto && !isReadOnly ? 'hover:border-green-400' : 'opacity-80'}`}>
+                                                <span className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</span>
+                                                <span className="flex-1">
+                                                    <span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : ''}`}>{item.text}</span>
+                                                    {item.auto && <span className="text-[10px] text-slate-400 block mt-0.5">Automático</span>}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
                             </div>
-                         )}
+                        )}
                     </aside>
                 )}
 
-                <div className={`absolute inset-0 z-0 lg:relative lg:z-auto flex-1 overflow-hidden flex-col ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'} ${settings.theme === 'dark' ? 'bg-slate-800' : 'bg-slate-300'}`}>
-                    <ABNTViewer data={data} authors={authors} zoomLevel={zoomLevel} fontFamily={fontFamily} sumarioItens={sumarioItens} groupedSections={groupedSections} />
+                <div className={`absolute inset-0 z-0 lg:relative lg:z-auto flex-1 overflow-hidden flex-col ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'} ${isDark ? 'bg-slate-900' : 'bg-slate-200'}`}>
+                    {/* useDeferredValue devolve o valor anterior (null) no primeiro render após carregar */}
+                    {previewData && <ABNTViewer data={previewData} authors={previewAuthors} zoomLevel={zoomLevel} fontFamily={fontFamily} groupedSections={previewSections} />}
+
+                    {/* Controles da pré-visualização, perto da folha */}
+                    <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 rounded-xl border shadow-lg print:hidden ${isDark ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}>
+                        <button onClick={() => setZoomLevel(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="Diminuir zoom" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ZoomOut size={16}/></button>
+                        <span className="tabular text-xs font-semibold w-11 text-center text-slate-600 dark:text-slate-300">{Math.round(zoomLevel * 100)}%</span>
+                        <button onClick={() => setZoomLevel(z => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="Aumentar zoom" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ZoomIn size={16}/></button>
+                        {!isReadOnly && (
+                            <>
+                                <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+                                {['Arial', 'Times New Roman'].map(f => (
+                                    <button key={f} onClick={() => setFontFamily(f)} aria-pressed={fontFamily === f} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${fontFamily === f ? 'bg-green-700 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{f === 'Arial' ? 'Arial' : 'Times'}</button>
+                                ))}
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {!focusMode && showOutline && (
-                    <Sidebar 
-                        sumarioItens={sumarioItens} 
-                        scrollToSection={scrollToSection} 
-                        setShowOutline={setShowOutline} 
-                        settings={settings} 
-                        onReorder={(oldIndex, newIndex) => { 
-                            if (isReadOnly) return; 
+                    <Sidebar
+                        sumarioItens={sumarioItens}
+                        scrollToSection={scrollToSection}
+                        setShowOutline={setShowOutline}
+                        settings={settings}
+                        onReorder={(oldIndex, newIndex) => {
+                            if (isReadOnly) return;
                             setData(prev => {
-                                const newSecoes = [...prev.secoes]; 
-                                const [moved] = newSecoes.splice(oldIndex, 1); 
-                                newSecoes.splice(newIndex, 0, moved); 
-                                return { ...prev, secoes: newSecoes }; 
+                                const newSecoes = [...prev.secoes];
+                                const [moved] = newSecoes.splice(oldIndex, 1);
+                                newSecoes.splice(newIndex, 0, moved);
+                                return { ...prev, secoes: newSecoes };
                             });
-                        }} 
-                        data={data} 
+                        }}
+                        data={data}
                     />
                 )}
 
-                <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} className={`lg:hidden fixed bottom-6 right-6 z-30 p-4 rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95 border-4 ${settings.theme === 'dark' ? 'bg-green-600 text-white border-slate-900 shadow-green-900/50' : 'bg-green-600 text-white border-white shadow-green-600/30'}`}>
-                    {mobileView === 'editor' ? <Eye size={24}/> : <FileEdit size={24}/>}
-                    <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full border-2 ${settings.theme === 'dark' ? 'border-slate-900' : 'border-white'}`}>{mobileView === 'editor' ? 'PDF' : 'EDITAR'}</span>
+                <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} aria-label={mobileView === 'editor' ? 'Ver o documento' : 'Voltar a editar'} className="lg:hidden fixed bottom-20 right-4 z-30 h-14 w-14 rounded-full shadow-[0_10px_30px_-8px_rgba(28,27,25,0.5)] bg-green-700 text-white flex items-center justify-center">
+                    {mobileView === 'editor' ? <Eye size={22}/> : <FileEdit size={22}/>}
                 </button>
             </main>
 
-            <ReferenceModal isOpen={isRefModalOpen} onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData(prev => ({ ...prev, referencias: prev.referencias ? prev.referencias + '\n\n' + referenceStr : referenceStr })); }} />
-            <AssetModal isOpen={assetModal.open} onClose={() => setAssetModal({...assetModal, open: false})} assetModal={assetModal} setAssetModal={setAssetModal} onConfirm={confirmAssetInsert} />
-            
-            <AttachmentModal 
-                isOpen={attachmentModal.open} 
-                onClose={() => setAttachmentModal({ ...attachmentModal, open: false })} 
-                type={attachmentModal.type} 
-                currentText={attachmentModal.type === 'apendice' ? data.apendices : data.anexos} 
-                onAdd={(formattedStr) => { 
-                    setData(prev => {
-                        if (attachmentModal.type === 'apendice') {
-                            return { ...prev, apendices: prev.apendices ? prev.apendices + '\n\n\n' + formattedStr : formattedStr };
-                        } else {
-                            return { ...prev, anexos: prev.anexos ? prev.anexos + '\n\n\n' + formattedStr : formattedStr };
-                        }
-                    });
-                    setAttachmentModal({ ...attachmentModal, open: false });
-                }} 
-            />
+            <Suspense fallback={null}>
+                {isRefModalOpen && <ReferenceModal isOpen onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData(prev => ({ ...prev, referencias: prev.referencias ? prev.referencias + '\n\n' + referenceStr : referenceStr })); }} />}
+                {assetModal.open && <AssetModal isOpen onClose={() => setAssetModal({...assetModal, open: false})} assetModal={assetModal} setAssetModal={setAssetModal} onConfirm={confirmAssetInsert} />}
+                {attachmentModal.open && (
+                    <AttachmentModal
+                        isOpen
+                        onClose={() => setAttachmentModal({ ...attachmentModal, open: false })}
+                        type={attachmentModal.type}
+                        currentText={attachmentModal.type === 'apendice' ? data.apendices : data.anexos}
+                        onAdd={(formattedStr) => {
+                            setData(prev => {
+                                if (attachmentModal.type === 'apendice') {
+                                    return { ...prev, apendices: prev.apendices ? prev.apendices + '\n\n\n' + formattedStr : formattedStr };
+                                } else {
+                                    return { ...prev, anexos: prev.anexos ? prev.anexos + '\n\n\n' + formattedStr : formattedStr };
+                                }
+                            });
+                            setAttachmentModal({ ...attachmentModal, open: false });
+                        }}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

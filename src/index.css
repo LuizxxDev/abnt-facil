@@ -184,24 +184,6 @@ html {
 
 /* --- ANIMAÇÕES DE POLIMENTO --- */
 
-@keyframes gradient-bg {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-bg 15s ease infinite;
-}
-
-/* Entrada suave para os itens da lista (Stagger) */
-.stagger-in {
-  animation: slideUpFade 0.5s var(--ease-out-strong) forwards;
-  opacity: 0;
-  transform: translateY(12px);
-}
-
 @keyframes slideUpFade {
   to {
     opacity: 1;
@@ -212,12 +194,6 @@ html {
 /* Revelação escalonada da landing page */
 .reveal {
   animation: slideUpFade 0.7s var(--ease-out-strong) both;
-}
-
-/* Efeito de Vidro (Glassmorphism) */
-.glass-effect {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Textura de papel: ruído sutil para tirar a "chapa digital" das superfícies */
