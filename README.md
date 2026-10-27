@@ -17,6 +17,21 @@ O **ABNTFácil** é uma plataforma de edição e formatação automática de tra
 
 ---
 
+## 📚 Tipos de Documento e Normas Aplicadas
+
+| Documento | Norma | Estrutura gerada automaticamente |
+|---|---|---|
+| TCC / Monografia, Dissertação, Tese | NBR 14724:2011 | Capa, folha de rosto, folha de aprovação com banca, dedicatória, agradecimentos, epígrafe, resumo e abstract, listas de ilustrações e tabelas, sumário |
+| Trabalho de Disciplina | NBR 14724:2011 | Capa, folha de rosto, sumário |
+| Projeto de Pesquisa | NBR 15287:2011 | Folha de rosto, sumário; tema, problema, hipóteses, objetivos, justificativa, metodologia, recursos e cronograma |
+| Relatório Técnico-Científico e de Estágio | NBR 10719:2015 | Folha de rosto, resumo na língua vernácula, sumário |
+| Artigo Científico | NBR 6022:2018 | Título (e em outro idioma), autoria com nota de rodapé, resumo de 100–250 palavras, texto contínuo |
+| Resumo Expandido e Resenha Crítica | NBR 6022 / 6028 | Texto contínuo; a resenha começa pela referência da obra |
+
+Regras comuns: paginação real em A4 (NBR 14724), figuras/tabelas/quadros numerados, referências em ordem alfabética com título em negrito (NBR 6023:2018), palavras-chave separadas por ponto e vírgula (NBR 6028:2021) e verificação de citações no formato (Silva, 2023) da NBR 10520:2023.
+
+---
+
 ## 🛠️ Tecnologias Utilizadas
 
 O projeto utiliza o que há de mais moderno no ecossistema **React** para garantir performance e escalabilidade:

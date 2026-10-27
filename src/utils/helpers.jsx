@@ -21,7 +21,7 @@ export const timeAgo = (dateString) => {
 export const calculateProgress = (data) => {
     let score = 0;
     if (data.titulo?.length > 5) score += 10;
-    if (data.orientador?.length > 3) score += 10;
+    if ((data.orientadores || []).some(o => o?.trim().length > 3) || data.orientador?.length > 3) score += 10;
     if (data.resumoPt?.length > 50) score += 15;
     if (data.secoes?.length >= 3) score += 40; else if (data.secoes?.length >= 1) score += 20;
     if (data.referencias?.length > 10) score += 25;
