@@ -690,4 +690,5 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
     );
 };
 
-export default ABNTViewer;
+// memo: só re-renderiza quando o conteúdo do documento muda, não a cada clique na interface
+export default React.memo(ABNTViewer);

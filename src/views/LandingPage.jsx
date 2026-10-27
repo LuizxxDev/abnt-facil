@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Copy, Check, MessageSquare, AlertTriangle, Coffee } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { FeedbackModal } from '../components/common/FeedbackModal';
 import { DOCUMENT_TYPES } from '../utils/documentTypes';
 import { EXAMPLE_ID } from '../utils/constants';
+
+const FeedbackModal = lazy(() => import('../components/common/FeedbackModal').then(m => ({ default: m.FeedbackModal })));
 
 const PIX_KEY = 'luizfelipe.ifpa.2022@gmail.com';
 
@@ -91,8 +92,8 @@ const LandingPage = () => {
     const delay = (ms) => ({ animationDelay: `${ms}ms` });
 
     return (
-        <div className="min-h-dvh bg-[#f7f7f4] text-slate-900 font-sans">
-            <div className="paper-grain pointer-events-none fixed inset-0 z-0" />
+        <div className="relative min-h-dvh bg-[#f7f7f4] text-slate-900 font-sans">
+            <div className="paper-grain pointer-events-none absolute inset-0 z-0" aria-hidden="true" />
 
             <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow">Pular para o conteúdo</a>
 
@@ -282,7 +283,11 @@ const LandingPage = () => {
                 <MessageSquare size={20} aria-hidden="true" />
             </button>
 
-            <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
+            {isFeedbackModalOpen && (
+                <Suspense fallback={null}>
+                    <FeedbackModal isOpen onClose={() => setIsFeedbackModalOpen(false)} />
+                </Suspense>
+            )}
         </div>
     );
 };
