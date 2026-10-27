@@ -31,7 +31,9 @@ export const useExport = (data, authors, fontFamily) => {
         const toastId = toast.loading('Gerando o arquivo do Word...');
         try {
             const { exportDocx } = await import('../utils/docxExport');
-            const { warnings } = await exportDocx(data, authors, fontFamily);
+            // Total de folhas da pré-visualização (sem capa e sem o verso), usado na ficha catalográfica
+            const folhas = document.querySelectorAll('#abnt-document .page:not([data-role="capa"]):not([data-role="ficha"])').length || undefined;
+            const { warnings } = await exportDocx(data, authors, fontFamily, { folhas });
             toast.success('Arquivo .docx baixado. Ao abrir no Word, aceite atualizar os campos para gerar o sumário.', { id: toastId, duration: 7000 });
             if (warnings.length) toast(warnings.join('\n'), { duration: 8000, icon: '⚠️' });
         } catch (error) {

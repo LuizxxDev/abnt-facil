@@ -12,3 +12,10 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+// Modo offline: só no build de produção (no desenvolvimento o cache atrapalharia o Vite)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => console.error('Service worker não registrado:', err))
+  })
+}

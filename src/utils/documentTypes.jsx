@@ -16,7 +16,7 @@ import {
 // =============================================================================
 
 const ACADEMIC_PRE = {
-  capa: 'obr', folhaRosto: 'obr', folhaAprovacao: 'obr',
+  capa: 'obr', folhaRosto: 'obr', fichaCatalografica: 'opc', folhaAprovacao: 'obr',
   dedicatoria: 'opc', agradecimentos: 'opc', epigrafe: 'opc',
   resumoPt: 'obr', resumoEn: 'obr', listas: 'opc', sumario: 'obr',
   glossario: 'opc', apendices: 'opc', anexos: 'opc',

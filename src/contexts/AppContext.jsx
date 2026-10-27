@@ -210,19 +210,22 @@ export const AppProvider = ({ children }) => {
   // Dados iniciais de um documento do tipo escolhido (seções e natureza do trabalho já no padrão da norma)
   const buildDocumentData = useCallback((typeKey = DEFAULT_DOC_TYPE) => {
     const type = DOCUMENT_TYPES[typeKey] || DOCUMENT_TYPES[DEFAULT_DOC_TYPE];
-    const instituicao = 'INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ';
+    // Perfil acadêmico salvo nas configurações: evita redigitar instituição, curso e cidade
+    const perfil = settings.perfil || {};
+    const instituicao = perfil.instituicao?.trim() || 'INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ';
+    const curso = perfil.curso?.trim() || '';
     return {
       tipoDocumento: DOCUMENT_TYPES[typeKey] ? typeKey : DEFAULT_DOC_TYPE,
-      instituicao, curso: '', titulo: '', subtitulo: '', tituloEn: '',
-      naturezaTrabalho: type.natureza ? type.natureza({ curso: '', instituicao }) : '',
-      orientadores: [''], banca: [], dataAprovacao: '', notaAutores: '', obraResenhada: '',
-      cidade: 'Belém', estado: 'PA', ano: new Date().getFullYear().toString(),
+      instituicao, curso, titulo: '', subtitulo: '', tituloEn: '',
+      naturezaTrabalho: type.natureza ? type.natureza({ curso, instituicao }) : '',
+      orientadores: [perfil.orientador?.trim() || ''], banca: [], dataAprovacao: '', notaAutores: '', obraResenhada: '',
+      cidade: perfil.cidade?.trim() || 'Belém', estado: perfil.estado || 'PA', ano: new Date().getFullYear().toString(),
       dedicatoria: '', agradecimentos: '', epigrafe: '', resumoPt: '', palavrasChavePt: '',
       resumoEn: '', palavrasChaveEn: '', glossario: '',
       secoes: type.sections.map(s => ({ ...s, id: generateId() })),
       referencias: '', apendices: '', anexos: '', assets: {}
     };
-  }, []);
+  }, [settings.perfil]);
 
   const prepareProjectObject = useCallback((title, dataOverride = null) => ({
     title, authors: [''], checklist: DEFAULT_CHECKLIST, favorite: false, deleted: false,
@@ -283,7 +286,7 @@ export const AppProvider = ({ children }) => {
     });
     
     if (user) {
-      supabase.from('projects').update({ ...updates, updated_at: now }).eq('id', id).then(({error}) => {
+      supabase.from('projects').update({ ...updates, updated_at: now }).eq('id', id).eq('user_id', user.id).then(({error}) => {
           if (error) toast.error("Erro ao sincronizar alteração com a nuvem.");
       });
     }
@@ -302,7 +305,7 @@ export const AppProvider = ({ children }) => {
             }
             return newList;
         });
-        if (user) await supabase.from('projects').delete().eq('id', id);
+        if (user) await supabase.from('projects').delete().eq('id', id).eq('user_id', user.id);
       } else {
         updateProject(id, { deleted: true });
       }

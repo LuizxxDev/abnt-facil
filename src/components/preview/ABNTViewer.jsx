@@ -19,7 +19,8 @@ import React, { useMemo, useLayoutEffect, useRef, useState, useEffect } from 're
 import { createPortal } from 'react-dom';
 import { TAG_RENDERERS } from '../../utils/constants';
 import { paginateFlows } from '../../utils/pagination';
-import { getDocType, hasElement, isRequired, formatKeywords } from '../../utils/documentTypes';
+import { getDocType, getDocTypeKey, hasElement, isRequired, formatKeywords } from '../../utils/documentTypes';
+import { buildFichaCatalografica } from '../../utils/fichaCatalografica';
 import { splitBlocks, orderedLines, ASSET_LABELS } from '../../utils/documentContent';
 
 const escapeHtml = (text) => text
@@ -217,6 +218,8 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                 list.push({ key: 'capa', kind: 'fixed', role: 'capa', render: 'capa' });
             }
             if (hasElement(docType, 'folhaRosto')) pre('folhaRosto', 'folhaRosto');
+            // Verso da folha de rosto: não entra na contagem das folhas
+            if (hasElement(docType, 'fichaCatalografica') && data.fichaCatalografica) list.push({ key: 'ficha', kind: 'fixed', role: 'ficha', render: 'ficha' });
             if (hasElement(docType, 'folhaAprovacao') && (isRequired(docType, 'folhaAprovacao') || (data.banca || []).some(m => m?.nome?.trim()))) pre('folhaAprovacao', 'folhaAprovacao');
             if (hasElement(docType, 'dedicatoria') && filled(data.dedicatoria)) pre('dedicatoria', 'dedicatoria');
             if (hasElement(docType, 'agradecimentos') && filled(data.agradecimentos)) {
@@ -287,7 +290,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
 
     // Folhas finais com numeração (NBR 14724: contadas a partir da folha de rosto,
     // número impresso a partir da parte textual, no canto superior direito)
-    const { sheets, pageMapping } = useMemo(() => {
+    const { sheets, pageMapping, totalFolhas } = useMemo(() => {
         const out = [];
         const mapping = {};
         let counter = 0;
@@ -302,7 +305,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                 out.push({ key: `${part.key}-${pi}`, part, page, pi, number: part.role === 'text' ? counter : null });
             });
         });
-        return { sheets: out, pageMapping: mapping };
+        return { sheets: out, pageMapping: mapping, totalFolhas: counter };
     }, [parts, paged, STRICT_ABNT_PAGINATION]);
 
     const ctx = { pageOf: (anchor) => pageMapping[anchor] || '' };
@@ -383,6 +386,24 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                 </div>
             </>
         ),
+        ficha: (() => {
+            if (!data.fichaCatalografica) return null;
+            const f = buildFichaCatalografica(data, authors, { typeKey: getDocTypeKey(data), folhas: totalFolhas });
+            return (
+                <div className="abnt-ficha-wrap">
+                    <div className="abnt-ficha-legenda">Ficha catalográfica elaborada com o ABNTFácil.<br />Confirme os dados e a classificação com a biblioteca da instituição.</div>
+                    <div className="abnt-ficha">
+                        <div>{f.entrada}</div>
+                        <div className="abnt-ficha-recuo">
+                            {f.corpo.map((l, i) => <div key={i}>{l}</div>)}
+                            <div className="mt-[1em]">{f.notas.map((l, i) => <div key={i}>{l}</div>)}</div>
+                            <div className="mt-[1em]">{f.pistas}</div>
+                        </div>
+                        <div className="text-right mt-[1em]">{f.classificacao}</div>
+                    </div>
+                </div>
+            );
+        })(),
         dedicatoria: <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">{data.dedicatoria}</div>,
         epigrafe: <div className="abnt-pre-textual-bottom whitespace-pre-wrap italic">{data.epigrafe}</div>,
     };
@@ -562,6 +583,15 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                     widows: 2;
                 }
 
+                /* Ficha catalográfica: quadro de 12,5 x 7,5 cm na parte inferior do verso da folha de rosto */
+                .abnt-ficha-wrap { margin-top: auto; display: flex; flex-direction: column; align-items: center; }
+                .abnt-ficha-legenda { font-size: 10pt; line-height: 1.2; text-align: center; margin-bottom: 8pt; }
+                .abnt-ficha {
+                    width: 12.5cm; min-height: 7.5cm; border: 1px solid black; padding: 0.5cm;
+                    font-size: 10pt; line-height: 1.15; text-align: left;
+                }
+                .abnt-ficha-recuo { padding-left: 0.6cm; }
+
                 .abnt-assinatura { margin-left: auto; margin-right: auto; width: 75%; line-height: 1.2; }
                 .abnt-assinatura-linha { border-top: 1px solid black; margin-bottom: 4pt; }
 
@@ -631,7 +661,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
 
             <div id="abnt-document" className="abnt-doc" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top center' }}>
                 {sheets.map(({ key, part, page, pi, number }) => (
-                    <div key={key} className={`page ${part.kind === 'fixed' ? (fixedClass[part.render] || '') : 'page-flow'}`}>
+                    <div key={key} data-role={part.role} className={`page ${part.kind === 'fixed' ? (fixedClass[part.render] || '') : 'page-flow'}`}>
                         {part.kind === 'fixed'
                             ? fixedPages[part.render]
                             : page.map(item => renderItem(item, {
