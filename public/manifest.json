@@ -1,24 +1,30 @@
 {
-  "name": "ABNTFácil - Editor Académico",
+  "name": "ABNTFácil — Editor Acadêmico",
   "short_name": "ABNTFácil",
-  "description": "Formatação automática ABNT (NBR 14724, NBR 6023) focada em produtividade para trabalhos académicos.",
+  "description": "Formatação automática ABNT para TCC, artigos, relatórios, projetos de pesquisa e resenhas.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#16a34a",
+  "background_color": "#f7f7f4",
+  "theme_color": "#1f5b40",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     }
   ]
 }

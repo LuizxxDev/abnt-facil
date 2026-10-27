@@ -244,7 +244,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20">
             {/* Tipo de documento */}
             <section className="space-y-2">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileType size={12}/> Tipo de Documento</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><FileType size={12}/> Tipo de Documento</h3>
               <select
                 disabled={isReadOnly}
                 className={`w-full p-2.5 border rounded-lg text-sm font-bold outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
@@ -260,7 +260,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
             {/* Identificação */}
             <section className="space-y-3">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
               {hasElement(docType, 'folhaRosto') && (
                 <>
                   <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Instituição" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} />
@@ -276,7 +276,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               {hasElement(docType, 'folhaRosto') && (
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Natureza do Trabalho (Folha de Rosto)</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Natureza do Trabalho (Folha de Rosto)</label>
                     {!isReadOnly && docType.natureza && <button onClick={gerarNatureza} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md"><Wand2 size={10}/> Gerar</button>}
                   </div>
                   <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Ex: Trabalho de Conclusão de Curso apresentado ao IFPA..." value={data.naturezaTrabalho} onChange={e => updateField('naturezaTrabalho', e.target.value)} />
@@ -285,7 +285,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
               {hasElement(docType, 'obraResenhada') && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Referência da Obra Resenhada (Obrigatório)</label>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Referência da Obra Resenhada (Obrigatório)</label>
                   <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="SOBRENOME, Nome. **Título da obra**. Edição. Local: Editora, ano." value={data.obraResenhada || ''} onChange={e => updateField('obraResenhada', e.target.value)} />
                 </div>
               )}
@@ -314,7 +314,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Autores */}
             <section>
                 <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12}/> Autores</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Users size={12}/> Autores</h3>
                     <button disabled={isReadOnly} onClick={() => setAuthors([...authors].sort())} className="text-[10px] font-bold text-green-700 hover:underline">A-Z</button>
                 </div>
                 <div className="space-y-2">
@@ -328,7 +328,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 </div>
                 {hasElement(docType, 'notaAutores') && (
                     <div className="space-y-1 mt-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nota de rodapé dos autores (um por linha)</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Nota de rodapé dos autores (um por linha)</label>
                         <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Graduando em Engenharia pelo IFPA. E-mail: autor@email.com" value={data.notaAutores || ''} onChange={e => updateField('notaAutores', e.target.value)} />
                     </div>
                 )}
@@ -338,7 +338,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {hasElement(docType, 'folhaRosto') && (
             <section>
                 <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><UserCheck size={12}/> Orientadores</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><UserCheck size={12}/> Orientadores</h3>
                 </div>
                 <div className="space-y-2">
                     {(data.orientadores || ['']).map((o, i) => (
@@ -355,9 +355,9 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Folha de aprovação (NBR 14724) */}
             {hasElement(docType, 'folhaAprovacao') && (
             <section className="space-y-3">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Stamp size={12}/> Folha de Aprovação ({tag('folhaAprovacao')})</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Stamp size={12}/> Folha de Aprovação ({tag('folhaAprovacao')})</h3>
                 <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 shrink-0">Aprovado em</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1 shrink-0">Aprovado em</label>
                     <ThemedInput theme={settings.theme} readOnly={isReadOnly} type="date" value={data.dataAprovacao || ''} onChange={e => updateField('dataAprovacao', e.target.value)} />
                 </div>
                 <div className="space-y-2">
@@ -381,7 +381,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Elementos Pré-Textuais */}
             {(hasElement(docType, 'dedicatoria') || hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos') || hasElement(docType, 'epigrafe')) && (
             <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Heart size={12}/> Elementos Opcionais</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Heart size={12}/> Elementos Opcionais</h3>
               {hasElement(docType, 'dedicatoria') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Dedicatória..." value={data.dedicatoria || ''} onChange={e => updateField('dedicatoria', e.target.value)} />}
               {(hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos')) && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder={hasElement(docType, 'agradecimentosPos') ? 'Agradecimentos (no artigo, ficam após as referências)...' : 'Agradecimentos...'} value={data.agradecimentos || ''} onChange={e => updateField('agradecimentos', e.target.value)} />}
               {hasElement(docType, 'epigrafe') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20 italic" placeholder="Epígrafe (Citação que inspira o trabalho)..." value={data.epigrafe || ''} onChange={e => updateField('epigrafe', e.target.value)} />}
@@ -391,7 +391,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Resumos (NBR 6028:2021) */}
             {(hasElement(docType, 'resumoPt') || hasElement(docType, 'resumoEn')) && (
             <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Globe size={12}/> Resumos</h3>
               {hasElement(docType, 'resumoPt') && (
                 <>
                   <div className="space-y-1">
@@ -417,7 +417,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Capítulos */}
             <section className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookOpen size={12}/> Capítulos</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><BookOpen size={12}/> Capítulos</h3>
               </div>
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={data.secoes.map(s => s.id)} strategy={verticalListSortingStrategy}>
@@ -444,7 +444,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Referências */}
             <section id="edit-sec-referencias" className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><BookMarked size={12}/> Referências</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><BookMarked size={12}/> Referências</h3>
                 {!isReadOnly && <button onClick={onOpenRefModal} className="text-[9px] font-bold text-green-700 hover:underline uppercase transition-all">Gerar NBR 6023</button>}
               </div>
               <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-40 font-mono text-[10px]" placeholder="Cole as referências..." value={data.referencias} onChange={e => updateField('referencias', e.target.value)} />
@@ -453,17 +453,17 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {/* Pós-Textuais */}
             {(hasElement(docType, 'glossario') || hasElement(docType, 'apendices') || hasElement(docType, 'anexos')) && (
             <section className="space-y-4 pb-10">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
               {hasElement(docType, 'glossario') && (
                 <div id="edit-sec-glossario" className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Glossário (um termo por linha, ordenado automaticamente)</label>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Glossário (um termo por linha, ordenado automaticamente)</label>
                     <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Termo: definição do termo." value={data.glossario || ''} onChange={e => updateField('glossario', e.target.value)} />
                 </div>
               )}
               {hasElement(docType, 'apendices') && (
                 <div id="edit-sec-apendices" className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apêndices (Do Autor)</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Apêndices (Do Autor)</label>
                         {!isReadOnly && <button onClick={() => onOpenAttachmentModal('apendice')} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
                     </div>
                     <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Documentos do próprio autor..." value={data.apendices || ''} onChange={e => updateField('apendices', e.target.value)} />
@@ -472,7 +472,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               {hasElement(docType, 'anexos') && (
                 <div id="edit-sec-anexos" className="space-y-2 mt-6">
                     <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Anexos (De Terceiros)</label>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Anexos (De Terceiros)</label>
                         {!isReadOnly && <button onClick={() => onOpenAttachmentModal('anexo')} className="text-[9px] font-bold text-orange-600 flex items-center gap-1 uppercase bg-orange-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
                     </div>
                     <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Leis, mapas de terceiros..." value={data.anexos || ''} onChange={e => updateField('anexos', e.target.value)} />

@@ -21,7 +21,7 @@ export const TitleModal = ({ isOpen, onClose, title, setTitle, typeKey, setTypeK
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transition-colors">
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Novo Trabalho</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Novo documento</h3>
                     <button type="button" onClick={handleClose} className="text-slate-400 hover:text-red-500 transition-colors">
                         <X size={20} />
                     </button>
