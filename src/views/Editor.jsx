@@ -237,7 +237,7 @@ const Editor = () => {
         navigate(`/editor/${newId}`);
     };
 
-    if (!data) return <div className="flex h-screen items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
+    if (!data) return <div className="flex h-dvh items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
 
     const headerBgClass = isReadOnly 
         ? (settings.theme === 'dark' ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-200')
@@ -248,7 +248,7 @@ const Editor = () => {
         : 'bg-amber-100 text-amber-800 border-amber-300';
 
     return (
-        <div className={`flex flex-col h-screen overflow-hidden abnt-editor-app transition-colors duration-300 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+        <div className={`flex flex-col h-dvh overflow-hidden abnt-editor-app transition-colors duration-300 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
             <header className={`min-h-[4rem] py-3 lg:py-0 lg:h-16 border-b flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 lg:px-6 shrink-0 z-30 print:hidden shadow-sm transition-colors gap-3 lg:gap-0 ${headerBgClass}`}>
                 <div className="flex items-center justify-between w-full lg:w-auto gap-4">
                     <div className="flex items-center gap-3 w-full">

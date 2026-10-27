@@ -1,25 +1,131 @@
 /* src/index.css */
 @import "tailwindcss";
 
+/* O tema escuro segue a escolha do usuário no app (classe .dark no <html>), não a do sistema */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================================
+   DESIGN SYSTEM — "papel acadêmico"
+   Neutros quentes, um único acento verde, serifa editorial nos títulos.
+   As escalas abaixo substituem as do Tailwind para que todo o app use a mesma paleta.
+   ========================================= */
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* Peso "black" (900) gritava em toda a interface: passa a ser um bold firme */
+  --font-weight-black: 750;
+
+  /* Neutros (tom papel/tinta, levemente quentes) */
+  --color-slate-50: #f7f7f4;
+  --color-slate-100: #efeee9;
+  --color-slate-200: #e2e0d9;
+  --color-slate-300: #cbc8bf;
+  --color-slate-400: #9d9a90;
+  --color-slate-500: #75726a;
+  --color-slate-600: #58564f;
+  --color-slate-700: #3e3c37;
+  --color-slate-800: #282724;
+  --color-slate-900: #1c1b19;
+  --color-slate-950: #131311;
+
+  /* Acento único: verde ABNT, saturação contida */
+  --color-green-50: #eef6f1;
+  --color-green-100: #d7ece0;
+  --color-green-200: #b0d9c1;
+  --color-green-300: #80bf9c;
+  --color-green-400: #52a37a;
+  --color-green-500: #348860;
+  --color-green-600: #276f4e;
+  --color-green-700: #1f5b40;
+  --color-green-800: #1a4834;
+  --color-green-900: #163b2b;
+  --color-green-950: #0c2218;
+
+  /* Acentos secundários antigos (azul, roxo, índigo...) convergem para o verde */
+  --color-emerald-50: var(--color-green-50);   --color-emerald-100: var(--color-green-100);
+  --color-emerald-200: var(--color-green-200); --color-emerald-300: var(--color-green-300);
+  --color-emerald-400: var(--color-green-400); --color-emerald-500: var(--color-green-500);
+  --color-emerald-600: var(--color-green-600); --color-emerald-700: var(--color-green-700);
+  --color-emerald-800: var(--color-green-800); --color-emerald-900: var(--color-green-900);
+  --color-emerald-950: var(--color-green-950);
+  --color-blue-50: var(--color-green-50);   --color-blue-100: var(--color-green-100);
+  --color-blue-200: var(--color-green-200); --color-blue-300: var(--color-green-300);
+  --color-blue-400: var(--color-green-400); --color-blue-500: var(--color-green-500);
+  --color-blue-600: var(--color-green-600); --color-blue-700: var(--color-green-700);
+  --color-blue-800: var(--color-green-800); --color-blue-900: var(--color-green-900);
+  --color-blue-950: var(--color-green-950);
+  --color-purple-50: var(--color-green-50);   --color-purple-100: var(--color-green-100);
+  --color-purple-200: var(--color-green-200); --color-purple-300: var(--color-green-300);
+  --color-purple-400: var(--color-green-400); --color-purple-500: var(--color-green-500);
+  --color-purple-600: var(--color-green-600); --color-purple-700: var(--color-green-700);
+  --color-purple-800: var(--color-green-800); --color-purple-900: var(--color-green-900);
+  --color-purple-950: var(--color-green-950);
+  --color-indigo-50: var(--color-green-50);   --color-indigo-100: var(--color-green-100);
+  --color-indigo-200: var(--color-green-200); --color-indigo-300: var(--color-green-300);
+  --color-indigo-400: var(--color-green-400); --color-indigo-500: var(--color-green-500);
+  --color-indigo-600: var(--color-green-600); --color-indigo-700: var(--color-green-700);
+  --color-indigo-800: var(--color-green-800); --color-indigo-900: var(--color-green-900);
+  --color-indigo-950: var(--color-green-950);
+  --color-teal-400: var(--color-green-400); --color-teal-500: var(--color-green-500);
+
+  /* Laranja vira o âmbar de "atenção" (um só tom de aviso) */
+  --color-orange-50: #fbf5e8;  --color-orange-100: #f6e8c8;
+  --color-orange-200: #edd394; --color-orange-300: #e1b95f;
+  --color-orange-400: #d29f3a; --color-orange-500: #b98526;
+  --color-orange-600: #9a6b1d; --color-orange-700: #7b5419;
+  --color-orange-800: #5e4017; --color-orange-900: #4a3314;
+  --color-orange-950: #2a1c0a;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 @layer base {
   :root {
-    --bg-main: #f8fafc;
+    --bg-main: #f7f7f4;
     --bg-card: #ffffff;
-    --text-main: #1e293b;
-    --border-ui: #e2e8f0;
+    --text-main: #1c1b19;
+    --border-ui: #e2e0d9;
   }
 
   .dark {
-    --bg-main: #020617; 
-    --bg-card: #0f172a; 
-    --text-main: #f1f5f9;
-    --border-ui: #1e293b;
+    --bg-main: #131311;
+    --bg-card: #1c1b19;
+    --text-main: #efeee9;
+    --border-ui: #282724;
   }
 
   body {
     background-color: var(--bg-main);
     color: var(--text-main);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+
+  /* Foco visível para navegação por teclado */
+  :focus-visible {
+    outline: 2px solid var(--color-green-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Retorno tátil: botões "afundam" levemente ao serem pressionados */
+  button:not(:disabled):active { transform: scale(0.97); }
+  button { transition-timing-function: var(--ease-out-strong); }
+
+  button:disabled { cursor: not-allowed; }
+
+  /* iOS amplia a página em campos com fonte < 16px */
+  @media (max-width: 767px) {
+    input, textarea, select { font-size: 16px !important; }
   }
 }
 
@@ -28,58 +134,56 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Números alinhados em métricas e contadores */
+.tabular { font-variant-numeric: tabular-nums; }
+
 /* =========================================
    UI/UX POLISH: COR DE SELEÇÃO DE TEXTO
    ========================================= */
 ::selection {
-  background-color: #bbf7d0; /* green-200 */
-  color: #166534; /* green-800 */
+  background-color: var(--color-green-200);
+  color: var(--color-green-900);
 }
 
 .dark ::selection {
-  background-color: #166534; /* green-800 */
-  color: #bbf7d0; /* green-200 */
+  background-color: var(--color-green-800);
+  color: var(--color-green-100);
 }
 
 /* =========================================
    UI/UX POLISH: CUSTOM SCROLLBARS (APP FEEL)
    ========================================= */
-/* Largura/Altura da barra */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-/* Fundo (Trilho) */
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* O "Polegar" (A barra que se move) - Modo Claro */
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: var(--color-slate-300);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
+  background: var(--color-slate-400);
 }
 
-/* O "Polegar" - Modo Escuro */
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155; /* slate-700 */
+  background: var(--color-slate-700);
   border-radius: 10px;
-  border: 2px solid var(--bg-card); /* Borda dinâmica para não colar ao fundo */
+  border: 2px solid var(--bg-card);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #475569; /* slate-600 */
+  background: var(--color-slate-600);
 }
 
 
-/* --- ANIMAÇÕES DE POLIMENTO ORIGINAIS MANTIDAS --- */
+/* --- ANIMAÇÕES DE POLIMENTO --- */
 
-/* Animação do Gradiente de Fundo */
 @keyframes gradient-bg {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -91,11 +195,11 @@ html {
   animation: gradient-bg 15s ease infinite;
 }
 
-/* Transição de entrada suave para os itens da lista (Stagger) */
+/* Entrada suave para os itens da lista (Stagger) */
 .stagger-in {
-  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUpFade 0.5s var(--ease-out-strong) forwards;
   opacity: 0;
-  transform: translateY(15px);
+  transform: translateY(12px);
 }
 
 @keyframes slideUpFade {
@@ -105,8 +209,27 @@ html {
   }
 }
 
+/* Revelação escalonada da landing page */
+.reveal {
+  animation: slideUpFade 0.7s var(--ease-out-strong) both;
+}
+
 /* Efeito de Vidro (Glassmorphism) */
 .glass-effect {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+/* Textura de papel: ruído sutil para tirar a "chapa digital" das superfícies */
+.paper-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  button:not(:disabled):active { transform: none; }
 }
