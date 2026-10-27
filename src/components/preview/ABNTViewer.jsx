@@ -15,104 +15,170 @@
  * DIREITOS: Reservados. Cópia ou alteração estrutural não autorizada.       *
  * ========================================================================== */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TAG_RENDERERS } from '../../utils/constants';
+import { paginateFlows } from '../../utils/pagination';
 
-const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
-    
-    // CONFIGURAÇÃO DE PAGINAÇÃO:
-    // Se a sua instituição exige que a numeração comece do "1" apenas na Introdução, alterar para 'false'.
-    const STRICT_ABNT_PAGINATION = true; 
-    
-    // Define dinamicamente se as páginas pré-textuais incrementam o contador CSS baseado na constante acima
-    const preTextualClass = STRICT_ABNT_PAGINATION ? "page page-count" : "page";
+const escapeHtml = (text) => text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 
-    const escapeHtml = (text) => {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    };
+// Converte o texto do editor em blocos: parágrafos (HTML seguro) ou recursos ([CITAÇÃO], [IMAGEM]...)
+const parseBlocks = (texto, assets) => {
+    if (!texto || typeof texto !== 'string') return [];
 
-    const formatConteudo = (texto) => {
-    if (!texto || typeof texto !== 'string') return null;
- 
     // Divide o texto em blocos separados por uma ou mais linhas em branco
-    const blocos = texto.trim().split(/\n{2,}/);
- 
-    return blocos.map((bloco, i) => {
-        const trimmed = bloco.trim();
- 
-        // Ignora blocos completamente vazios
-        if (!trimmed) return null;
- 
+    return texto.trim().split(/\n{2,}/).map(bloco => bloco.trim()).filter(Boolean).map(trimmed => {
         // ── Detecta tags especiais ──────────────────────────────────────
-        const matchTag = trimmed.match(
-            /^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i
-        );
- 
+        const matchTag = trimmed.match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i);
+
         if (matchTag && TAG_RENDERERS[matchTag[1].toUpperCase()]) {
-            const tipoTag = matchTag[1].toUpperCase();
-            const conteudoTag = matchTag[2];
- 
-            if (tipoTag === 'IMAGEM') {
-                let [title, source, urlStr] = conteudoTag
-                    .split('|')
-                    .map(s => s?.trim() || '');
- 
+            const tipo = matchTag[1].toUpperCase();
+            let conteudo = matchTag[2];
+
+            if (tipo === 'IMAGEM') {
+                let [title, source, urlStr] = conteudo.split('|').map(s => s?.trim() || '');
                 // Resolve asset local se existir
-                if (urlStr && data?.assets && data.assets[urlStr]) {
-                    urlStr = data.assets[urlStr];
-                }
- 
-                return (
-                    <div key={i} className="abnt-asset-container">
-                        {TAG_RENDERERS['IMAGEM'](`${title} | ${source} | ${urlStr}`, i)}
-                    </div>
-                );
+                if (urlStr && assets && assets[urlStr]) urlStr = assets[urlStr];
+                conteudo = `${title} | ${source} | ${urlStr}`;
             }
- 
-            return (
-                <div key={i} className="abnt-asset-container">
-                    {TAG_RENDERERS[tipoTag](conteudoTag, i)}
-                </div>
-            );
+            return { kind: 'asset', tipo, conteudo };
         }
- 
-        const linhas = trimmed.split('\n');
-      
-        const htmlFormatado = linhas
-            .map(linha => {
-                const segura = linha
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
- 
-                return segura
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
-            })
+
+        const html = trimmed.split('\n')
+            .map(linha => escapeHtml(linha)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>'))
             .join('<br/>');
- 
-        return (
-            <p
-                key={i}
-                className="abnt-p"
-                dangerouslySetInnerHTML={{ __html: htmlFormatado }}
-            />
-        );
+        return { kind: 'p', html };
     });
 };
 
+// Renderiza um item de fluxo. `props` recebe a key e o id de âncora (folha) ou data-mkey (medidor)
+const renderItem = (item, props) => {
+    switch (item.kind) {
+        case 'title':
+            return (
+                <div {...props} className={`abnt-title-container abnt-h${Number(item.level)}`}>
+                    <span className="shrink-0">{item.num}</span>
+                    <span>{item.titulo}</span>
+                </div>
+            );
+        case 'heading':
+            return <div {...props} className="abnt-center-bold">{item.text}</div>;
+        case 'ref':
+            return <div {...props} className="abnt-ref">{item.text}</div>;
+        case 'asset':
+            return <div {...props} className="abnt-asset-container">{TAG_RENDERERS[item.tipo](item.conteudo, 0)}</div>;
+        default:
+            return (
+                <p
+                    {...props}
+                    className="abnt-p"
+                    style={{
+                        textIndent: item.cont ? 0 : undefined,           // continuação de parágrafo vindo da folha anterior
+                        textAlignLast: item.split ? 'justify' : undefined // última linha antes da quebra fica justificada
+                    }}
+                    dangerouslySetInnerHTML={{ __html: item.html }}
+                />
+            );
+    }
+};
+
+const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupedSections }) => {
+
+    // CONFIGURAÇÃO DE PAGINAÇÃO:
+    // Se a sua instituição exige que a numeração comece do "1" apenas na Introdução, alterar para 'false'.
+    const STRICT_ABNT_PAGINATION = true;
+
+    // Define dinamicamente se as páginas pré-textuais incrementam o contador CSS baseado na constante acima
+    const preTextualClass = STRICT_ABNT_PAGINATION ? "page page-count" : "page";
+
+    const formatConteudo = (texto) =>
+        parseBlocks(texto, data?.assets).map((b, i) => renderItem(b, { key: i }));
+
+    // Fluxos de conteúdo: cada um começa numa folha nova e pode ocupar várias folhas
+    const flows = useMemo(() => {
+        if (!data || !groupedSections) return [];
+        const list = [];
+        const blocksOf = (prefix, texto) =>
+            parseBlocks(texto, data.assets).map((b, i) => ({ ...b, key: `${prefix}-${i}` }));
+
+        // Seções primárias abrem folha nova; secundárias continuam no mesmo fluxo (NBR 14724)
+        groupedSections.forEach((group, gi) => {
+            const items = [];
+            group.forEach(s => {
+                items.push({ key: `t-${s.id}`, kind: 'title', anchor: s.id, level: s.level, num: s.num, titulo: s.titulo, keepWithNext: true });
+                items.push(...blocksOf(`s-${s.id}`, s.conteudo));
+            });
+            list.push({ key: `g-${gi}`, items });
+        });
+
+        list.push({
+            key: 'referencias',
+            items: [
+                { key: 'h-referencias', kind: 'heading', anchor: 'referencias', text: 'REFERÊNCIAS', keepWithNext: true },
+                ...(data.referencias || '').trim().split('\n').filter(r => r.trim())
+                    .map((ref, i) => ({ key: `ref-${i}`, kind: 'ref', text: ref })),
+            ],
+        });
+
+        if (data.apendices && data.apendices.trim() !== '') {
+            list.push({ key: 'apendices', items: [
+                { key: 'h-apendices', kind: 'heading', anchor: 'apendices', text: 'APÊNDICES', keepWithNext: true },
+                ...blocksOf('apd', data.apendices),
+            ] });
+        }
+
+        if (data.anexos && data.anexos.trim() !== '') {
+            list.push({ key: 'anexos', items: [
+                { key: 'h-anexos', kind: 'heading', anchor: 'anexos', text: 'ANEXOS', keepWithNext: true },
+                ...blocksOf('anx', data.anexos),
+            ] });
+        }
+        return list;
+    }, [data, groupedSections]);
+
+    // Mede os blocos no medidor invisível e distribui-os em folhas A4
+    const measurerRef = useRef(null);
+    const [paged, setPaged] = useState(null);
+    const [measureTick, setMeasureTick] = useState(0);
+
+    useLayoutEffect(() => {
+        if (!measurerRef.current) return;
+        const result = paginateFlows(flows, measurerRef.current);
+        if (result) setPaged(result);
+    }, [flows, fontFamily, measureTick]);
+
+    // Fontes, imagens e mudanças de layout alteram as alturas: medir de novo
+    useEffect(() => {
+        let alive = true;
+        const remeasure = () => alive && setMeasureTick(t => t + 1);
+        document.fonts?.ready.then(remeasure);
+        const resizeObserver = new ResizeObserver(remeasure);
+        const pageProbe = measurerRef.current?.querySelector('[data-page-probe]');
+        if (pageProbe) resizeObserver.observe(pageProbe);
+        const imgs = [...(measurerRef.current?.querySelectorAll('img') || [])].filter(img => !img.complete);
+        imgs.forEach(img => { img.addEventListener('load', remeasure); img.addEventListener('error', remeasure); });
+        return () => {
+            alive = false;
+            resizeObserver.disconnect();
+            imgs.forEach(img => { img.removeEventListener('load', remeasure); img.removeEventListener('error', remeasure); });
+        };
+    }, [flows]);
+
+    const pagesOf = (flow) => paged?.[flow.key] || [flow.items];
+
+    // Número real da folha de cada seção, para o sumário
     const pageMapping = useMemo(() => {
-        if (!data || !groupedSections) return {};
+        if (!data) return {};
 
         let preTextualPages = 1; // Folha de Rosto sempre existe no escopo
-        
+
         if (data.dedicatoria && data.dedicatoria.trim() !== '') preTextualPages += 1;
         if (data.agradecimentos && data.agradecimentos.trim() !== '') preTextualPages += 1;
         if (data.epigrafe && data.epigrafe.trim() !== '') preTextualPages += 1;
@@ -129,36 +195,15 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
         let currentPage = STRICT_ABNT_PAGINATION ? (preTextualPages + 1) : 1;
 
         const mapping = {};
-        const CHARS_PER_PAGE = 2200; 
-
-        groupedSections.forEach(group => {
-            let groupCharCount = 0;
-            group.forEach(sec => {
-                const offsetPages = Math.floor(groupCharCount / CHARS_PER_PAGE);
-                mapping[sec.id] = currentPage + offsetPages;
-                groupCharCount += (sec.titulo?.length || 0) + (sec.conteudo?.length || 0);
-            });
-            const groupTotalPages = Math.max(1, Math.ceil(groupCharCount / CHARS_PER_PAGE));
-            currentPage += groupTotalPages;
+        flows.forEach(flow => {
+            const pages = paged?.[flow.key] || [flow.items];
+            pages.forEach((page, pi) => page.forEach(item => {
+                if (item.anchor && mapping[item.anchor] === undefined) mapping[item.anchor] = currentPage + pi;
+            }));
+            currentPage += pages.length;
         });
-
-        mapping['referencias'] = currentPage;
-        if (data.referencias && data.referencias.trim() !== '') {
-            currentPage += Math.max(1, Math.ceil(data.referencias.length / CHARS_PER_PAGE));
-        }
-
-        if (data.apendices && data.apendices.trim() !== '') {
-            mapping['apendices'] = currentPage;
-            currentPage += Math.max(1, Math.ceil(data.apendices.length / CHARS_PER_PAGE));
-        }
-
-        if (data.anexos && data.anexos.trim() !== '') {
-            mapping['anexos'] = currentPage;
-            currentPage += Math.max(1, Math.ceil(data.anexos.length / CHARS_PER_PAGE));
-        }
-
         return mapping;
-    }, [data, groupedSections, STRICT_ABNT_PAGINATION]);
+    }, [data, flows, paged, STRICT_ABNT_PAGINATION]);
 
     const getPageNumber = (secId) => {
         return pageMapping[secId] || "";
@@ -342,8 +387,20 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     break-inside: avoid;
                 }
 
+                .abnt-measurer {
+                    position: fixed;
+                    left: -100000px;
+                    top: 0;
+                    visibility: hidden;
+                    pointer-events: none;
+                    transform: none;
+                }
+                .abnt-measurer .page { margin: 0; box-shadow: none; }
+                .abnt-measure-flow { height: auto; overflow: visible; }
+
                 @media print {
                     @page { size: A4 portrait; margin: 0; }
+                    .abnt-measurer { display: none !important; }
                     html, body { background: white !important; height: auto !important; overflow: visible !important; }
                     #root, .abnt-editor-app, main, main > div, section {
                         height: auto !important;
@@ -534,49 +591,29 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, sumarioItens, groupe
                     </div>
                 </div>
 
-                {/* Conteúdo Textual (Introdução, Desenvolvimento, Conclusão) */}
-                {groupedSections.map((group, groupIndex) => (
-                    group.map((s, si) => (
-                        <div 
-                            className={`page page-count page-numbered ${si > 0 ? '' : ''}`} 
-                            key={s.id}
-                            id={`preview-sec-${s.id}`}
-                        >
-                            <div className={`abnt-title-container abnt-h${Number(s.level)}`}>
-                                <span className="shrink-0">{s.num}</span>
-                                <span>{s.titulo}</span>
-                            </div>
-                            <div className="abnt-content">{formatConteudo(s.conteudo)}</div>
-                        </div>
-                    ))
-                ))}
-
-                {/* Referências */}
-                <div id="preview-sec-referencias" className="page page-count page-numbered">
-                    <div className="abnt-center-bold">REFERÊNCIAS</div>
-                    <div className="text-[12pt]">
-                        {data.referencias && data.referencias.trim().split('\n').map((ref, i) => (
-                            ref.trim() && <div key={i} className="abnt-ref">{ref}</div>
-                        ))}
+                {/* Conteúdo Textual, Referências, Apêndices e Anexos (paginados) */}
+                {flows.map(flow => pagesOf(flow).map((page, pi) => (
+                    <div className="page page-count page-numbered" key={`${flow.key}-${pi}`}>
+                        {page.map(item => renderItem(item, {
+                            key: item.key,
+                            id: item.anchor ? `preview-sec-${item.anchor}` : undefined,
+                        }))}
                     </div>
-                </div>
-
-                {/* Apêndices */}
-                {data.apendices && data.apendices.trim() !== '' && (
-                    <div id="preview-sec-apendices" className="page page-count page-numbered">
-                        <div className="abnt-center-bold">APÊNDICES</div>
-                        {formatConteudo(data.apendices)}
-                    </div>
-                )}
-
-                {/* Anexos */}
-                {data.anexos && data.anexos.trim() !== '' && (
-                    <div id="preview-sec-anexos" className="page page-count page-numbered">
-                        <div className="abnt-center-bold">ANEXOS</div>
-                        {formatConteudo(data.anexos)}
-                    </div>
-                )}
+                )))}
             </div>
+
+            {/* Medidor invisível: mesma largura/fonte da folha, usado só para calcular a paginação.
+                Fica no <body> para continuar medível quando o preview está oculto (aba "editor" no mobile). */}
+            {createPortal(
+                <div ref={measurerRef} className="abnt-doc abnt-measurer" aria-hidden="true">
+                    <div className="page" data-page-probe />
+                    <div className="page abnt-measure-flow">
+                        <p className="abnt-p" data-p-probe />
+                        {flows.map(flow => flow.items.map(item => renderItem(item, { key: item.key, 'data-mkey': item.key })))}
+                    </div>
+                </div>,
+                document.body
+            )}
         </section>
     );
 };
