@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { TAG_RENDERERS } from '../../utils/constants';
 import { paginateFlows } from '../../utils/pagination';
 import { getDocType, hasElement, isRequired, formatKeywords } from '../../utils/documentTypes';
+import { splitBlocks, orderedLines, ASSET_LABELS } from '../../utils/documentContent';
 
 const escapeHtml = (text) => text
     .replace(/&/g, '&amp;')
@@ -35,33 +36,9 @@ const inlineHtml = (text) => escapeHtml(text)
 
 const filled = (text) => typeof text === 'string' && text.trim() !== '';
 
-const ASSET_LABELS = { IMAGEM: 'Figura', TABELA: 'Tabela', QUADRO: 'Quadro' };
-
-// Converte o texto do editor em blocos: parágrafos (HTML seguro) ou recursos ([CITAÇÃO], [IMAGEM]...)
-const parseBlocks = (texto, assets) => {
-    if (!texto || typeof texto !== 'string') return [];
-
-    // Divide o texto em blocos separados por uma ou mais linhas em branco
-    return texto.replace(/\r\n?/g, '\n').trim().split(/\n{2,}/).map(bloco => bloco.trim()).filter(Boolean).map(trimmed => {
-        // ── Detecta tags especiais ──────────────────────────────────────
-        const matchTag = trimmed.match(/^\[(CITAÇÃO|IMAGEM|TABELA|QUADRO)\]:\s*([\s\S]*)/i);
-
-        if (matchTag && TAG_RENDERERS[matchTag[1].toUpperCase()]) {
-            const tipo = matchTag[1].toUpperCase();
-            let conteudo = matchTag[2];
-
-            if (tipo === 'IMAGEM') {
-                let [title, source, urlStr] = conteudo.split('|').map(s => s?.trim() || '');
-                // Resolve asset local se existir
-                if (urlStr && assets && assets[urlStr]) urlStr = assets[urlStr];
-                conteudo = `${title} | ${source} | ${urlStr}`;
-            }
-            return { kind: 'asset', tipo, conteudo };
-        }
-
-        return { kind: 'p', html: trimmed.split('\n').map(inlineHtml).join('<br/>') };
-    });
-};
+// Blocos do editor com o HTML seguro de cada parágrafo
+const parseBlocks = (texto, assets) => splitBlocks(texto, assets).map(b =>
+    b.kind === 'p' ? { kind: 'p', html: b.lines.map(inlineHtml).join('<br/>') } : b);
 
 // Renderiza um item de fluxo. `props` recebe a key e o id de âncora (folha) ou data-mkey (medidor);
 // `ctx.pageOf(anchor)` devolve o número da folha (sumário e listas).
@@ -108,15 +85,9 @@ const renderItemBody = (item, props, ctx) => {
     }
 };
 
-// Referências: alinhadas à esquerda, espaço simples, em ordem alfabética no sistema autor-data (NBR 6023:2018).
-// Listas numeradas ([1], 1.) mantêm a ordem em que foram escritas.
-const referenceItems = (text, prefix, className) => {
-    const lines = (text || '').replace(/\r\n?/g, '\n').split('\n').map(r => r.trim()).filter(Boolean);
-    const numeric = lines.length > 0 && /^\[?\d+[\].)]/.test(lines[0]);
-    const plain = (s) => s.replace(/\*/g, '');
-    const ordered = numeric ? lines : [...lines].sort((a, b) => plain(a).localeCompare(plain(b), 'pt-BR', { sensitivity: 'base' }));
-    return ordered.map((ref, i) => ({ key: `${prefix}-${i}`, kind: 'ref', html: inlineHtml(ref), className }));
-};
+// Referências: alinhadas à esquerda, espaço simples, em ordem alfabética (NBR 6023:2018)
+const referenceItems = (text, prefix, className) =>
+    orderedLines(text).map((ref, i) => ({ key: `${prefix}-${i}`, kind: 'ref', html: inlineHtml(ref), className }));
 
 const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) => {
 
