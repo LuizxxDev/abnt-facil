@@ -1,7 +1,8 @@
 import React from 'react';
 import { Sun, Moon, Save, AlertOctagon, Eraser, Settings2, X, Check, UserCircle, Cloud, CloudOff, LogOut } from 'lucide-react';
+import { DOCUMENT_TYPES } from '../../utils/documentTypes';
 
-export const TitleModal = ({ isOpen, onClose, title, setTitle, onConfirm }) => {
+export const TitleModal = ({ isOpen, onClose, title, setTitle, typeKey, setTypeKey, onConfirm }) => {
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
@@ -41,6 +42,23 @@ export const TitleModal = ({ isOpen, onClose, title, setTitle, onConfirm }) => {
                             required
                         />
                     </div>
+
+                    {setTypeKey && (
+                        <div className="mb-8 -mt-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                Tipo de Documento
+                            </label>
+                            <select
+                                className="w-full p-4 border-2 border-slate-200 dark:border-slate-600 rounded-2xl bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white outline-none focus:border-green-600 dark:focus:border-green-500 transition-colors font-bold"
+                                value={typeKey}
+                                onChange={(e) => setTypeKey(e.target.value)}
+                            >
+                                {Object.entries(DOCUMENT_TYPES).map(([key, t]) => (
+                                    <option key={key} value={key}>{t.label} ({t.norma})</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     
                     <div className="flex justify-end gap-3">
                         <button 

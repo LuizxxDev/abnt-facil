@@ -29,31 +29,51 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+    // NBR 6023:2018 — "SOBRENOME, Prenome": só o sobrenome em maiúsculas; autores separados por ponto e vírgula
+    const formatAuthors = (raw) => raw.split(';').map(a => a.trim()).filter(Boolean).map(a => {
+        const comma = a.indexOf(',');
+        if (comma === -1) return a.toUpperCase(); // entidade (ex.: BRASIL, UNIVERSIDADE FEDERAL DO PARÁ)
+        return `${a.slice(0, comma).trim().toUpperCase()}, ${a.slice(comma + 1).trim()}`;
+    }).join('; ');
+
+    // "2024-03-15" ou "15/03/2024" → "15 mar. 2024" (meses abreviados da NBR 6023)
+    const MESES = ['jan.', 'fev.', 'mar.', 'abr.', 'maio', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'];
+    const formatAccessDate = (raw) => {
+        const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        const br = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        const [d, m, y] = iso ? [iso[3], iso[2], iso[1]] : br ? [br[1], br[2], br[3]] : [];
+        if (!y || !MESES[Number(m) - 1]) return raw;
+        return `${Number(d)} ${MESES[Number(m) - 1]} ${y}`;
+    };
+
     const handleGenerate = (e) => {
         e.preventDefault();
         let referenceStr = '';
+        const autores = formatAuthors(formData.autores);
+        const titulo = `**${formData.titulo}**${formData.subtitulo ? `: ${formData.subtitulo}` : ''}`;
 
         if (refType === 'book') {
             if (!formData.autores || !formData.titulo || !formData.local || !formData.editora || !formData.ano) return toast.error("Preencha os campos obrigatórios (*)");
-            referenceStr = `${formData.autores.toUpperCase()}. ${formData.titulo}${formData.subtitulo ? `: ${formData.subtitulo}` : ''}. ${formData.edicao ? `${formData.edicao} ed. ` : ''}${formData.local}: ${formData.editora}, ${formData.ano}.`;
-        
+            referenceStr = `${autores}. ${titulo}. ${formData.edicao ? `${formData.edicao}. ed. ` : ''}${formData.local}: ${formData.editora}, ${formData.ano}.`;
+
         } else if (refType === 'website') {
             if (!formData.autores || !formData.titulo || !formData.url || !formData.dataAcesso) return toast.error("Preencha os campos obrigatórios (*)");
-            referenceStr = `${formData.autores.toUpperCase()}. ${formData.titulo}. ${formData.nomeSite ? `${formData.nomeSite}, ` : ''}${formData.ano ? `${formData.ano}. ` : ''}Disponível em: <${formData.url}>. Acesso em: ${formData.dataAcesso}.`;
-        
+            referenceStr = `${autores}. ${titulo}. ${formData.nomeSite ? `${formData.nomeSite}, ` : ''}${formData.ano ? `${formData.ano}. ` : ''}Disponível em: ${formData.url}. Acesso em: ${formatAccessDate(formData.dataAcesso.trim())}.`;
+
         } else if (refType === 'article') {
             if (!formData.autores || !formData.titulo || !formData.revista || !formData.local || !formData.ano) return toast.error("Preencha os campos obrigatórios (*)");
-            let artStr = `${formData.autores.toUpperCase()}. ${formData.titulo}. ${formData.revista}, ${formData.local}, `;
+            // No artigo, o destaque vai no nome do periódico, não no título do artigo
+            let artStr = `${autores}. ${formData.titulo}${formData.subtitulo ? `: ${formData.subtitulo}` : ''}. **${formData.revista}**, ${formData.local}, `;
             if (formData.volume) artStr += `v. ${formData.volume}, `;
             if (formData.numero) artStr += `n. ${formData.numero}, `;
             if (formData.paginas) artStr += `p. ${formData.paginas}, `;
             artStr += `${formData.ano}.`;
-            if (formData.doi) artStr += ` DOI: ${formData.doi}.`;
+            if (formData.doi) artStr += ` DOI: ${formData.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//, '')}.`;
             referenceStr = artStr;
 
         } else if (refType === 'thesis') {
             if (!formData.autores || !formData.titulo || !formData.ano || !formData.curso || !formData.instituicao || !formData.local) return toast.error("Preencha os campos obrigatórios (*)");
-            referenceStr = `${formData.autores.toUpperCase()}. ${formData.titulo}${formData.subtitulo ? `: ${formData.subtitulo}` : ''}. ${formData.ano}. ${formData.tipoTrabalho} (${formData.grau} em ${formData.curso}) - ${formData.instituicao}, ${formData.local}, ${formData.ano}.`;
+            referenceStr = `${autores}. ${titulo}. ${formData.ano}. ${formData.tipoTrabalho} (${formData.grau} em ${formData.curso}) – ${formData.instituicao}, ${formData.local}, ${formData.ano}.`;
         }
 
         if (onAddReference) onAddReference(referenceStr);
@@ -103,7 +123,7 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
                     <form id="ref-form" onSubmit={handleGenerate} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                         {refType === 'book' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Ex: SOBRENOME, Nome)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: SILVA, João" required />
+                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: Silva, João; Souza, Maria" required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <RefInput colorClass={focusRing} label="Título do Livro *" name="titulo" value={formData.titulo} onChange={handleChange} required />
                                     <RefInput colorClass={focusRing} label="Subtítulo" hint="(opcional)" name="subtitulo" value={formData.subtitulo} onChange={handleChange} />
@@ -136,7 +156,7 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
 
                         {refType === 'article' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Ex: SOBRENOME, Nome)" name="autores" value={formData.autores} onChange={handleChange} required />
+                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: Silva, João; Souza, Maria" required />
                                 <RefInput colorClass={focusRing} label="Título do Artigo *" name="titulo" value={formData.titulo} onChange={handleChange} required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <RefInput colorClass={focusRing} label="Nome da Revista/Periódico *" name="revista" value={formData.revista} onChange={handleChange} placeholder="Ex: Revista IEEE, Nature..." required />

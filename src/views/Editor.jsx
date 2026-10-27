@@ -12,6 +12,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { useAutosave } from '../hooks/useAutosave';
 import { useExport } from '../hooks/useExport';
 import { DEFAULT_CHECKLIST, EXAMPLE_ID, EXAMPLE_PROJECT } from '../utils/constants';
+import { getDocType, hasElement, isRequired } from '../utils/documentTypes';
 
 import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
@@ -85,24 +86,46 @@ const Editor = () => {
         
         const timeoutId = setTimeout(() => {
             const errs = [];
-            if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação na capa.'});
-            if (!data.curso) errs.push({msg: 'Defina o Curso', explain: 'Necessário para a folha de rosto.'});
-            if (data.resumoPt.length < 100) errs.push({msg: 'O Resumo está muito curto (<100 chars)', explain: 'A ABNT recomenda entre 150 e 500 palavras para TCCs.'});
-            if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas.'});
-            if (data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'Geralmente Introdução, Desenvolvimento e Conclusão.'});
+            const type = getDocType(data);
+            const isFilled = (t) => typeof t === 'string' && t.trim() !== '';
+            const wordCount = (t) => (t || '').trim().split(/\s+/).filter(Boolean).length;
+
+            if (!data.titulo) errs.push({msg: 'Falta o Título do Trabalho', explain: 'O título é obrigatório para identificação do documento.'});
+            if (hasElement(type, 'folhaRosto') && !data.curso && !data.instituicao) errs.push({msg: 'Defina a Instituição e o Curso', explain: 'Necessários para a capa e a folha de rosto.'});
+
+            // NBR 6028:2021 — extensão do resumo conforme o tipo de documento
+            if (isRequired(type, 'resumoPt') && type.resumoWords) {
+                const [min, max] = type.resumoWords;
+                const n = wordCount(data.resumoPt);
+                if (n < min) errs.push({msg: `O Resumo está curto (${n} de ${min}–${max} palavras)`, explain: `A NBR 6028:2021 recomenda ${min} a ${max} palavras para ${type.label}.`});
+                else if (n > max) errs.push({msg: `O Resumo está longo (${n} de ${min}–${max} palavras)`, explain: `A NBR 6028:2021 recomenda ${min} a ${max} palavras para ${type.label}.`});
+            }
+            if (isRequired(type, 'resumoEn') && !isFilled(data.resumoEn)) errs.push({msg: 'Falta o resumo em língua estrangeira (Abstract)', explain: `É elemento obrigatório na ${type.norma}.`});
+            if (isRequired(type, 'folhaAprovacao') && !(data.banca || []).some(m => m?.nome?.trim())) errs.push({msg: 'Preencha a Banca Examinadora', explain: 'A folha de aprovação é obrigatória (NBR 14724) e lista os membros da banca.'});
+            if (hasElement(type, 'obraResenhada') && !isFilled(data.obraResenhada)) errs.push({msg: 'Informe a referência da obra resenhada', explain: 'A resenha começa pela referência completa da obra analisada (NBR 6028).'});
+            if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas (NBR 6023).'});
+            if (type.layout === 'academic' && data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'A parte textual tem introdução, desenvolvimento e conclusão.'});
 
             if (data.secoes && data.referencias) {
                 const fullText = data.secoes.map(s => s.conteudo).join(' ');
-                const citationRegex = /\(([A-ZÀ-ÖØ-Þ\s;]+?)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)/g;
-                let match;
+                // NBR 10520:2023 — (Silva, 2023, p. 15), (Silva; Souza, 2020), Silva e Souza (2020)
+                const NAME = String.raw`[A-ZÀ-Ý][A-Za-zÀ-ÿ'\-]+`;
+                const parenRegex = new RegExp(String.raw`\((${NAME}(?:\s+${NAME})*(?:\s*;\s*${NAME}(?:\s+${NAME})*)*)(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?`, 'g');
+                const narrativeRegex = new RegExp(String.raw`(${NAME})(?:\s+(?:e|&)\s+(${NAME}))?(?:\s+et\s+al\.)?\s+\(\d{4}[a-z]?`, 'g');
                 const citedAuthors = new Set();
-                
-                while ((match = citationRegex.exec(fullText)) !== null) {
-                    const authorsStr = match[1];
-                    const authorsList = authorsStr.split(';').map(a => a.trim().toUpperCase());
-                    authorsList.forEach(author => {
-                        if (author.length > 2) citedAuthors.add(author); 
+                const capsAuthors = new Set();
+                let match;
+
+                while ((match = parenRegex.exec(fullText)) !== null) {
+                    match[1].split(';').map(a => a.trim()).forEach(author => {
+                        const surname = author.split(/\s+/).pop();
+                        if (surname.length > 2) citedAuthors.add(surname.toUpperCase());
+                        // Sobrenome todo em maiúsculas (e que não é sigla curta como IBGE) segue a regra antiga
+                        if (author.length >= 5 && author === author.toUpperCase()) capsAuthors.add(author);
                     });
+                }
+                while ((match = narrativeRegex.exec(fullText)) !== null) {
+                    [match[1], match[2]].filter(Boolean).forEach(a => { if (a.length > 2) citedAuthors.add(a.toUpperCase()); });
                 }
 
                 const refsUpper = data.referencias.toUpperCase();
@@ -116,6 +139,14 @@ const Editor = () => {
                     errs.push({
                         msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
                         explain: `Atenção: Citaste "${missing[0]}" no texto, mas não o incluíste na lista final de Referências. A banca desconta nota por isso!`
+                    });
+                }
+                if (capsAuthors.size > 0) {
+                    const ex = [...capsAuthors][0];
+                    const fixed = ex.charAt(0) + ex.slice(1).toLowerCase();
+                    errs.push({
+                        msg: `Citação no formato antigo: (${ex}, ...)`,
+                        explain: `Desde a NBR 10520:2023, o autor entre parênteses vai em maiúsculas e minúsculas: (${fixed}, ano). Siglas como (IBGE, 2020) continuam em maiúsculas.`
                     });
                 }
             }
@@ -138,6 +169,7 @@ const Editor = () => {
         return { label: 'Erros', color: 'bg-red-100 text-red-700', icon: <AlertTriangle size={12}/> };
     }, [abntErrors]);
 
+    const numberSections = getDocType(data).numberedSections !== false;
     const sumarioItens = useMemo(() => { 
         if (!data || !data.secoes) return [];
         let counts = [0, 0, 0, 0, 0];
@@ -147,9 +179,9 @@ const Editor = () => {
             for (let k = level; k < 5; k++) counts[k] = 0;
             const numParts = [];
             for (let k = 0; k < level; k++) numParts.push(counts[k] === 0 ? 1 : counts[k]);
-            return { ...s, level, num: numParts.join('.') };
+            return { ...s, level, num: numberSections ? numParts.join('.') : '' };
         }); 
-    }, [data?.secoes]);
+    }, [data?.secoes, numberSections]);
 
     const groupedSections = useMemo(() => {
         if (!data || !data.secoes) return [];

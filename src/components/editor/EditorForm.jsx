@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { 
   Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
   Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck, Heart, Layers, Plus, ArrowRight, ArrowLeft
+  UserCheck, Heart, Layers, Plus, ArrowRight, ArrowLeft, FileType, Stamp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { SECTION_GUIDES, SECTION_TEMPLATES, ESTADOS_BR } from '../../utils/constants';
 import { generateId } from '../../utils/helpers';
+import { DOCUMENT_TYPES, getDocType, getDocTypeKey, hasElement, isRequired } from '../../utils/documentTypes';
 import { EditorToolbar } from './EditorToolbar';
 
 // -- Componentes Internos Abstratos --
@@ -221,45 +222,120 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
     const updateField = (field, value) => setData(prev => ({ ...prev, [field]: value }));
 
+    const docType = getDocType(data);
+    const typeKey = getDocTypeKey(data);
+    const tag = (el) => isRequired(docType, el) ? 'Obrigatório' : 'Opcional';
+    const [resumoMin, resumoMax] = docType.resumoWords || [100, 500];
+    const banca = data.banca || [];
+
+    const updateBanca = (index, field, value) => setData(prev => {
+        const n = [...(prev.banca || [])];
+        n[index] = { ...n[index], [field]: value };
+        return { ...prev, banca: n };
+    });
+
+    const gerarNatureza = () => {
+        if (!docType.natureza) return;
+        updateField('naturezaTrabalho', docType.natureza({ curso: data.curso, instituicao: data.instituicao }));
+        toast.success('Texto gerado. Complete os campos entre [colchetes].');
+    };
+
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20">
+            {/* Tipo de documento */}
+            <section className="space-y-2">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileType size={12}/> Tipo de Documento</h3>
+              <select
+                disabled={isReadOnly}
+                className={`w-full p-2.5 border rounded-lg text-sm font-bold outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                value={typeKey}
+                onChange={e => updateField('tipoDocumento', e.target.value)}
+              >
+                {Object.entries(DOCUMENT_TYPES).map(([key, t]) => <option key={key} value={key}>{t.label}</option>)}
+              </select>
+              <p className="text-[10px] text-slate-400 leading-snug">
+                <span className="font-bold text-green-600">{docType.norma}</span> — {docType.description}
+              </p>
+            </section>
+
             {/* Identificação */}
             <section className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Instituição" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} />
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Nome do Curso" value={data.curso} onChange={e => updateField('curso', e.target.value)} />
+              {hasElement(docType, 'folhaRosto') && (
+                <>
+                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Instituição" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} />
+                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Nome do Curso / Programa" value={data.curso} onChange={e => updateField('curso', e.target.value)} />
+                </>
+              )}
               <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Título Oficial" className="font-bold" value={data.titulo} onChange={e => updateField('titulo', e.target.value)} />
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Subtítulo" value={data.subtitulo} onChange={e => updateField('subtitulo', e.target.value)} />
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Natureza do Trabalho (Folha de Rosto)</label>
-                <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Ex: Trabalho de Conclusão de Curso apresentado ao IFPA..." value={data.naturezaTrabalho} onChange={e => updateField('naturezaTrabalho', e.target.value)} />
-              </div>
+              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Subtítulo (opcional)" value={data.subtitulo} onChange={e => updateField('subtitulo', e.target.value)} />
+              {hasElement(docType, 'tituloEn') && (
+                <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Título em outro idioma (opcional)" className="italic" value={data.tituloEn || ''} onChange={e => updateField('tituloEn', e.target.value)} />
+              )}
+
+              {hasElement(docType, 'folhaRosto') && (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Natureza do Trabalho (Folha de Rosto)</label>
+                    {!isReadOnly && docType.natureza && <button onClick={gerarNatureza} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md"><Wand2 size={10}/> Gerar</button>}
+                  </div>
+                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Ex: Trabalho de Conclusão de Curso apresentado ao IFPA..." value={data.naturezaTrabalho} onChange={e => updateField('naturezaTrabalho', e.target.value)} />
+                </div>
+              )}
+
+              {hasElement(docType, 'obraResenhada') && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Referência da Obra Resenhada (Obrigatório)</label>
+                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="SOBRENOME, Nome. **Título da obra**. Edição. Local: Editora, ano." value={data.obraResenhada || ''} onChange={e => updateField('obraResenhada', e.target.value)} />
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Cidade" className="flex-1" value={data.cidade} onChange={e => updateField('cidade', e.target.value)} />
                 <select disabled={isReadOnly} className={`p-2 border rounded-lg text-xs outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} value={data.estado} onChange={e => updateField('estado', e.target.value)}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select>
               </div>
+
+              {(docType.elements.capa === 'opc' || hasElement(docType, 'listas')) && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  {docType.elements.capa === 'opc' && (
+                    <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                      <input type="checkbox" disabled={isReadOnly} checked={data.incluirCapa !== false} onChange={e => updateField('incluirCapa', e.target.checked)} /> Incluir capa (opcional neste tipo)
+                    </label>
+                  )}
+                  {hasElement(docType, 'listas') && (
+                    <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                      <input type="checkbox" disabled={isReadOnly} checked={data.incluirListas !== false} onChange={e => updateField('incluirListas', e.target.checked)} /> Gerar listas de ilustrações e de tabelas
+                    </label>
+                  )}
+                </div>
+              )}
             </section>
-            
-            {/* Alunos */}
+
+            {/* Autores */}
             <section>
                 <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12}/> Alunos</h3>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12}/> Autores</h3>
                     <button disabled={isReadOnly} onClick={() => setAuthors([...authors].sort())} className="text-[10px] font-bold text-green-700 hover:underline">A-Z</button>
                 </div>
                 <div className="space-y-2">
                     {authors.map((a, i) => (
                         <div key={i} className="flex gap-2">
-                            <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={a} onChange={e => { const n = [...authors]; n[i] = e.target.value; setAuthors(n); }} placeholder="Nome Completo do Aluno" />
+                            <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={a} onChange={e => { const n = [...authors]; n[i] = e.target.value; setAuthors(n); }} placeholder="Nome Completo" />
                             {!isReadOnly && authors.length > 1 && <button onClick={() => setAuthors(authors.filter((_, idx) => idx !== i))} className="text-red-300"><Trash2 size={16}/></button>}
                         </div>
                     ))}
-                    {!isReadOnly && <button onClick={() => setAuthors([...authors, ''])} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR ALUNO</button>}
+                    {!isReadOnly && <button onClick={() => setAuthors([...authors, ''])} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR AUTOR</button>}
                 </div>
+                {hasElement(docType, 'notaAutores') && (
+                    <div className="space-y-1 mt-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nota de rodapé dos autores (um por linha)</label>
+                        <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Graduando em Engenharia pelo IFPA. E-mail: autor@email.com" value={data.notaAutores || ''} onChange={e => updateField('notaAutores', e.target.value)} />
+                    </div>
+                )}
             </section>
 
             {/* Orientadores */}
+            {hasElement(docType, 'folhaRosto') && (
             <section>
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><UserCheck size={12}/> Orientadores</h3>
@@ -274,31 +350,70 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                     {!isReadOnly && <button onClick={() => setData(prev => ({...prev, orientadores: [...(prev.orientadores || ['']), '']}))} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR ORIENTADOR</button>}
                 </div>
             </section>
-            
-            {/* Elementos Pré-Textuais */}
-            <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Heart size={12}/> Elementos Pré-Textuais Opcionais</h3>
-              <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Dedicatória..." value={data.dedicatoria || ''} onChange={e => updateField('dedicatoria', e.target.value)} />
-              <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Agradecimentos..." value={data.agradecimentos || ''} onChange={e => updateField('agradecimentos', e.target.value)} />
-              <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20 italic" placeholder="Epígrafe (Citação que inspira o trabalho)..." value={data.epigrafe || ''} onChange={e => updateField('epigrafe', e.target.value)} />
-            </section>
+            )}
 
-            {/* Resumos */}
-            <section className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos e Abstract</h3>
-              <div className="space-y-1">
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Resumo (PT)" value={data.resumoPt} onChange={e => updateField('resumoPt', e.target.value)} />
-                  <div className="flex justify-end"><WordCounter text={data.resumoPt} min={150} max={500} /></div>
-              </div>
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Palavras-chave" value={data.palavrasChavePt} onChange={e => updateField('palavrasChavePt', e.target.value)} />
-              
-              <div className="space-y-1">
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32 italic" placeholder="Abstract (EN)" value={data.resumoEn} onChange={e => updateField('resumoEn', e.target.value)} />
-                  <div className="flex justify-end"><WordCounter text={data.resumoEn} min={150} max={500} /></div>
-              </div>
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Keywords (EN)" value={data.palavrasChaveEn} onChange={e => updateField('palavrasChaveEn', e.target.value)} />
+            {/* Folha de aprovação (NBR 14724) */}
+            {hasElement(docType, 'folhaAprovacao') && (
+            <section className="space-y-3">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Stamp size={12}/> Folha de Aprovação ({tag('folhaAprovacao')})</h3>
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 shrink-0">Aprovado em</label>
+                    <ThemedInput theme={settings.theme} readOnly={isReadOnly} type="date" value={data.dataAprovacao || ''} onChange={e => updateField('dataAprovacao', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    {banca.map((m, i) => (
+                        <div key={i} className={`p-2 rounded-lg border space-y-1.5 ${settings.theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                            <div className="flex gap-2">
+                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={m.nome || ''} onChange={e => updateBanca(i, 'nome', e.target.value)} placeholder="Prof. Dr. Nome Completo" />
+                                {!isReadOnly && <button onClick={() => setData(prev => ({...prev, banca: prev.banca.filter((_, idx) => idx !== i)}))} className="text-red-300"><Trash2 size={16}/></button>}
+                            </div>
+                            <div className="flex gap-2">
+                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={m.titulacao || ''} onChange={e => updateBanca(i, 'titulacao', e.target.value)} placeholder="Função (Orientador, Examinador...)" />
+                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="w-28" value={m.instituicao || ''} onChange={e => updateBanca(i, 'instituicao', e.target.value)} placeholder="Instituição" />
+                            </div>
+                        </div>
+                    ))}
+                    {!isReadOnly && <button onClick={() => setData(prev => ({...prev, banca: [...(prev.banca || []), { nome: '', titulacao: '', instituicao: '' }]}))} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR MEMBRO DA BANCA</button>}
+                </div>
             </section>
-            
+            )}
+
+            {/* Elementos Pré-Textuais */}
+            {(hasElement(docType, 'dedicatoria') || hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos') || hasElement(docType, 'epigrafe')) && (
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Heart size={12}/> Elementos Opcionais</h3>
+              {hasElement(docType, 'dedicatoria') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Dedicatória..." value={data.dedicatoria || ''} onChange={e => updateField('dedicatoria', e.target.value)} />}
+              {(hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos')) && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder={hasElement(docType, 'agradecimentosPos') ? 'Agradecimentos (no artigo, ficam após as referências)...' : 'Agradecimentos...'} value={data.agradecimentos || ''} onChange={e => updateField('agradecimentos', e.target.value)} />}
+              {hasElement(docType, 'epigrafe') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20 italic" placeholder="Epígrafe (Citação que inspira o trabalho)..." value={data.epigrafe || ''} onChange={e => updateField('epigrafe', e.target.value)} />}
+            </section>
+            )}
+
+            {/* Resumos (NBR 6028:2021) */}
+            {(hasElement(docType, 'resumoPt') || hasElement(docType, 'resumoEn')) && (
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Globe size={12}/> Resumos</h3>
+              {hasElement(docType, 'resumoPt') && (
+                <>
+                  <div className="space-y-1">
+                      <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder={`Resumo (${tag('resumoPt')}) — parágrafo único, ${resumoMin} a ${resumoMax} palavras`} value={data.resumoPt} onChange={e => updateField('resumoPt', e.target.value)} />
+                      <div className="flex justify-end"><WordCounter text={data.resumoPt} min={resumoMin} max={resumoMax} /></div>
+                  </div>
+                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Palavras-chave: termo 1; termo 2; termo 3." value={data.palavrasChavePt} onChange={e => updateField('palavrasChavePt', e.target.value)} />
+                </>
+              )}
+              {hasElement(docType, 'resumoEn') && (
+                <>
+                  <div className="space-y-1">
+                      <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32 italic" placeholder={`Abstract (${tag('resumoEn')})`} value={data.resumoEn} onChange={e => updateField('resumoEn', e.target.value)} />
+                      <div className="flex justify-end"><WordCounter text={data.resumoEn} min={resumoMin} max={resumoMax} /></div>
+                  </div>
+                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Keywords: term 1; term 2; term 3." value={data.palavrasChaveEn} onChange={e => updateField('palavrasChaveEn', e.target.value)} />
+                </>
+              )}
+              <p className="text-[10px] text-slate-400">Separe as palavras-chave com ponto e vírgula; o documento já aplica o formato da NBR 6028:2021.</p>
+            </section>
+            )}
+
             {/* Capítulos */}
             <section className="space-y-4">
               <div className="flex justify-between items-center">
@@ -336,23 +451,35 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             </section>
 
             {/* Pós-Textuais */}
+            {(hasElement(docType, 'glossario') || hasElement(docType, 'apendices') || hasElement(docType, 'anexos')) && (
             <section className="space-y-4 pb-10">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
-              <div id="edit-sec-apendices" className="space-y-2">
-                  <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apêndices (Do Autor)</label>
-                      {!isReadOnly && <button onClick={() => onOpenAttachmentModal('apendice')} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
-                  </div>
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Documentos do próprio autor..." value={data.apendices || ''} onChange={e => updateField('apendices', e.target.value)} />
-              </div>
-              <div id="edit-sec-anexos" className="space-y-2 mt-6">
-                  <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Anexos (De Terceiros)</label>
-                      {!isReadOnly && <button onClick={() => onOpenAttachmentModal('anexo')} className="text-[9px] font-bold text-orange-600 flex items-center gap-1 uppercase bg-orange-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
-                  </div>
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Leis, mapas de terceiros..." value={data.anexos || ''} onChange={e => updateField('anexos', e.target.value)} />
-              </div>
+              {hasElement(docType, 'glossario') && (
+                <div id="edit-sec-glossario" className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Glossário (um termo por linha, ordenado automaticamente)</label>
+                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Termo: definição do termo." value={data.glossario || ''} onChange={e => updateField('glossario', e.target.value)} />
+                </div>
+              )}
+              {hasElement(docType, 'apendices') && (
+                <div id="edit-sec-apendices" className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Apêndices (Do Autor)</label>
+                        {!isReadOnly && <button onClick={() => onOpenAttachmentModal('apendice')} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
+                    </div>
+                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Documentos do próprio autor..." value={data.apendices || ''} onChange={e => updateField('apendices', e.target.value)} />
+                </div>
+              )}
+              {hasElement(docType, 'anexos') && (
+                <div id="edit-sec-anexos" className="space-y-2 mt-6">
+                    <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Anexos (De Terceiros)</label>
+                        {!isReadOnly && <button onClick={() => onOpenAttachmentModal('anexo')} className="text-[9px] font-bold text-orange-600 flex items-center gap-1 uppercase bg-orange-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
+                    </div>
+                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Leis, mapas de terceiros..." value={data.anexos || ''} onChange={e => updateField('anexos', e.target.value)} />
+                </div>
+              )}
             </section>
+            )}
         </div>
     );
 };

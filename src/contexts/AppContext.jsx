@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast'; 
 import { generateId } from '../utils/helpers';
-import { DEFAULT_CHECKLIST, EXAMPLE_PROJECT, PROJECT_TYPES } from '../utils/constants';
+import { DEFAULT_CHECKLIST, EXAMPLE_PROJECT } from '../utils/constants';
+import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE } from '../utils/documentTypes';
 import { supabase } from '../lib/supabase';
 
 const AppContext = createContext();
@@ -206,38 +207,40 @@ export const AppProvider = ({ children }) => {
     return localId;
   }, [user]);
 
+  // Dados iniciais de um documento do tipo escolhido (seções e natureza do trabalho já no padrão da norma)
+  const buildDocumentData = useCallback((typeKey = DEFAULT_DOC_TYPE) => {
+    const type = DOCUMENT_TYPES[typeKey] || DOCUMENT_TYPES[DEFAULT_DOC_TYPE];
+    const instituicao = 'INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ';
+    return {
+      tipoDocumento: DOCUMENT_TYPES[typeKey] ? typeKey : DEFAULT_DOC_TYPE,
+      instituicao, curso: '', titulo: '', subtitulo: '', tituloEn: '',
+      naturezaTrabalho: type.natureza ? type.natureza({ curso: '', instituicao }) : '',
+      orientadores: [''], banca: [], dataAprovacao: '', notaAutores: '', obraResenhada: '',
+      cidade: 'Belém', estado: 'PA', ano: new Date().getFullYear().toString(),
+      dedicatoria: '', agradecimentos: '', epigrafe: '', resumoPt: '', palavrasChavePt: '',
+      resumoEn: '', palavrasChaveEn: '', glossario: '',
+      secoes: type.sections.map(s => ({ ...s, id: generateId() })),
+      referencias: '', apendices: '', anexos: '', assets: {}
+    };
+  }, []);
+
   const prepareProjectObject = useCallback((title, dataOverride = null) => ({
     title, authors: [''], checklist: DEFAULT_CHECKLIST, favorite: false, deleted: false,
-    data: dataOverride || { 
-      instituicao: 'INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ', 
-      curso: '', titulo: '', subtitulo: '', naturezaTrabalho: 'Trabalho de Conclusão de Curso...', 
-      orientadores: [''], cidade: 'Belém', estado: 'PA', ano: new Date().getFullYear().toString(), 
-      dedicatoria: '', agradecimentos: '', epigrafe: '', resumoPt: '', palavrasChavePt: '', 
-      resumoEn: '', palavrasChaveEn: '', 
-      secoes: [ { id: generateId(), titulo: 'INTRODUÇÃO', conteudo: '', level: 1 }, { id: generateId(), titulo: 'REFERENCIAL TEÓRICO', conteudo: '', level: 1 } ], 
-      referencias: '', apendices: '', anexos: '', assets: {} 
-    }
-  }), []);
+    data: dataOverride || buildDocumentData()
+  }), [buildDocumentData]);
 
-  const createNewProject = useCallback(async (title) => {
-      return await persistNewProject(prepareProjectObject(title));
-  }, [persistNewProject, prepareProjectObject]);
+  const createNewProject = useCallback(async (title, typeKey = DEFAULT_DOC_TYPE) => {
+      return await persistNewProject(prepareProjectObject(title, buildDocumentData(typeKey)));
+  }, [persistNewProject, prepareProjectObject, buildDocumentData]);
 
   const createFromModel = useCallback(async (modelKey) => {
-    const model = PROJECT_TYPES[modelKey];
-    const customData = {
-        instituicao: 'INSTITUTO FEDERAL DE EDUCAÇÃO, CIÊNCIA E TECNOLOGIA DO PARÁ', curso: '',
-        titulo: model.label.toUpperCase(), subtitulo: '', naturezaTrabalho: `${model.label} apresentado ao Instituto Federal do Pará.`,
-        orientadores: [''], cidade: 'Belém', estado: 'PA', ano: new Date().getFullYear().toString(),
-        dedicatoria: '', agradecimentos: '', epigrafe: '', resumoPt: '', palavrasChavePt: '', resumoEn: '', palavrasChaveEn: '',
-        secoes: model.sections.map(s => ({ ...s, id: generateId() })), referencias: '', apendices: '', anexos: '', assets: {}
-    };
-    return await persistNewProject(prepareProjectObject(`${model.label} - ${new Date().toLocaleDateString()}`, customData));
-  }, [persistNewProject, prepareProjectObject]);
+    const model = DOCUMENT_TYPES[modelKey];
+    return await persistNewProject(prepareProjectObject(`${model.label} - ${new Date().toLocaleDateString()}`, buildDocumentData(modelKey)));
+  }, [persistNewProject, prepareProjectObject, buildDocumentData]);
 
   const createFromExample = useCallback(async () => {
     const customData = {
-        ...EXAMPLE_PROJECT.data, curso: '', orientadores: EXAMPLE_PROJECT.data.orientadores ? [...EXAMPLE_PROJECT.data.orientadores] : [''], 
+        ...EXAMPLE_PROJECT.data, tipoDocumento: 'TCC', curso: '', banca: [], orientadores: EXAMPLE_PROJECT.data.orientadores ? [...EXAMPLE_PROJECT.data.orientadores] : [''], 
         resumoPt: '', resumoEn: '', dedicatoria: '', agradecimentos: '', epigrafe: '', apendices: '', anexos: '', assets: {},
         secoes: EXAMPLE_PROJECT.data.secoes.map(s => ({...s, id: generateId(), conteudo: ''}))
     };

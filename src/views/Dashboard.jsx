@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
-import { ABNT_TIPS, EXAMPLE_ID, PROJECT_TYPES } from '../utils/constants'; 
+import { ABNT_TIPS, EXAMPLE_ID } from '../utils/constants';
+import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE, getDocType } from '../utils/documentTypes';
 import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal } from '../components/common/Modals';
 import { FeedbackModal } from '../components/common/FeedbackModal';
@@ -36,6 +37,7 @@ const Dashboard = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [newProjectTitle, setNewProjectTitle] = useState('');
+    const [newProjectType, setNewProjectType] = useState(DEFAULT_DOC_TYPE);
     const [activeMenuId, setActiveMenuId] = useState(null);
 
     const isLoadingGlobal = isAuthLoading || isDataLoading;
@@ -134,16 +136,16 @@ const Dashboard = () => {
         });
     }, [projects, filterTab, searchTerm, sortOrder]);
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (!newProjectTitle.trim()) return;
-        const id = createNewProject(newProjectTitle);
+        const id = await createNewProject(newProjectTitle, newProjectType);
         toast.success("Projeto criado!");
         navigate(`/editor/${id}`);
     };
 
-    const handleCreateModel = (key) => {
-        const id = createFromModel(key);
-        toast.success(`${PROJECT_TYPES[key].label} criado!`);
+    const handleCreateModel = async (key) => {
+        const id = await createFromModel(key);
+        toast.success(`${DOCUMENT_TYPES[key].label} criado!`);
         navigate(`/editor/${id}`);
     };
 
@@ -265,17 +267,18 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                {Object.keys(PROJECT_TYPES).map((key) => (
+                                {Object.keys(DOCUMENT_TYPES).map((key) => (
                                     <button 
                                         key={key}
                                         onClick={() => handleCreateModel(key)}
                                         className={`${theme.cardBg} p-4 rounded-[1.2rem] border-2 border-transparent hover:border-green-600 transition-all text-left group flex flex-col min-w-[180px] max-w-[180px] snap-center shrink-0`}
                                     >
                                         <div className="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 w-8 h-8 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                            {PROJECT_TYPES[key].icon}
+                                            {DOCUMENT_TYPES[key].icon}
                                         </div>
-                                        <h3 className="font-bold text-sm mb-0.5">{PROJECT_TYPES[key].label}</h3>
-                                        <p className="text-[9px] text-slate-400 leading-tight mb-3 flex-1">{PROJECT_TYPES[key].description}</p>
+                                        <h3 className="font-bold text-sm mb-0.5">{DOCUMENT_TYPES[key].label}</h3>
+                                        <p className="text-[9px] text-slate-400 leading-tight mb-2 flex-1">{DOCUMENT_TYPES[key].description}</p>
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-2">{DOCUMENT_TYPES[key].norma}</p>
                                         <div className="text-[9px] font-bold text-green-600 uppercase mt-auto flex items-center">Criar <ChevronRight size={10} className="ml-0.5" /></div>
                                     </button>
                                 ))}
@@ -378,7 +381,7 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} onConfirm={handleCreate} />
+                <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} typeKey={newProjectType} setTypeKey={setNewProjectType} onConfirm={handleCreate} />
                 <SettingsModal 
                     isOpen={isSettingsModalOpen} 
                     onClose={() => setIsSettingsModalOpen(false)} 
@@ -411,6 +414,7 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
                         <h3 className="font-bold text-sm truncate group-hover:text-green-700 transition-colors">{project.title}</h3>
                         <div className="flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase mt-0.5">
                             <span className={progress.status === 'green' ? 'text-green-600 dark:text-green-400' : ''}>{progress.percent}% Concluído</span>
+                            <span className="truncate">{getDocType(project.data).label}</span>
                             <span className="flex items-center gap-1"><Clock size={9}/> {timeAgo(project.updatedAt)}</span>
                         </div>
                     </div>
@@ -494,6 +498,7 @@ const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoa
                 <h3 className="font-bold text-base mb-1.5 line-clamp-2 leading-tight group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{project.title}</h3>
                 <div className="flex items-center gap-2 mb-3 text-[9px] text-slate-400 font-bold uppercase">
                     <span className={`px-1.5 py-0.5 rounded ${progress.status === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-700'}`}>{progress.label}</span>
+                    <span className="truncate">{getDocType(project.data).label}</span>
                     <span className="flex items-center gap-1"><Clock size={9} /> {timeAgo(project.updatedAt)}</span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden shadow-inner">

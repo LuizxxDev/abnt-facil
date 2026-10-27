@@ -49,7 +49,8 @@ const outerHeight = (el) => {
 };
 
 /**
- * @param flows    [{ key, items: [{ key, kind, keepWithNext?, html? }] }]
+ * @param flows    [{ key, items: [{ key, kind, keepWithNext?, html? }], reserveKey? }]
+ *                 reserveKey: data-mkey de uma nota de rodapé que ocupa o pé da 1ª folha do fluxo
  * @param measurer elemento que contém: [data-page-probe] (uma .page vazia),
  *                 [data-p-probe] (um <p class="abnt-p">) e um nó [data-mkey] por item
  * @returns        { [flowKey]: Array<Array<item>> }  (páginas de cada fluxo),
@@ -74,6 +75,10 @@ export const paginateFlows = (flows, measurer) => {
         let used = 0;
         const current = () => pages[pages.length - 1];
 
+        const reserveEl = flow.reserveKey && measurer.querySelector(`[data-mkey="${CSS.escape(flow.reserveKey)}"]`);
+        const reserve = reserveEl ? outerHeight(reserveEl) : 0;
+        const capacity = () => pageH - (pages.length === 1 ? reserve : 0);
+
         const newPage = () => {
             // Títulos não podem ficar sozinhos no fim da folha: levam-se para a próxima
             const cur = current();
@@ -93,7 +98,7 @@ export const paginateFlows = (flows, measurer) => {
             if (!el) return;
             const h = outerHeight(el);
 
-            if (used + h <= pageH + EPS) { place(item, h); return; }
+            if (used + h <= capacity() + EPS) { place(item, h); return; }
 
             if (item.kind !== 'p') {
                 // Bloco indivisível (título, citação, figura, tabela, referência)
@@ -109,12 +114,12 @@ export const paginateFlows = (flows, measurer) => {
             for (;;) {
                 const restHtml = sliceHtml(tokens, start, tokens.length);
                 const restH = cont ? probeHeight(restHtml, true) : h;
-                if (used + restH <= pageH + EPS) {
+                if (used + restH <= capacity() + EPS) {
                     place({ ...item, key: `${item.key}@${start}`, html: restHtml, cont }, restH);
                     break;
                 }
 
-                const room = pageH - used + EPS;
+                const room = capacity() - used + EPS;
                 let lo = start + 1, hi = tokens.length - 1, best = -1, bestH = 0;
                 while (lo <= hi) {
                     const mid = (lo + hi) >> 1;
