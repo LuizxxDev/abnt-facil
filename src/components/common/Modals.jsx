@@ -1,6 +1,7 @@
 import React from 'react';
-import { Sun, Moon, Save, AlertOctagon, Eraser, Settings2, X, Check, UserCircle, Cloud, CloudOff, LogOut } from 'lucide-react';
+import { Sun, Moon, Save, AlertOctagon, Eraser, Settings2, X, Check, UserCircle, Cloud, CloudOff, LogOut, GraduationCap } from 'lucide-react';
 import { DOCUMENT_TYPES } from '../../utils/documentTypes';
+import { ESTADOS_BR } from '../../utils/constants';
 
 export const TitleModal = ({ isOpen, onClose, title, setTitle, typeKey, setTypeKey, onConfirm }) => {
     if (!isOpen) return null;
@@ -148,6 +149,32 @@ export const SettingsModal = ({ isOpen, onClose, settings, setSettings, onDelete
                     </div>
                   </div>
               )}
+
+              {/* --- PERFIL ACADÊMICO: preenche os próximos documentos --- */}
+              <div>
+                <label className="text-xs font-bold uppercase opacity-50 mb-1 flex items-center gap-2"><GraduationCap size={14} /> Perfil acadêmico</label>
+                <p className="text-[11px] opacity-60 mb-3">Usado para preencher automaticamente os novos documentos.</p>
+                <div className="space-y-2">
+                  {[['instituicao', 'Instituição (ex.: UNIVERSIDADE FEDERAL DO PARÁ)'], ['curso', 'Curso ou programa'], ['orientador', 'Orientador(a) (ex.: Prof. Dr. Nome)']].map(([field, placeholder]) => (
+                    <input key={field} type="text" placeholder={placeholder} aria-label={placeholder}
+                      className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none focus:border-green-600 dark:focus:border-green-500 transition-all text-sm"
+                      value={settings.perfil?.[field] || ''}
+                      onChange={(e) => setSettings({ ...settings, perfil: { ...settings.perfil, [field]: e.target.value } })} />
+                  ))}
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Cidade" aria-label="Cidade"
+                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none focus:border-green-600 dark:focus:border-green-500 transition-all text-sm"
+                      value={settings.perfil?.cidade || ''}
+                      onChange={(e) => setSettings({ ...settings, perfil: { ...settings.perfil, cidade: e.target.value } })} />
+                    <select aria-label="Estado"
+                      className="px-3 py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none focus:border-green-600 text-sm"
+                      value={settings.perfil?.estado || 'PA'}
+                      onChange={(e) => setSettings({ ...settings, perfil: { ...settings.perfil, estado: e.target.value } })}>
+                      {ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
 
               {/* --- PREFERÊNCIAS DO EDITOR --- */}
               <div className="space-y-5">

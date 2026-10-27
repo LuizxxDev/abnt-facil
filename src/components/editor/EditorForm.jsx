@@ -13,6 +13,7 @@ import { SECTION_GUIDES, SECTION_TEMPLATES, ESTADOS_BR } from '../../utils/const
 import { generateId } from '../../utils/helpers';
 import { DOCUMENT_TYPES, getDocType, getDocTypeKey, hasElement, isRequired } from '../../utils/documentTypes';
 import { EditorToolbar } from './EditorToolbar';
+import { useAppContext } from '../../contexts/AppContext';
 
 // -- Componentes Internos Abstratos --
 
@@ -222,6 +223,27 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
     const updateField = (field, value) => setData(prev => ({ ...prev, [field]: value }));
 
+    // Perfil acadêmico: guarda os dados da instituição para os próximos documentos ou aplica-os neste
+    const { setSettings } = useAppContext();
+    const perfil = settings.perfil || {};
+    const hasPerfil = Boolean(perfil.instituicao?.trim());
+    const salvarPerfil = () => {
+        setSettings(prev => ({ ...prev, perfil: {
+            instituicao: data.instituicao || '', curso: data.curso || '', cidade: data.cidade || '', estado: data.estado || 'PA',
+            orientador: (data.orientadores || [])[0] || '',
+        } }));
+        toast.success('Perfil salvo. Os próximos documentos já começam com estes dados.');
+    };
+    const aplicarPerfil = () => {
+        setData(prev => ({
+            ...prev,
+            instituicao: perfil.instituicao || prev.instituicao, curso: perfil.curso || prev.curso,
+            cidade: perfil.cidade || prev.cidade, estado: perfil.estado || prev.estado,
+            orientadores: perfil.orientador && !(prev.orientadores || []).some(o => o?.trim()) ? [perfil.orientador] : prev.orientadores,
+        }));
+        toast.success('Dados do perfil aplicados.');
+    };
+
     const docType = getDocType(data);
     const typeKey = getDocTypeKey(data);
     const tag = (el) => isRequired(docType, el) ? 'Obrigatório' : 'Opcional';
@@ -262,7 +284,15 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
             {/* Identificação */}
             <section className="space-y-3">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
+                {!isReadOnly && (
+                  <div className="flex gap-3">
+                    {hasPerfil && <button type="button" onClick={aplicarPerfil} className="text-[10px] font-bold text-green-700 dark:text-green-400 hover:underline" title="Preencher instituição, curso, cidade e orientador com o seu perfil">Usar meu perfil</button>}
+                    <button type="button" onClick={salvarPerfil} className="text-[10px] font-bold text-slate-500 hover:text-green-700 hover:underline" title="Guardar instituição, curso, cidade e orientador para os próximos documentos">Salvar como perfil</button>
+                  </div>
+                )}
+              </div>
               {hasElement(docType, 'folhaRosto') && (
                 <>
                   <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Instituição" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} />
@@ -297,7 +327,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 <select disabled={isReadOnly} className={`p-2 border rounded-lg text-xs outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} value={data.estado} onChange={e => updateField('estado', e.target.value)}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select>
               </div>
 
-              {(docType.elements.capa === 'opc' || hasElement(docType, 'listas')) && (
+              {(docType.elements.capa === 'opc' || hasElement(docType, 'listas') || hasElement(docType, 'fichaCatalografica')) && (
                 <div className="flex flex-col gap-1.5 pt-1">
                   {docType.elements.capa === 'opc' && (
                     <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
@@ -308,6 +338,19 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                     <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
                       <input type="checkbox" disabled={isReadOnly} checked={data.incluirListas !== false} onChange={e => updateField('incluirListas', e.target.checked)} /> Gerar listas de ilustrações e de tabelas
                     </label>
+                  )}
+                  {hasElement(docType, 'fichaCatalografica') && (
+                    <>
+                      <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                        <input type="checkbox" disabled={isReadOnly} checked={Boolean(data.fichaCatalografica)} onChange={e => updateField('fichaCatalografica', e.target.checked)} /> Incluir ficha catalográfica (verso da folha de rosto)
+                      </label>
+                      {data.fichaCatalografica && (
+                        <div className="pl-5 space-y-1">
+                          <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="text-xs" placeholder="Classificação da biblioteca (ex.: CDD 616.89)" value={data.fichaCdd || ''} onChange={e => updateField('fichaCdd', e.target.value)} />
+                          <p className="text-[10px] text-slate-400 leading-snug">A ficha usa as palavras-chave como assuntos. A classificação (CDD/CDU) é fornecida pela biblioteca da instituição.</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}

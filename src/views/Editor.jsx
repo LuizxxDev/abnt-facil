@@ -103,6 +103,19 @@ const Editor = () => {
             }
             if (isRequired(type, 'resumoEn') && !isFilled(data.resumoEn)) errs.push({msg: 'Falta o resumo em língua estrangeira (Abstract)', explain: `É elemento obrigatório na ${type.norma}.`});
             if (isRequired(type, 'folhaAprovacao') && !(data.banca || []).some(m => m?.nome?.trim())) errs.push({msg: 'Preencha a Banca Examinadora', explain: 'A folha de aprovação é obrigatória (NBR 14724) e lista os membros da banca.'});
+            if (isRequired(type, 'folhaAprovacao') && !data.dataAprovacao) errs.push({msg: 'Falta a data de aprovação', explain: 'A folha de aprovação traz a data de aprovação (NBR 14724). Se ainda não houve defesa, deixe em branco e preencha à mão depois.'});
+            if (isRequired(type, 'folhaAprovacao') && !(data.orientadores || []).some(o => o?.trim())) errs.push({msg: 'Informe o(a) orientador(a)', explain: 'O nome do orientador aparece na folha de rosto (NBR 14724).'});
+            // NBR 6028:2021 — palavras-chave logo abaixo do resumo, separadas entre si por ponto e vírgula
+            if (isRequired(type, 'resumoPt') && !isFilled(data.palavrasChavePt)) errs.push({msg: 'Faltam as palavras-chave', explain: 'Vêm logo abaixo do resumo, antecedidas de "Palavras-chave:" (NBR 6028:2021).'});
+            [['Palavras-chave', data.palavrasChavePt], ['Keywords', data.palavrasChaveEn]].forEach(([label, kw]) => {
+                if (isFilled(kw) && kw.includes(',') && !kw.includes(';')) errs.push({msg: `${label} separadas por vírgula`, explain: 'A NBR 6028:2021 separa as palavras-chave por ponto e vírgula: saúde mental; ensino superior; ansiedade.'});
+            });
+            if (data.fichaCatalografica && hasElement(type, 'fichaCatalografica') && !isFilled(data.palavrasChavePt)) errs.push({msg: 'A ficha catalográfica está sem assuntos', explain: 'Os assuntos da ficha vêm das palavras-chave do resumo. Preencha-as ou peça a ficha à biblioteca.'});
+            // NBR 6023:2018 — documento on-line: "Disponível em: <endereço>. Acesso em: dia mês abreviado ano."
+            if (isFilled(data.referencias)) {
+                const semAcesso = data.referencias.split('\n').filter(l => /Dispon[ií]vel em:/i.test(l) && !/Acesso em:/i.test(l));
+                if (semAcesso.length) errs.push({msg: `${semAcesso.length} referência(s) on-line sem data de acesso`, explain: 'Na NBR 6023:2018, documentos on-line terminam com "Disponível em: endereço. Acesso em: 15 mar. 2024."'});
+            }
             if (hasElement(type, 'obraResenhada') && !isFilled(data.obraResenhada)) errs.push({msg: 'Informe a referência da obra resenhada', explain: 'A resenha começa pela referência completa da obra analisada (NBR 6028).'});
             if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas (NBR 6023).'});
             if (type.layout === 'academic' && data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'A parte textual tem introdução, desenvolvimento e conclusão.'});

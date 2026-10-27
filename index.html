@@ -10,6 +10,12 @@
     <meta property="og:description" content="Escreva o conteúdo; a formatação ABNT (NBR 14724, 6022, 6023, 10520...) fica por conta do editor." />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://abnt-facil-luiz-s-projects-bbeace80.vercel.app/" />
+    <meta property="og:image" content="https://abnt-facil-luiz-s-projects-bbeace80.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ABNTFácil: você escreve, a ABNT fica com a gente." />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,25 +27,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ABNTFácil" />
     
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(
-            (registration) => {
-              console.log('PWA ServiceWorker registado com sucesso! Âmbito: ', registration.scope);
-            },
-            (err) => {
-              console.log('PWA ServiceWorker falhou ao registar: ', err);
-            }
-          );
-        });
-      }
-    </script>
   </body>
 </html>

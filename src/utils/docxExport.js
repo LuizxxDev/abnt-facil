@@ -6,7 +6,8 @@ import {
     TableOfContents, Table, TableRow, TableCell, BorderStyle, WidthType, ImageRun,
     FootnoteReferenceRun, SectionType, VerticalAlignSection, SimpleField,
 } from 'docx';
-import { getDocType, hasElement, isRequired, formatKeywords } from './documentTypes';
+import { getDocType, getDocTypeKey, hasElement, isRequired, formatKeywords } from './documentTypes';
+import { buildFichaCatalografica } from './fichaCatalografica';
 import { splitBlocks, parseTable, orderedLines, parseInline, ASSET_LABELS } from './documentContent';
 import { download, safeFileName } from './pdfExport';
 
@@ -61,7 +62,7 @@ const loadImage = (src) => new Promise((resolve, reject) => {
     img.src = src;
 });
 
-export async function exportDocx(data, authors, fontFamily = 'Arial') {
+export async function exportDocx(data, authors, fontFamily = 'Arial', { folhas } = {}) {
     const type = getDocType(data);
     const isArticle = type.layout === 'article';
     const font = fontFamily === 'Times New Roman' ? 'Times New Roman' : 'Arial';
@@ -252,7 +253,12 @@ export async function exportDocx(data, authors, fontFamily = 'Arial') {
         const section = (children, opts = {}) => sections.push({ properties: { type: SectionType.NEXT_PAGE, verticalAlign: opts.align || VerticalAlignSection.TOP, page: { ...PAGE, ...(opts.start ? { pageNumbers: { start: opts.start } } : {}) } }, ...(opts.header ? { headers: { default: opts.header } } : {}), children });
 
         let counting = false; // a contagem começa na folha de rosto (a capa não é contada)
-        const startOnce = () => { if (counting) return undefined; counting = true; return 1; };
+        let restartAt;        // depois do verso (ficha catalográfica) a numeração segue a do anverso
+        const startOnce = () => {
+            if (restartAt) { const n = restartAt; restartAt = undefined; return n; }
+            if (counting) return undefined;
+            counting = true; return 1;
+        };
 
         if (hasElement(type, 'capa') && (isRequired(type, 'capa') || data.incluirCapa !== false)) {
             section([
@@ -266,6 +272,28 @@ export async function exportDocx(data, authors, fontFamily = 'Arial') {
                 ...orientadores.map(o => new TextRun({ text: o, break: 1 })),
             ] : [];
             section([autoresP, tituloP(), naturezaP(orient), cidadeAno], { align: VerticalAlignSection.BOTH, start: startOnce() });
+        }
+        if (hasElement(type, 'fichaCatalografica') && data.fichaCatalografica) {
+            const f = buildFichaCatalografica(data, autores, { typeKey: getDocTypeKey(data), folhas });
+            const fichaRun = (text, opts = {}) => new Paragraph({ spacing: { line: 276, before: 0, after: 0 }, indent: { firstLine: 0, ...(opts.indent ? { left: cm(0.6) } : {}) }, alignment: opts.right ? AlignmentType.RIGHT : AlignmentType.LEFT, children: [new TextRun({ text, size: PT10 })] });
+            const blank = () => fichaRun('');
+            const cell = new TableCell({
+                width: { size: cm(12.5), type: WidthType.DXA },
+                margins: { top: cm(0.4), bottom: cm(0.4), left: cm(0.4), right: cm(0.4) },
+                borders: { top: LINE(), bottom: LINE(), left: LINE(), right: LINE() },
+                children: [
+                    fichaRun(f.entrada),
+                    ...f.corpo.map(l => fichaRun(l, { indent: true })), blank(),
+                    ...f.notas.map(l => fichaRun(l, { indent: true })), blank(),
+                    fichaRun(f.pistas, { indent: true }), blank(),
+                    fichaRun(f.classificacao, { right: true }),
+                ],
+            });
+            section([
+                new Paragraph({ style: 'Centro', spacing: { line: LINE_1, after: 160 }, children: [new TextRun({ text: 'Ficha catalográfica elaborada com o ABNTFácil.', size: PT10 }), new TextRun({ text: 'Confirme os dados e a classificação com a biblioteca da instituição.', size: PT10, break: 1 })] }),
+                new Table({ alignment: AlignmentType.CENTER, width: { size: cm(12.5), type: WidthType.DXA }, rows: [new TableRow({ height: { value: cm(7.5), rule: 'atLeast' }, children: [cell] })] }),
+            ], { align: VerticalAlignSection.BOTTOM });
+            restartAt = 2;
         }
         if (hasElement(type, 'folhaAprovacao') && (isRequired(type, 'folhaAprovacao') || banca.length)) {
             const membros = banca.length ? banca : [{ nome: 'Nome do(a) Orientador(a)', titulacao: 'Orientador(a)' }, { nome: 'Nome do(a) Examinador(a)' }, { nome: 'Nome do(a) Examinador(a)' }];
