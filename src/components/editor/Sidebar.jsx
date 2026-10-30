@@ -23,9 +23,9 @@ const SortableNavItem = ({ item, scrollToSection, settings, closeOnMobile }) => 
 };
 
 // Componente Abstrato para secar a repetição dos elementos pós-textuais
-const PostTextualButton = ({ onClick, icon: Icon, label, theme }) => (
+const PostTextualButton = ({ onClick, icon, label, theme }) => (
     <button onClick={onClick} className={`w-full text-left p-2 rounded-lg text-xs transition-all flex items-center gap-2 font-bold ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400 hover:text-slate-200' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-800'}`}>
-        <Icon size={14} className="text-slate-400" /> {label}
+        {icon} {label}
     </button>
 );
 
@@ -67,9 +67,9 @@ const Sidebar = ({ sumarioItens, scrollToSection, setShowOutline, settings, onRe
 
                   {data && (
                       <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
-                          <PostTextualButton onClick={() => { scrollToSection('referencias'); closeOnMobile(); }} icon={BookMarked} label="REFERÊNCIAS" theme={settings.theme} />
-                          {data.apendices?.trim() && <PostTextualButton onClick={() => { scrollToSection('apendices'); closeOnMobile(); }} icon={Layers} label="APÊNDICES" theme={settings.theme} />}
-                          {data.anexos?.trim() && <PostTextualButton onClick={() => { scrollToSection('anexos'); closeOnMobile(); }} icon={Layers} label="ANEXOS" theme={settings.theme} />}
+                          <PostTextualButton onClick={() => { scrollToSection('referencias'); closeOnMobile(); }} icon={<BookMarked size={14} className="text-slate-400" />} label="REFERÊNCIAS" theme={settings.theme} />
+                          {data.apendices?.trim() && <PostTextualButton onClick={() => { scrollToSection('apendices'); closeOnMobile(); }} icon={<Layers size={14} className="text-slate-400" />} label="APÊNDICES" theme={settings.theme} />}
+                          {data.anexos?.trim() && <PostTextualButton onClick={() => { scrollToSection('anexos'); closeOnMobile(); }} icon={<Layers size={14} className="text-slate-400" />} label="ANEXOS" theme={settings.theme} />}
                       </div>
                   )}
 

@@ -80,7 +80,7 @@ export const FeedbackModal = ({ isOpen, onClose }) => {
                         className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] flex items-center gap-2 focus:outline-none"
                     >
                         {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16}/>} 
-                        {isSubmitting ? 'A enviar...' : 'Enviar'}
+                        {isSubmitting ? 'Enviando...' : 'Enviar'}
                     </button>
                 </div>
             </div>

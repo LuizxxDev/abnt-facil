@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bold, Italic, Link, Quote, List, Type, BookOpen } from 'lucide-react';
+import { Bold, Italic, Quote, BookOpen } from 'lucide-react';
 
 export const EditorToolbar = ({ onAction }) => {
     const buttons = [
@@ -14,7 +14,7 @@ export const EditorToolbar = ({ onAction }) => {
             {buttons.map(btn => (
                 <button
                     key={btn.id}
-                    // AQUI ESTÁ A CORREÇÃO: Usamos onMouseDown em vez de onClick
+                    // onMouseDown (e não onClick) para o campo de texto não perder a seleção
                     onMouseDown={(e) => { e.preventDefault(); onAction(btn); }}
                     title={btn.label}
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"

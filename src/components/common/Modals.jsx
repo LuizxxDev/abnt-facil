@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Save, AlertOctagon, Eraser, Settings2, X, Check, UserCircle, Cloud, CloudOff, LogOut, GraduationCap } from 'lucide-react';
+import { Sun, Moon, Save, AlertOctagon, Eraser, Settings2, X, UserCircle, Cloud, CloudOff, LogOut, GraduationCap } from 'lucide-react';
 import { DOCUMENT_TYPES } from '../../utils/documentTypes';
 import { ESTADOS_BR } from '../../utils/constants';
 
@@ -208,7 +208,7 @@ export const SettingsModal = ({ isOpen, onClose, settings, setSettings, onDelete
                 <button onClick={onDeleteAll} className="w-full border border-red-200/30 text-red-500 hover:bg-red-500 hover:text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"><Eraser size={16}/> Apagar Todos os Meus Projetos</button>
               </div>
             </div>
-            <div className="mt-8"><button onClick={onClose} className="w-full py-3.5 bg-slate-200/50 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-xl font-bold text-sm transition-colors">Guardar e Fechar</button></div>
+            <div className="mt-8"><button onClick={onClose} className="w-full py-3.5 bg-slate-200/50 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-700 rounded-xl font-bold text-sm transition-colors">Salvar e fechar</button></div>
           </div>
         </div>
     );

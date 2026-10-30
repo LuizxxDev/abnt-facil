@@ -289,7 +289,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 {!isReadOnly && (
                   <div className="flex gap-3">
                     {hasPerfil && <button type="button" onClick={aplicarPerfil} className="text-[10px] font-bold text-green-700 dark:text-green-400 hover:underline" title="Preencher instituição, curso, cidade e orientador com o seu perfil">Usar meu perfil</button>}
-                    <button type="button" onClick={salvarPerfil} className="text-[10px] font-bold text-slate-500 hover:text-green-700 hover:underline" title="Guardar instituição, curso, cidade e orientador para os próximos documentos">Salvar como perfil</button>
+                    <button type="button" onClick={salvarPerfil} className="text-[10px] font-bold text-slate-500 hover:text-green-700 hover:underline" title="Salvar instituição, curso, cidade e orientador para os próximos documentos">Salvar como perfil</button>
                   </div>
                 )}
               </div>

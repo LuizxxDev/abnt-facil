@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [activeProjectId, setActiveProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
   
   const [user, setUser] = useState(null); 
@@ -33,7 +32,7 @@ export const AppProvider = ({ children }) => {
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
         setIsAuthLoading(true);
-        toast.loading("A processar a tua entrada...", { id: 'auth-toast' });
+        toast.loading("Entrando na sua conta...", { id: 'auth-toast' });
 
         const hashParams = new URLSearchParams(hash.replace('#', ''));
         const accessToken = hashParams.get('access_token');
@@ -155,13 +154,13 @@ export const AppProvider = ({ children }) => {
     try {
         const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard' }});
         if (error) toast.error(`Erro ao iniciar sessão: ${error.message}`);
-    } catch (err) {
+    } catch {
         toast.error("Falha ao comunicar com o servidor.");
     }
   }, []);
 
   const logout = useCallback(async () => {
-    toast.loading("A encerrar sessão...", { id: 'logout-toast' });
+    toast.loading("Saindo da conta...", { id: 'logout-toast' });
     try {
         const { error } = await supabase.auth.signOut();
         if (error) {
@@ -176,7 +175,7 @@ export const AppProvider = ({ children }) => {
         const saved = localStorage.getItem('ifpa_projects_final_v6');
         try {
             setProjects(saved ? JSON.parse(saved) : []);
-        } catch(e) {
+        } catch {
             setProjects([]);
         }
         toast.success("Sessão terminada.", { id: 'logout-toast' });
@@ -262,19 +261,6 @@ export const AppProvider = ({ children }) => {
     return await persistNewProject(newProj);
   }, [projects, persistNewProject]);
 
-  const duplicateAsTemplate = useCallback(async (id) => {
-    const original = projects.find(p => p.id === id);
-    if (!original) return null;
-    const { id: _removedId, ...newProj } = original;
-    newProj.title += " (Modelo)";
-    newProj.authors = [''];
-    newProj.data = {
-        ...original.data, dedicatoria: '', agradecimentos: '', epigrafe: '', resumoPt: '', resumoEn: '', apendices: '', anexos: '',
-        secoes: original.data.secoes.map(s => ({...s, id: generateId(), conteudo: ''})) 
-    };
-    return await persistNewProject(newProj);
-  }, [projects, persistNewProject]);
-
   const updateProject = useCallback(async (id, updates) => {
     const now = new Date().toISOString();
     setProjects(prev => {
@@ -341,14 +327,14 @@ export const AppProvider = ({ children }) => {
 
   // Envolvendo o contexto atual em useMemo para evitar re-renderizações em massa
   const contextValue = useMemo(() => ({
-    activeProjectId, setActiveProjectId, projects, setProjects, settings, setSettings,
+    projects, setProjects, settings, setSettings,
     user, loginWithGoogle, logout, isAuthLoading, isDataLoading, 
-    createNewProject, createFromExample, createFromModel, duplicateProject, duplicateAsTemplate,
+    createNewProject, createFromExample, createFromModel, duplicateProject,
     updateProject, deleteProject, restoreProject, importAllProjects
   }), [
-    activeProjectId, projects, settings, user, isAuthLoading, isDataLoading,
+    projects, settings, user, isAuthLoading, isDataLoading,
     loginWithGoogle, logout, createNewProject, createFromExample, createFromModel,
-    duplicateProject, duplicateAsTemplate, updateProject, deleteProject, restoreProject, importAllProjects
+    duplicateProject, updateProject, deleteProject, restoreProject, importAllProjects
   ]);
 
   return (
@@ -358,4 +344,5 @@ export const AppProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- o hook acompanha o provider
 export const useAppContext = () => useContext(AppContext);

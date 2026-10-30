@@ -28,7 +28,7 @@ const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     
-    const { projects, setProjects, settings, setSettings, setActiveProjectId, createFromExample } = useAppContext();
+    const { projects, setProjects, settings, setSettings, createFromExample } = useAppContext();
     
     const [data, setData] = useState(null);
     const [authors, setAuthors] = useState(['']);
@@ -50,10 +50,6 @@ const Editor = () => {
     const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     
     const [attachmentModal, setAttachmentModal] = useState({ open: false, type: 'apendice' });
-
-    useEffect(() => {
-        setActiveProjectId(id);
-    }, [id, setActiveProjectId]);
 
     useEffect(() => {
         if (!id) return;
@@ -153,7 +149,7 @@ const Editor = () => {
                 if (missing.length > 0) {
                     errs.push({
                         msg: `Citação sem Referência: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
-                        explain: `Atenção: Citaste "${missing[0]}" no texto, mas não o incluíste na lista final de Referências. A banca desconta nota por isso!`
+                        explain: `"${missing[0]}" aparece citado no texto, mas não está na lista de referências (NBR 10520 e NBR 6023).`
                     });
                 }
                 if (capsAuthors.size > 0) {
@@ -185,10 +181,11 @@ const Editor = () => {
     }, [abntErrors]);
 
     const numberSections = getDocType(data).numberedSections !== false;
-    const sumarioItens = useMemo(() => { 
-        if (!data || !data.secoes) return [];
+    const secoes = data?.secoes;
+    const sumarioItens = useMemo(() => {
+        if (!secoes) return [];
         let counts = [0, 0, 0, 0, 0];
-        return data.secoes.map(s => {
+        return secoes.map(s => {
             const level = Math.min(Math.max(Number(s.level) || 1, 1), 5); 
             counts[level - 1]++;
             for (let k = level; k < 5; k++) counts[k] = 0;
@@ -196,18 +193,18 @@ const Editor = () => {
             for (let k = 0; k < level; k++) numParts.push(counts[k] === 0 ? 1 : counts[k]);
             return { ...s, level, num: numberSections ? numParts.join('.') : '' };
         }); 
-    }, [data?.secoes, numberSections]);
+    }, [secoes, numberSections]);
 
     const groupedSections = useMemo(() => {
-        if (!data || !data.secoes) return [];
+        if (!secoes) return [];
         const groups = [];
-        data.secoes.forEach((section, index) => {
+        secoes.forEach((section, index) => {
           const sectionWithNum = { ...section, num: sumarioItens[index]?.num };
           if (Number(section.level) === 1 || groups.length === 0) groups.push([sectionWithNum]);
           else groups[groups.length - 1].push(sectionWithNum);
         });
         return groups;
-    }, [data?.secoes, sumarioItens]);
+    }, [secoes, sumarioItens]);
 
     const deferredData = useDeferredValue(data);
     const deferredAuthors = useDeferredValue(authors);

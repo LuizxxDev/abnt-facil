@@ -1,33 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Layers, Plus, AlignLeft, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const AttachmentModal = ({ isOpen, onClose, type, currentText, onAdd }) => {
+// Próxima letra da sequência (APÊNDICE A, B, C...) a partir do que já existe no texto
+const nextLetterFor = (type, currentText) => {
+    const label = type === 'apendice' ? 'APÊNDICE' : 'ANEXO';
+    const regex = new RegExp(`${label} ([A-Z])`, 'g');
+    let lastChar = '@'; // o caractere seguinte a '@' é 'A'
+    let matches;
+    while ((matches = regex.exec(currentText || '')) !== null) {
+        if (matches[1] > lastChar) lastChar = matches[1];
+    }
+    return String.fromCharCode(lastChar.charCodeAt(0) + 1);
+};
+
+// Montado só enquanto aberto: os campos recomeçam vazios a cada abertura
+const AttachmentModal = (props) => (props.isOpen ? <AttachmentModalContent {...props} /> : null);
+
+const AttachmentModalContent = ({ onClose, type, currentText, onAdd }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [nextLetter, setNextLetter] = useState('A');
-
-    useEffect(() => {
-        if (isOpen) {
-            setTitle('');
-            setContent('');
-            
-            // Lógica inteligente para descobrir a próxima letra (A, B, C...)
-            const label = type === 'apendice' ? 'APÊNDICE' : 'ANEXO';
-            const regex = new RegExp(`${label} ([A-Z])`, 'g');
-            let matches;
-            let lastChar = '@'; // ASCII 64, o próximo será 'A' (65)
-            
-            while ((matches = regex.exec(currentText || '')) !== null) {
-                if (matches[1] > lastChar) lastChar = matches[1];
-            }
-            
-            // Incrementa uma letra no alfabeto
-            setNextLetter(String.fromCharCode(lastChar.charCodeAt(0) + 1));
-        }
-    }, [isOpen, type, currentText]);
-
-    if (!isOpen) return null;
+    const nextLetter = useMemo(() => nextLetterFor(type, currentText), [type, currentText]);
 
     const isApendice = type === 'apendice';
     const label = isApendice ? 'Apêndice' : 'Anexo';
@@ -74,7 +67,7 @@ const AttachmentModal = ({ isOpen, onClose, type, currentText, onAdd }) => {
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-3 flex gap-3 text-blue-800 dark:text-blue-300">
                         <HelpCircle size={16} className="shrink-0 mt-0.5 text-blue-500"/>
                         <p className="text-xs">
-                            A sequência é automática. Este será o teu <strong>{labelUpper} {nextLetter}</strong>. 
+                            A sequência é automática. Este será o <strong>{labelUpper} {nextLetter}</strong>. 
                             Podes colar texto, questionários ou usar as tags de imagem <code>[IMAGEM]: Título | Fonte | URL</code> no conteúdo.
                         </p>
                     </div>
