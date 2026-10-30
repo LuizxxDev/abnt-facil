@@ -48,7 +48,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
         const reader = new FileReader();
         reader.onload = (event) => {
             setAssetModal({ ...assetModal, localBase64: event.target.result, url: '' });
-            toast.success("Imagem guardada localmente!");
+            toast.success("Imagem salva neste aparelho.");
         };
         reader.readAsDataURL(file);
     };
@@ -57,7 +57,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
-            toast.error("Formato inválido. Por favor, seleciona uma imagem.");
+            toast.error("Formato inválido. Escolha um arquivo de imagem.");
             return;
         }
 
@@ -68,7 +68,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
             }
 
             setIsUploading(true);
-            const toastId = toast.loading("A enviar imagem para a nuvem...");
+            const toastId = toast.loading("Enviando a imagem para a nuvem...");
 
             try {
                 const fileExt = file.name.split('.').pop();
@@ -86,11 +86,11 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                     .getPublicUrl(filePath);
 
                 setAssetModal({ ...assetModal, url: publicUrlData.publicUrl, localBase64: null });
-                toast.success("Imagem guardada na nuvem em segurança!", { id: toastId });
+                toast.success("Imagem salva na nuvem.", { id: toastId });
 
             } catch (error) {
                 console.error("Erro no upload para o Supabase:", error);
-                toast.error("A nuvem falhou. A guardar localmente...", { id: toastId });
+                toast.error("A nuvem não respondeu. Salvando neste aparelho...", { id: toastId });
                 convertToBase64(file); 
             } finally {
                 setIsUploading(false);
@@ -193,7 +193,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                               {isUploading ? <Loader2 size={32} className="animate-spin" /> : isDragging || localBase64 || url ? <ImagePlus size={32} /> : <UploadCloud size={32} />}
                           </div>
                           <div>
-                              <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{isUploading ? 'A processar imagem...' : isDragging ? 'Larga a imagem aqui...' : localBase64 || url ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}</p>
+                              <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{isUploading ? 'Processando a imagem...' : isDragging ? 'Solte a imagem aqui...' : localBase64 || url ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}</p>
                               <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Suporta JPG, PNG, GIF</p>
                           </div>
                       </div>

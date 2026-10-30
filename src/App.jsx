@@ -24,8 +24,7 @@ if (typeof window !== 'undefined') {
 export default function App() {
   return (
     <>
-      {/* UI/UX POLISH: Toaster posicionado no topo-centro (campo de visão) e com formato mais quadrado */}
-      {/* A classe containerClassName garante que os alertas nunca fiquem no PDF gerado */}
+      {/* Avisos no topo; containerClassName mantém-nos fora da impressão */}
       <Toaster 
         position="top-center" 
         containerClassName="print:hidden print-hidden"
@@ -34,21 +33,21 @@ export default function App() {
           // O className permite que o toast obedeça ao .dark do HTML dinamicamente
           className: 'dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-2xl',
           style: {
-            borderRadius: '6px', // Estilo Quadrado / Profissional
+            borderRadius: '6px',
             padding: '16px 24px',
             fontWeight: '600',
             fontSize: '14px',
-            marginTop: '32px' // Desce a notificação um pouco mais para o centro do olhar
+            marginTop: '32px'
           },
           success: {
             iconTheme: {
-              primary: '#16a34a', // text-green-600
+              primary: '#16a34a',
               secondary: '#fff',
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444', // text-red-500
+              primary: '#ef4444',
               secondary: '#fff',
             },
           },

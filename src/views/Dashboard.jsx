@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Settings2, PlusCircle, Lightbulb, Search,
-    Trash2, Star, BookTemplate, Eye, MoreVertical,
+    Trash2, Star, Eye, MoreVertical,
     RotateCcw, Copy, Clock, CheckCircle2, FileEdit, Ghost,
     ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
     Sun, Moon, Cloud, CloudOff, User, MessageSquare, SearchX
@@ -21,7 +21,7 @@ const Dashboard = () => {
     const { 
         projects, settings, setSettings, 
         createNewProject, createFromExample, createFromModel,
-        duplicateProject, duplicateAsTemplate,
+        duplicateProject,
         deleteProject, restoreProject, updateProject,
         importAllProjects,
         user, loginWithGoogle, logout,
@@ -95,10 +95,10 @@ const Dashboard = () => {
                 if (count > 0) {
                     toast.success(`${count} projeto(s) importado(s)!`);
                 } else {
-                    toast.error("Nenhum projeto novo encontrado no ficheiro.");
+                    toast.error("Nenhum projeto novo encontrado no arquivo.");
                 }
-            } catch (err) {
-                toast.error("Ficheiro de backup inválido.");
+            } catch {
+                toast.error("Arquivo de backup inválido.");
             }
         };
         reader.readAsText(file);
@@ -343,7 +343,6 @@ const Dashboard = () => {
                                 onRestore={() => { restoreProject(p.id); toast.success("Restaurado!"); }}
                                 onDeletePermanent={() => { if(window.confirm("Apagar permanentemente?")) { deleteProject(p.id, true); toast.success("Eliminado."); } }}
                                 onDuplicate={() => { duplicateProject(p.id); toast.success("Cópia criada!"); }}
-                                onDuplicateTemplate={() => { duplicateAsTemplate(p.id); toast.success("Modelo criado!"); }}
                             />
                         </div>
                     ))}
@@ -360,7 +359,7 @@ const Dashboard = () => {
                                 <>
                                     <Star size={48} className="mx-auto mb-4 text-slate-400"/>
                                     <p className="text-sm font-bold">Sem projetos favoritos.</p>
-                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Clica na estrela de um projeto para o guardar aqui.</p>
+                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Toque na estrela de um projeto para guardá-lo aqui.</p>
                                 </>
                             ) : filterTab === 'trash' ? (
                                 <>
@@ -400,7 +399,7 @@ const Dashboard = () => {
     );
 };
 
-const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate, onDuplicateTemplate }) => {
+const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate }) => {
     const progress = calculateProgress(project.data);
     const isTrash = project.deleted;
 

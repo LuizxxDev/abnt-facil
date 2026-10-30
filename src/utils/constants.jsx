@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart3, ArrowLeftRight, FlaskConical } from 'lucide-react';
 import { generateId } from './helpers';
+import { parseTable } from './documentContent';
 
 export const ABNT_TIPS = [
   "ABNT: Tabelas devem ter as laterais abertas (sem bordas verticais).",
@@ -158,13 +159,7 @@ export const TAG_RENDERERS = {
     );
   },
   'TABELA': (content, idx, num) => {
-    const parts = content.split('|');
-    const title = parts[0]?.trim();
-    const source = parts[1]?.trim();
-    const rawData = parts.slice(2).join('|').trim();
-    let tableData = [];
-    try { tableData = JSON.parse(rawData); } catch (e) { tableData = [[rawData]]; }
-    if (!Array.isArray(tableData)) tableData = [];
+    const { title, source, rows: tableData } = parseTable(content);
     return (
       <div key={idx} className="my-6 text-center w-full">
         <div className="text-[10pt] font-bold mb-2 uppercase text-left">Tabela {num} – {title || 'Título'}</div>
@@ -172,16 +167,16 @@ export const TAG_RENDERERS = {
           <table className="w-full border-y-2 border-black border-collapse text-[10pt] mb-2">
             <thead>
               <tr className="border-b border-black">
-                {Array.isArray(tableData[0]) && tableData[0].map((header, i) => (
-                  <th key={i} className="p-2 text-left font-bold bg-slate-50/50">{typeof header === 'object' ? JSON.stringify(header) : header}</th>
+                {tableData[0]?.map((header, i) => (
+                  <th key={i} className="p-2 text-left font-bold bg-slate-50/50">{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {tableData.slice(1).map((row, rI) => (
                 <tr key={rI} className="border-b border-slate-200 last:border-0">
-                  {Array.isArray(row) && row.map((cell, cI) => (
-                    <td key={cI} className="p-2 text-left">{typeof cell === 'object' && cell !== null ? JSON.stringify(cell) : cell}</td>
+                  {row.map((cell, cI) => (
+                    <td key={cI} className="p-2 text-left">{cell}</td>
                   ))}
                 </tr>
               ))}
