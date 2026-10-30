@@ -121,7 +121,7 @@ const LandingPage = () => {
                             <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
                             Gratuito · feito por um estudante do IFPA Belém
                         </p>
-                        <h1 className="reveal font-serif text-[3.1rem] leading-[0.98] tracking-[-0.02em] text-slate-950 sm:text-7xl lg:text-[4.6rem] xl:text-[5rem]" style={delay(60)}>
+                        <h1 className="font-serif text-[3.1rem] leading-[0.98] tracking-[-0.02em] text-slate-950 sm:text-7xl lg:text-[4.6rem] xl:text-[5rem]">
                             Escreva o trabalho.<br />
                             <span className="italic text-green-700">A ABNT fica com a gente.</span>
                         </h1>
@@ -267,7 +267,7 @@ const LandingPage = () => {
 
             <footer className="relative z-10 border-t border-slate-200">
                 <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-slate-500 sm:flex-row md:px-8">
-                    <p>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
+                    <p suppressHydrationWarning>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
                     <button onClick={() => setIsFeedbackModalOpen(true)} className="font-medium text-slate-600 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-green-700">
                         Reportar um problema ou sugerir melhoria
                     </button>

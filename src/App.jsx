@@ -7,6 +7,20 @@ import PageLoader from './components/common/PageLoader';
 // Supabase, painel e editor ficam fora do arquivo inicial: a landing page abre sem baixá-los
 const AppShell = lazy(() => import('./AppShell'));
 
+// Fora da página inicial, baixa o shell e a tela da rota ao mesmo tempo (sem esperar um pelo outro)
+if (typeof window !== 'undefined') {
+  const path = window.location.pathname;
+  if (path !== '/') {
+    import('./AppShell');
+    if (path.startsWith('/editor')) import('./views/Editor');
+    else if (path.startsWith('/dashboard')) import('./views/Dashboard');
+  } else {
+    // Na página inicial, adianta o painel quando o navegador estiver livre: o clique em "Começar" abre na hora
+    const warm = () => { import('./AppShell'); import('./views/Dashboard'); };
+    window.addEventListener('load', () => (window.requestIdleCallback ? window.requestIdleCallback(warm, { timeout: 4000 }) : setTimeout(warm, 2000)), { once: true });
+  }
+}
+
 export default function App() {
   return (
     <>

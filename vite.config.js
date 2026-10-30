@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, createServer } from 'vite'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
@@ -44,11 +44,35 @@ const serviceWorkerManifest = () => {
   };
 };
 
+// Depois do build, renderiza a página inicial em HTML (index.html) e guarda uma cópia
+// vazia (app.html) para as rotas do aplicativo, que continuam renderizadas no navegador.
+const prerenderLanding = () => {
+  let outDir = 'dist';
+  return {
+    name: 'prerender-landing',
+    apply: 'build',
+    configResolved(config) { outDir = config.build.outDir; },
+    async closeBundle() {
+      const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom', logLevel: 'error', configFile: false, plugins: [react()], optimizeDeps: { noDiscovery: true, include: [] } });
+      try {
+        const { render } = await server.ssrLoadModule('/src/entry-prerender.jsx');
+        const file = join(outDir, 'index.html');
+        const shell = readFileSync(file, 'utf8');
+        writeFileSync(join(outDir, 'app.html'), shell);
+        writeFileSync(file, shell.replace('<div id="root"></div>', `<div id="root">${render('/')}</div>`));
+      } finally {
+        await server.close();
+      }
+    },
+  };
+};
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     localApi(),
     serviceWorkerManifest(),
+    prerenderLanding(),
   ],
 })

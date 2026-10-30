@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useDeferredValue, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue, useCallback, lazy, Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle,
@@ -79,7 +80,7 @@ const Editor = () => {
 
     const isReadOnly = id === EXAMPLE_ID;
     const { isSaving } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
-    const { handleExportPDF, handleExportDocx, isExporting } = useExport(data, authors, fontFamily);
+    const { handleExportPDF: exportPdfNow, handleExportDocx: exportDocxNow, isExporting } = useExport(data, authors, fontFamily);
 
     // DEBOUNCE APLICADO: Previne congelamento da Main Thread por regex excessiva
     useEffect(() => {
@@ -208,9 +209,40 @@ const Editor = () => {
         return groups;
     }, [data?.secoes, sumarioItens]);
 
-    const previewData = useDeferredValue(data);
-    const previewAuthors = useDeferredValue(authors);
-    const previewSections = useDeferredValue(groupedSections);
+    const deferredData = useDeferredValue(data);
+    const deferredAuthors = useDeferredValue(authors);
+    const deferredSections = useDeferredValue(groupedSections);
+
+    // No celular a pré-visualização fica escondida atrás do formulário: em vez de repaginar a cada
+    // tecla, ela só é montada quando o formulário já apareceu e acompanha o texto após uma pausa.
+    const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 1023px)').matches);
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 1023px)');
+        const onChange = () => setIsNarrow(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+    const previewHidden = isNarrow && mobileView === 'editor';
+    const [hiddenSnapshot, setHiddenSnapshot] = useState(null);
+    useEffect(() => {
+        if (!previewHidden || !data) return;
+        if (hiddenSnapshot && hiddenSnapshot.data === data && hiddenSnapshot.authors === authors && hiddenSnapshot.sections === groupedSections) return;
+        const t = setTimeout(() => setHiddenSnapshot({ data, authors, sections: groupedSections }), hiddenSnapshot ? 1200 : 600);
+        return () => clearTimeout(t);
+    }, [previewHidden, data, authors, groupedSections, hiddenSnapshot]);
+    const preview = previewHidden ? hiddenSnapshot : { data: deferredData, authors: deferredAuthors, sections: deferredSections };
+    const previewData = preview?.data;
+    const previewAuthors = preview?.authors;
+    const previewSections = preview?.sections;
+
+    // As exportações leem a pré-visualização: atualiza-a na hora antes de exportar
+    const flushPreview = useCallback(async () => {
+        if (!previewHidden) return;
+        flushSync(() => setHiddenSnapshot({ data, authors, sections: groupedSections }));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }, [previewHidden, data, authors, groupedSections]);
+    const handleExportPDF = useCallback(async () => { await flushPreview(); await exportPdfNow(); }, [flushPreview, exportPdfNow]);
+    const handleExportDocx = useCallback(async () => { await flushPreview(); await exportDocxNow(); }, [flushPreview, exportDocxNow]);
 
     const scrollToSection = (secId) => {
         // Abre a etapa onde o item é editado antes de rolar até ele
