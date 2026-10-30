@@ -21,7 +21,12 @@ const loadFont = () => new Promise((resolve) => {
 
 export const loadMath = () => {
     if (!loading) {
-        loading = Promise.all([import('temml').then(m => { temml = m.default || m; }), loadFont()]);
+        loading = Promise.all([
+            import('temml').then(m => { temml = m.default || m; }),
+            // Estilos do Temml para o que o Chromium não desenha sozinho (\overline, \cancel, \boxed...)
+            import('temml/dist/Temml-Local.css'),
+            loadFont(),
+        ]);
     }
     return loading;
 };
@@ -31,7 +36,10 @@ export const renderMath = (latex) => {
     const source = (latex || '').trim();
     if (!temml) return `<code>${escapeHtml(source)}</code>`;
     try {
-        return temml.renderToString(source, { displayMode: true, throwOnError: false });
+        // Acentos de espaçamento (‾ ˆ ˙ ˜) não existem na fonte matemática do servidor:
+        // troca-os pelos equivalentes básicos, presentes em qualquer fonte
+        return temml.renderToString(source, { displayMode: true, throwOnError: false })
+            .replace(/‾/g, '¯').replace(/ˆ/g, '^').replace(/˙/g, '·').replace(/˜/g, '~');
     } catch {
         return `<code>${escapeHtml(source)}</code>`;
     }
