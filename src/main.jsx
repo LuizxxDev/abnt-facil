@@ -1,17 +1,25 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom' // <--- Importar
+import { createRoot, hydrateRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import './App.css'
 import App from './App.jsx'
 
-createRoot(document.getElementById('root')).render(
+const root = document.getElementById('root')
+const app = (
   <StrictMode>
-    <BrowserRouter> {/* <--- Envolver o App */}
+    <BrowserRouter>
       <App />
     </BrowserRouter>
-  </StrictMode>,
+  </StrictMode>
 )
+
+// A página inicial já vem pronta do build (index.html); as demais rotas usam app.html, vazio
+if (root.hasChildNodes() && window.location.pathname === '/') hydrateRoot(root, app)
+else {
+  root.replaceChildren()
+  createRoot(root).render(app)
+}
 
 // Modo offline: só no build de produção (no desenvolvimento o cache atrapalharia o Vite)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

@@ -1,5 +1,5 @@
 // Service worker do ABNTFácil: deixa o editor abrir e funcionar sem internet.
-// - Páginas: rede primeiro; offline, devolve o index.html guardado (a SPA cuida da rota).
+// - Páginas: rede primeiro; offline, devolve a página guardada (a SPA cuida da rota).
 // - Arquivos de /assets (com hash no nome): cache primeiro, pois nunca mudam.
 // - Fontes do Google: devolve do cache e atualiza em segundo plano.
 // - /api (PDF no servidor) e Supabase nunca passam pelo cache.
@@ -9,7 +9,7 @@ const RUNTIME = `abntfacil-runtime-${VERSION}`;
 
 // Preenchida no build (vite.config.js) com os arquivos JS/CSS gerados
 const BUILD_ASSETS = [];
-const PRECACHE = ['/', '/index.html', '/manifest.json', '/favicon.svg', '/icon-192.png', '/icon-512.png'];
+const PRECACHE = ['/', '/index.html', '/app.html', '/manifest.json', '/favicon.svg', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(Promise.all([
@@ -45,12 +45,13 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.endsWith('supabase.co')) return;
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
 
-  // Navegação: rede primeiro, index.html guardado quando offline
+  // Navegação: rede primeiro; offline, a página inicial (index.html) ou o aplicativo (app.html)
   if (request.mode === 'navigate') {
+    const page = url.pathname === '/' ? '/index.html' : '/app.html';
     event.respondWith(
       fetch(request)
-        .then((res) => putInCache(SHELL, '/index.html', res))
-        .catch(async () => (await caches.match('/index.html')) || (await caches.match('/')))
+        .then((res) => putInCache(SHELL, page, res))
+        .catch(async () => (await caches.match(page)) || (await caches.match('/index.html')))
     );
     return;
   }

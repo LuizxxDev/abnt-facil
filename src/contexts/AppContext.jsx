@@ -61,13 +61,16 @@ export const AppProvider = ({ children }) => {
         }
     }
 
+    // Rede ruim ou nuvem fora do ar: depois de 4 s abre com os dados locais em vez de travar no carregamento
+    const authTimeout = setTimeout(() => { if (mounted) setIsAuthLoading(false); }, 4000);
     supabase.auth.getSession().then(({ data: { session }, error }) => {
         if (error) console.error("Erro getSession:", error);
         if (mounted) {
             setUser(session?.user ?? null);
             setIsAuthLoading(false);
         }
-    });
+    }).catch(err => console.error("Falha ao ler a sessão:", err))
+      .finally(() => clearTimeout(authTimeout));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if (mounted) {
@@ -78,6 +81,7 @@ export const AppProvider = ({ children }) => {
 
     return () => {
         mounted = false;
+        clearTimeout(authTimeout);
         subscription.unsubscribe();
     };
   }, []);
