@@ -509,7 +509,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                 /* Equações (NBR 14724): centralizadas, número entre parênteses à direita */
                 .abnt-equacao { position: relative; display: flex; justify-content: center; align-items: center; margin: 6pt 0; min-height: 1.5em; }
                 .abnt-equacao-corpo { padding: 0 3em; }
-                .abnt-equacao-corpo math { font-family: "Noto Sans Math", math; font-size: 1.05em; }
+                .abnt-equacao-corpo math { font-family: "Noto Sans Math", Arimo, Arial, math; font-size: 1.05em; }
                 .abnt-equacao-num { position: absolute; right: 0; }
 
                 .sumario-item {
