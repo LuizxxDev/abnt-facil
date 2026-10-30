@@ -7,7 +7,7 @@ import { EXAMPLE_ID } from '../utils/constants';
 
 const FeedbackModal = lazy(() => import('../components/common/FeedbackModal').then(m => ({ default: m.FeedbackModal })));
 
-const PIX_KEY = 'luizfelipe.ifpa.2022@gmail.com';
+const PIX_KEY = 'abntfacil9@gmail.com';
 
 const FEATURES = [
     { title: 'Paginação real em A4', desc: 'O texto é distribuído em folhas de verdade: margens de 3 cm e 2 cm, parágrafos que continuam na folha seguinte e número da página no canto superior direito.' },
