@@ -1,4 +1,5 @@
 // Gera o PDF no servidor a partir das folhas já paginadas da pré-visualização.
+import { MATH_FONT_URL } from './math';
 
 // Arimo e Tinos têm as mesmas métricas de Arial e Times New Roman: o servidor (sem essas
 // fontes) quebra as linhas exatamente onde a pré-visualização quebrou.
@@ -19,6 +20,7 @@ export const buildPdfHtml = () => {
     if (!doc) throw new Error('Pré-visualização não encontrada.');
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">`
         + `<link rel="stylesheet" href="${PDF_FONTS}">`
+        + (doc.querySelector('math') ? `<link rel="stylesheet" href="${MATH_FONT_URL}">` : '')
         + `<style>${collectCss()}\nhtml,body{margin:0;padding:0;background:#fff!important}.page{margin:0!important;box-shadow:none!important}</style>`
         + `</head><body><div class="abnt-doc">${doc.innerHTML}</div></body></html>`;
 };

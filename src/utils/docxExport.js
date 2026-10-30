@@ -4,7 +4,7 @@
 import {
     Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Header, PageNumber,
     TableOfContents, Table, TableRow, TableCell, BorderStyle, WidthType, ImageRun,
-    FootnoteReferenceRun, SectionType, VerticalAlignSection, SimpleField,
+    FootnoteReferenceRun, SectionType, VerticalAlignSection, SimpleField, Math as MathBlock, MathRun, TabStopType,
 } from 'docx';
 import { getDocType, getDocTypeKey, hasElement, isRequired, formatKeywords } from './documentTypes';
 import { buildFichaCatalografica } from './fichaCatalografica';
@@ -25,16 +25,23 @@ const PAGE = {
     margin: { top: cm(3), left: cm(3), bottom: cm(2), right: cm(2), header: cm(2), footer: cm(1.25) },
 };
 
+// Notas de rodapé do texto (palavra^[nota]) viram notas reais do Word durante a exportação
+let addFootnote = null;
+
 // Trechos com **negrito**/*itálico*; linhas simples viram quebra de linha
 const runs = (lines, base = {}) => {
     const list = Array.isArray(lines) ? lines : [lines];
-    return list.flatMap((line, i) => parseInline(line).map((seg, j) => new TextRun({
-        ...base,
-        text: seg.text,
-        bold: base.bold || seg.bold,
-        italics: base.italics || seg.italic,
-        ...(i > 0 && j === 0 ? { break: 1 } : {}),
-    })));
+    return list.flatMap((line, i) => parseInline(line).map((seg, j) => {
+        const lineBreak = i > 0 && j === 0 ? [new TextRun({ text: '', break: 1 })] : [];
+        if (seg.note !== undefined) return [...lineBreak, addFootnote ? new FootnoteReferenceRun(addFootnote(seg.note)) : new TextRun(` (${seg.note})`)];
+        return [new TextRun({
+            ...base,
+            text: seg.text,
+            bold: base.bold || seg.bold,
+            italics: base.italics || seg.italic,
+            ...(i > 0 && j === 0 ? { break: 1 } : {}),
+        })];
+    }).flat());
 };
 
 const multiline = (text, base = {}) => runs((text || '').replace(/\r\n?/g, '\n').split('\n'), base);
@@ -70,6 +77,13 @@ export async function exportDocx(data, authors, fontFamily = 'Arial', { folhas }
     const autores = (authors || []).filter(filled);
     const orientadores = (data.orientadores || []).filter(filled);
     const banca = (data.banca || []).filter(m => filled(m?.nome));
+    const footnotes = {};
+    let nextFootnote = 100; // as notas dos autores do artigo usam 1, 2...
+    addFootnote = (text) => {
+        const id = nextFootnote++;
+        footnotes[id] = { children: [new Paragraph({ style: 'NotaRodape', children: runs(text) })] };
+        return id;
+    };
 
     // ── Estilos (NBR 14724 / 6022) ──────────────────────────────────────────
     // Nomes e níveis de tópico iguais aos estilos nativos do Word ("heading 1"...), que o sumário procura
@@ -181,10 +195,34 @@ export async function exportDocx(data, authors, fontFamily = 'Arial', { folhas }
         return [caption('QUADRO', title?.trim()), box, new Paragraph({ style: 'Fonte', children: [new TextRun({ text: `Fonte: ${source?.trim() || 'Autor.'}` })] })];
     };
 
+    // Equação centralizada com o número entre parênteses na margem direita (NBR 14724).
+    // O Word recebe o código LaTeX dentro de um campo de equação: Equação > Converter > Profissional.
+    let equationCount = 0;
+    const equation = (latex) => {
+        equationCount += 1;
+        if (equationCount === 1) warnings.push('Equações vão como código LaTeX: no Word, selecione cada uma e use Equação > Converter > Profissional (modo LaTeX).');
+        return new Paragraph({
+            indent: { firstLine: 0 },
+            spacing: { before: 120, after: 120 },
+            tabStops: [{ type: TabStopType.CENTER, position: cm(8) }, { type: TabStopType.RIGHT, position: cm(16) }],
+            children: [new TextRun('\t'), new MathBlock({ children: [new MathRun(latex.trim())] }), new TextRun(`\t(${equationCount})`)],
+        });
+    };
+
+    // Alíneas (NBR 6024): recuo, linhas seguintes alinhadas ao texto da alínea
+    const listItem = (it) => new Paragraph({
+        style: 'SemRecuo',
+        indent: it.level === 1 ? { left: cm(1.25) + cm(0.7), hanging: cm(0.7) } : { left: cm(2.5) + cm(0.5), hanging: cm(0.5) },
+        children: [new TextRun(`${it.marker}\t`), ...runs(it.text)],
+        tabStops: [{ type: TabStopType.LEFT, position: it.level === 1 ? cm(1.95) : cm(3) }],
+    });
+
     const contentBlocks = async (texto) => {
         const out = [];
         for (const block of splitBlocks(texto, data.assets)) {
             if (block.kind === 'p') out.push(new Paragraph({ children: runs(block.lines) }));
+            else if (block.kind === 'list') out.push(...block.items.map(listItem));
+            else if (block.tipo === 'EQUAÇÃO') out.push(equation(block.conteudo));
             else out.push(...await assetBlocks(block));
         }
         return out;
@@ -218,7 +256,6 @@ export async function exportDocx(data, authors, fontFamily = 'Arial', { folhas }
     ];
 
     const sections = [];
-    const footnotes = {};
 
     if (isArticle) {
         // ── Artigo (NBR 6022): documento contínuo, numerado desde a primeira página ──
@@ -353,6 +390,7 @@ export async function exportDocx(data, authors, fontFamily = 'Arial', { folhas }
         sections,
     });
 
+    addFootnote = null;
     download(await Packer.toBlob(doc), `${safeFileName(data.titulo)}.docx`);
     return { warnings };
 }

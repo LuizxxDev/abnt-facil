@@ -239,6 +239,18 @@ export const AppProvider = ({ children }) => {
       return await persistNewProject(prepareProjectObject(title, buildDocumentData(typeKey)));
   }, [persistNewProject, prepareProjectObject, buildDocumentData]);
 
+  // Documento a partir de um .docx importado (seções, resumos e referências já separados)
+  const createFromImport = useCallback(async (title, imported, typeKey = DEFAULT_DOC_TYPE) => {
+    const base = buildDocumentData(typeKey);
+    const data = {
+      ...base,
+      titulo: imported.titulo || base.titulo,
+      resumoPt: imported.resumoPt || '', resumoEn: imported.resumoEn || '', referencias: imported.referencias || '',
+      secoes: imported.secoes.length ? imported.secoes.map(s => ({ ...s, id: generateId() })) : base.secoes,
+    };
+    return await persistNewProject(prepareProjectObject(title, data));
+  }, [persistNewProject, prepareProjectObject, buildDocumentData]);
+
   const createFromModel = useCallback(async (modelKey) => {
     const model = DOCUMENT_TYPES[modelKey];
     return await persistNewProject(prepareProjectObject(`${model.label} - ${new Date().toLocaleDateString()}`, buildDocumentData(modelKey)));
@@ -329,11 +341,11 @@ export const AppProvider = ({ children }) => {
   const contextValue = useMemo(() => ({
     projects, setProjects, settings, setSettings,
     user, loginWithGoogle, logout, isAuthLoading, isDataLoading, 
-    createNewProject, createFromExample, createFromModel, duplicateProject,
+    createNewProject, createFromExample, createFromModel, createFromImport, duplicateProject,
     updateProject, deleteProject, restoreProject, importAllProjects
   }), [
     projects, settings, user, isAuthLoading, isDataLoading,
-    loginWithGoogle, logout, createNewProject, createFromExample, createFromModel,
+    loginWithGoogle, logout, createNewProject, createFromExample, createFromModel, createFromImport,
     duplicateProject, updateProject, deleteProject, restoreProject, importAllProjects
   ]);
 

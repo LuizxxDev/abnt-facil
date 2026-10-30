@@ -14,6 +14,7 @@ import { useAutosave } from '../hooks/useAutosave';
 import { useExport } from '../hooks/useExport';
 import { DEFAULT_CHECKLIST, EXAMPLE_ID, EXAMPLE_PROJECT } from '../utils/constants';
 import { getDocType, hasElement, isRequired } from '../utils/documentTypes';
+import { splitBlocks } from '../utils/documentContent';
 
 import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
@@ -113,6 +114,13 @@ const Editor = () => {
                 const semAcesso = data.referencias.split('\n').filter(l => /Dispon[ií]vel em:/i.test(l) && !/Acesso em:/i.test(l));
                 if (semAcesso.length) errs.push({msg: `${semAcesso.length} referência(s) on-line sem data de acesso`, explain: 'Na NBR 6023:2018, documentos on-line terminam com "Disponível em: endereço. Acesso em: 15 mar. 2024."'});
             }
+            // NBR 6024: alíneas terminam em ponto e vírgula, a última em ponto (dois-pontos se houver subalíneas)
+            const listas = (data.secoes || []).flatMap(s => splitBlocks(s.conteudo).filter(b => b.kind === 'list'));
+            if (listas.some(l => l.items.some((it, idx) => {
+                const end = it.text.trim().slice(-1);
+                const last = idx === l.items.length - 1;
+                return last ? end !== '.' : ![';', ':'].includes(end);
+            }))) errs.push({msg: 'Pontuação das alíneas', explain: 'Na NBR 6024, cada alínea termina em ponto e vírgula e a última em ponto. Use dois-pontos quando vierem subalíneas.'});
             if (hasElement(type, 'obraResenhada') && !isFilled(data.obraResenhada)) errs.push({msg: 'Informe a referência da obra resenhada', explain: 'A resenha começa pela referência completa da obra analisada (NBR 6028).'});
             if (!data.referencias) errs.push({msg: 'Nenhuma referência bibliográfica citada', explain: 'Todo trabalho acadêmico precisa listar as fontes consultadas (NBR 6023).'});
             if (type.layout === 'academic' && data.secoes.length < 3) errs.push({msg: 'Estrutura incompleta (min. 3 seções)', explain: 'A parte textual tem introdução, desenvolvimento e conclusão.'});

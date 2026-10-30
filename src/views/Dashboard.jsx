@@ -18,9 +18,11 @@ import { FeedbackModal } from '../components/common/FeedbackModal';
 const Dashboard = () => {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
+    const docxInputRef = useRef(null);
+    const [isImporting, setIsImporting] = useState(false);
     const { 
         projects, settings, setSettings, 
-        createNewProject, createFromExample, createFromModel,
+        createNewProject, createFromExample, createFromModel, createFromImport,
         duplicateProject,
         deleteProject, restoreProject, updateProject,
         importAllProjects,
@@ -103,6 +105,30 @@ const Dashboard = () => {
         };
         reader.readAsText(file);
         e.target.value = null;
+    };
+
+    // Trabalho começado no Word: títulos viram seções e o texto mantém negrito, itálico e notas
+    const handleImportDocx = async (e) => {
+        const file = e.target.files[0];
+        e.target.value = null;
+        if (!file) return;
+        setIsImporting(true);
+        const toastId = toast.loading('Lendo o arquivo do Word...');
+        try {
+            const { importDocx } = await import('../utils/docxImport');
+            const imported = await importDocx(file);
+            const title = imported.titulo || file.name.replace(/\.docx$/i, '');
+            const id = await createFromImport(title, imported);
+            const avisos = [`${imported.secoes.length} seção(ões) importada(s).`];
+            if (imported.images) avisos.push(`${imported.images} imagem(ns) ficaram de fora: insira-as pelo botão Imagem.`);
+            toast.success(avisos.join(' '), { id: toastId, duration: 7000 });
+            navigate(`/editor/${id}`);
+        } catch (error) {
+            console.error('Falha ao importar .docx:', error);
+            toast.error('Não foi possível ler este arquivo. Salve-o no Word como .docx e tente de novo.', { id: toastId });
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     const toggleTheme = () => {
@@ -218,6 +244,12 @@ const Dashboard = () => {
                                 <Settings2 size={18} />
                             </button>
                             
+                            <input type="file" ref={docxInputRef} className="hidden" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportDocx} />
+                            <button onClick={() => docxInputRef.current.click()} disabled={isImporting} className={`${theme.cardBg} h-10 md:h-12 px-3 md:px-4 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-500 hover:text-green-700 disabled:opacity-60`} title="Importar um trabalho começado no Word (.docx)">
+                                {isImporting ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                                <span className="hidden md:inline text-sm font-semibold">Importar .docx</span>
+                            </button>
+
                             <button onClick={() => setIsTitleModalOpen(true)} className="fixed bottom-6 right-6 md:static md:bottom-auto md:right-auto z-40 bg-green-700 text-white px-4 md:px-5 h-14 w-14 md:w-auto md:h-12 rounded-full md:rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-800 transition-[background-color,transform] duration-200 shadow-[0_10px_30px_-10px_rgba(31,91,64,0.7)]" aria-label="Novo documento">
                                 <PlusCircle size={20} />
                                 <span className="hidden md:inline text-sm">Novo documento</span>

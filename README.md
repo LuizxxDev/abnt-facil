@@ -12,6 +12,11 @@ O **ABNTFácil** formata trabalhos acadêmicos nas normas da **ABNT** enquanto o
 - **Verificações da norma**: citações sem referência, formato de citação da NBR 10520:2023, tamanho do resumo, palavras-chave, banca e data de aprovação.
 - **Gerador de referências** (NBR 6023:2018) para livros, sites, artigos e teses.
 - **Ficha catalográfica** opcional no verso da folha de rosto.
+- **Notas de rodapé** (`palavra^[texto da nota]`), numeradas e impressas no pé da folha em que são chamadas.
+- **Equações numeradas** em LaTeX (`[EQUAÇÃO]: E = mc^2`), centralizadas com o número à direita (NBR 14724).
+- **Alíneas e subalíneas** (`a) item;` e `- subitem;`) no formato da NBR 6024.
+- **Citação pronta** a partir de cada referência: um toque copia `(Silva, 2023)`.
+- **Importação de .docx**: títulos viram seções; resumo, abstract, referências, notas e equações vão para os campos certos.
 - **Perfil acadêmico**: instituição, curso, cidade e orientador preenchidos automaticamente nos novos documentos.
 - **Funciona offline** depois da primeira visita (PWA). Sem login, os documentos ficam no navegador; com login Google, são sincronizados no Supabase.
 

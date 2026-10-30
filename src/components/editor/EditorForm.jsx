@@ -10,6 +10,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 
 import { SECTION_GUIDES, SECTION_TEMPLATES, ESTADOS_BR } from '../../utils/constants';
+import { orderedLines, citationFor } from '../../utils/documentContent';
 import { generateId } from '../../utils/helpers';
 import { DOCUMENT_TYPES, getDocType, getDocTypeKey, hasElement, isRequired } from '../../utils/documentTypes';
 import { EditorToolbar } from './EditorToolbar';
@@ -84,6 +85,11 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
         if (action.syntax) {
             newText = `${text.substring(0, start)}${action.syntax}${selectedText}${action.syntax}${text.substring(end)}`;
             newCursorPos = end + (action.syntax.length * 2);
+        } else if (action.wrap) {
+            // Nota de rodapé: o cursor fica dentro dos colchetes para digitar o texto da nota
+            const [open, close] = action.wrap;
+            newText = `${text.substring(0, start)}${open}${selectedText}${close}${text.substring(end)}`;
+            newCursorPos = start + open.length + selectedText.length;
         } else if (action.prefix) {
             const prefix = start > 0 ? `\n\n${action.prefix}` : action.prefix;
             newText = `${text.substring(0, start)}${prefix}${selectedText}${text.substring(end)}`;
@@ -507,6 +513,26 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 {!isReadOnly && <button onClick={onOpenRefModal} className="text-[9px] font-bold text-green-700 hover:underline uppercase transition-all">Gerar NBR 6023</button>}
               </div>
               <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-40 font-mono text-[10px]" placeholder="Cole as referências..." value={data.referencias} onChange={e => updateField('referencias', e.target.value)} />
+              {/* Citação pronta (NBR 10520:2023) a partir de cada referência: evita citar sem referenciar */}
+              {orderedLines(data.referencias).length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-slate-400">Toque em uma referência para copiar a citação e colar no texto.</p>
+                  <ul className="space-y-1">
+                    {orderedLines(data.referencias).map((ref, i) => {
+                      const cit = citationFor(ref);
+                      return (
+                        <li key={i}>
+                          <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(cit); toast.success(`${cit} copiada. Cole no texto.`); } catch { toast.error('Não foi possível copiar.'); } }}
+                            className={`w-full flex items-center gap-2 text-left rounded-lg border px-2.5 py-1.5 transition-colors ${settings.theme === 'dark' ? 'border-slate-700 hover:border-green-700' : 'border-slate-200 hover:border-green-500 hover:bg-green-50/50'}`}>
+                            <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">{ref.replace(/\*/g, '')}</span>
+                            <span className="shrink-0 font-mono text-[10px] font-semibold text-green-700 dark:text-green-400">{cit}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </section>
 
             {/* Pós-Textuais */}

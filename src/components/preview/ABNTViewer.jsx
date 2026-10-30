@@ -21,7 +21,9 @@ import { TAG_RENDERERS } from '../../utils/constants';
 import { paginateFlows } from '../../utils/pagination';
 import { getDocType, getDocTypeKey, hasElement, isRequired, formatKeywords } from '../../utils/documentTypes';
 import { buildFichaCatalografica } from '../../utils/fichaCatalografica';
-import { splitBlocks, orderedLines, ASSET_LABELS } from '../../utils/documentContent';
+import { splitBlocks, splitNotes, orderedLines, ASSET_LABELS } from '../../utils/documentContent';
+import { notesIn } from '../../utils/pagination';
+import { renderMath, useMathReady } from '../../utils/math';
 
 const escapeHtml = (text) => text
     .replace(/&/g, '&amp;')
@@ -37,9 +39,23 @@ const inlineHtml = (text) => escapeHtml(text)
 
 const filled = (text) => typeof text === 'string' && text.trim() !== '';
 
-// Blocos do editor com o HTML seguro de cada parágrafo
-const parseBlocks = (texto, assets) => splitBlocks(texto, assets).map(b =>
-    b.kind === 'p' ? { kind: 'p', html: b.lines.map(inlineHtml).join('<br/>') } : b);
+// Texto com notas de rodapé (palavra^[nota]): a chamada vira <sup> numerado e o texto da nota
+// vai para `addNote`, que devolve o número consecutivo no documento todo
+const notedHtml = (text, addNote) => splitNotes(text).map(part => {
+    if (part.note === undefined) return inlineHtml(part.text);
+    const n = addNote(inlineHtml(part.note));
+    return `<sup class="abnt-fnref" data-fn="${n}">${n}</sup>`;
+}).join('');
+
+// Blocos do editor com o HTML seguro de cada parágrafo e de cada alínea
+const parseBlocks = (texto, assets, addNote) => splitBlocks(texto, assets).flatMap(b => {
+    if (b.kind === 'p') return [{ kind: 'p', html: b.lines.map(l => notedHtml(l, addNote)).join('<br/>') }];
+    if (b.kind === 'list') return b.items.map(it => ({
+        kind: 'li', level: it.level,
+        html: `<span class="abnt-li-marker">${it.marker}</span>${notedHtml(it.text, addNote)}`,
+    }));
+    return [b];
+});
 
 // Renderiza um item de fluxo. `props` recebe a key e o id de âncora (folha) ou data-mkey (medidor);
 // `ctx.pageOf(anchor)` devolve o número da folha (sumário e listas).
@@ -61,7 +77,18 @@ const renderItemBody = (item, props, ctx) => {
             return <div {...props} className="abnt-center-bold">{item.text}</div>;
         case 'ref':
             return <div {...props} className={item.className || 'abnt-ref'} dangerouslySetInnerHTML={{ __html: item.html }} />;
+        case 'li':
+            return <div {...props} className={`abnt-li abnt-li-${item.level}`} dangerouslySetInnerHTML={{ __html: item.html }} />;
         case 'asset':
+            if (item.tipo === 'EQUAÇÃO') {
+                // NBR 14724: equação centralizada, número entre parênteses alinhado à direita
+                return (
+                    <div {...props} className="abnt-equacao">
+                        <span className="abnt-equacao-corpo" dangerouslySetInnerHTML={{ __html: renderMath(item.conteudo) }} />
+                        <span className="abnt-equacao-num">({item.num})</span>
+                    </div>
+                );
+            }
             return <div {...props} className="abnt-asset-container">{TAG_RENDERERS[item.tipo](item.conteudo, 0, item.num)}</div>;
         case 'toc':
             return (
@@ -106,16 +133,20 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
     // Partes do documento, na ordem: folhas fixas (capa, folha de rosto...) e fluxos paginados.
     // role 'pre' = pré-textual (contada a partir da folha de rosto, sem número impresso);
     // role 'text' = textual/pós-textual (contada e numerada); capa nunca é contada.
-    const { parts, flows } = useMemo(() => {
+    const { parts, flows, notes } = useMemo(() => {
         const list = [];
         const assets = data.assets;
         const nomes = authors.filter(a => a && a.trim());
 
-        // ── Conteúdo textual, com numeração de figuras/tabelas/quadros ──────────
-        const counters = { IMAGEM: 0, TABELA: 0, QUADRO: 0 };
+        // ── Conteúdo textual, com numeração de figuras/tabelas/quadros/equações e notas ──
+        const counters = { IMAGEM: 0, TABELA: 0, QUADRO: 0, EQUAÇÃO: 0 };
         const illustrations = [];
-        const blocksOf = (prefix, texto) => parseBlocks(texto, assets).map((b, i) => {
+        const noteList = {};
+        let noteCount = 0;
+        const addNote = (html) => { noteCount += 1; noteList[noteCount] = html; return noteCount; };
+        const blocksOf = (prefix, texto) => parseBlocks(texto, assets, addNote).map((b, i) => {
             const it = { ...b, key: `${prefix}-${i}` };
+            if (b.kind === 'asset' && b.tipo === 'EQUAÇÃO') it.num = ++counters.EQUAÇÃO;
             if (b.kind === 'asset' && ASSET_LABELS[b.tipo]) {
                 const n = ++counters[b.tipo];
                 it.num = n;
@@ -202,11 +233,9 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
             const flow = { key: 'artigo', items };
             if (notas.length) {
                 flow.reserveKey = 'fn-artigo';
-                flow.footnote = (
-                    <div className="abnt-footnote">
-                        {notas.map((n, i) => <div key={i}><sup>{'*'.repeat(i + 1)}</sup> {n}</div>)}
-                    </div>
-                );
+                // footnote: medido para reservar o pé da 1ª folha; footnoteContent: exibido junto às notas numeradas
+                flow.footnoteContent = notas.map((n, i) => <div key={`a${i}`} className="abnt-fn-item"><sup>{'*'.repeat(i + 1)}</sup> {n}</div>);
+                flow.footnote = <div className="abnt-footnote">{flow.footnoteContent}</div>;
             }
             list.push({ key: 'artigo', kind: 'flow', role: 'text', flow });
         } else {
@@ -257,19 +286,22 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
             posTextual.forEach(f => list.push({ key: f.key, kind: 'flow', role: 'text', flow: f }));
         }
 
-        return { parts: list, flows: list.filter(p => p.kind === 'flow').map(p => p.flow) };
+        return { parts: list, flows: list.filter(p => p.kind === 'flow').map(p => p.flow), notes: noteList };
     }, [data, groupedSections, docType, isArticle, numbered, authors]);
 
     // Mede os blocos no medidor invisível e distribui-os em folhas A4
     const measurerRef = useRef(null);
+    // Equações usam o Temml (carregado só quando o documento tem alguma); ao chegar, mede de novo
+    const hasMath = useMemo(() => flows.some(f => f.items.some(it => it.tipo === 'EQUAÇÃO')), [flows]);
+    const mathReady = useMathReady(hasMath);
     const [paged, setPaged] = useState(null);
     const [measureTick, setMeasureTick] = useState(0);
 
     useLayoutEffect(() => {
         if (!measurerRef.current) return;
-        const result = paginateFlows(flows, measurerRef.current);
+        const result = paginateFlows(flows, measurerRef.current, notes);
         if (result) setPaged(result);
-    }, [flows, fontFamily, measureTick]);
+    }, [flows, notes, fontFamily, measureTick, mathReady]);
 
     // Fontes, imagens e mudanças de layout alteram as alturas: medir de novo
     useEffect(() => {
@@ -463,6 +495,22 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                     border-image: linear-gradient(to right, black 5cm, transparent 5cm) 1;
                 }
                 .abnt-footnote > div + div { margin-top: 2pt; }
+                /* NBR 10520: a partir da 2ª linha, a nota alinha-se sob a primeira letra do texto */
+                .abnt-fn-item { padding-left: 0.9em; text-indent: -0.9em; }
+                .abnt-fnref { font-size: 0.65em; line-height: 0; vertical-align: super; }
+                .abnt-fn-item sup { font-size: 0.75em; line-height: 0; vertical-align: 0.3em; }
+
+                /* Alíneas e subalíneas (NBR 6024): recuadas, linhas seguintes sob o início do texto */
+                .abnt-li { text-align: justify; padding-left: calc(1.25cm + 1.6em); text-indent: -1.6em; }
+                .abnt-li-2 { padding-left: calc(2.5cm + 1.2em); text-indent: -1.2em; }
+                .abnt-li-marker { display: inline-block; min-width: 1.6em; text-indent: 0; }
+                .abnt-li-2 .abnt-li-marker { min-width: 1.2em; }
+
+                /* Equações (NBR 14724): centralizadas, número entre parênteses à direita */
+                .abnt-equacao { position: relative; display: flex; justify-content: center; align-items: center; margin: 6pt 0; min-height: 1.5em; }
+                .abnt-equacao-corpo { padding: 0 3em; }
+                .abnt-equacao-corpo math { font-family: "Noto Sans Math", math; font-size: 1.05em; }
+                .abnt-equacao-num { position: absolute; right: 0; }
 
                 .sumario-item {
                     display: flex;
@@ -668,7 +716,17 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                                 key: item.key,
                                 id: item.anchor ? `preview-sec-${item.anchor}` : undefined,
                             }, ctx))}
-                        {pi === 0 && part.flow?.footnote}
+                        {(() => {
+                            const authorNotes = pi === 0 ? part.flow?.footnoteContent : null;
+                            const pageNotes = (page || []).flatMap(it => it._notes || notesIn(it.html));
+                            if (!authorNotes && !pageNotes.length) return null;
+                            return (
+                                <div className="abnt-footnote">
+                                    {authorNotes}
+                                    {pageNotes.map(n => <div key={n} className="abnt-fn-item"><sup>{n}</sup> <span dangerouslySetInnerHTML={{ __html: notes[n] }} /></div>)}
+                                </div>
+                            );
+                        })()}
                         {number != null && <span className="abnt-page-number">{number}</span>}
                     </div>
                 ))}
@@ -681,6 +739,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
                     <div className="page" data-page-probe />
                     <div className="page abnt-measure-flow">
                         <p className="abnt-p" data-p-probe />
+                        <div className="abnt-footnote" data-fn-box><div className="abnt-fn-item" data-fn-probe /></div>
                         {flows.map(flow => flow.items.map(item => renderItem(item, { key: item.key, 'data-mkey': item.key }, ctx)))}
                         {flows.filter(f => f.footnote).map(f => React.cloneElement(f.footnote, { key: `fn-${f.key}`, 'data-mkey': `fn-${f.key}` }))}
                     </div>

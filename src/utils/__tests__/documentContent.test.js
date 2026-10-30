@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitBlocks, parseTable, orderedLines, parseInline } from '../documentContent';
+import { splitBlocks, parseTable, orderedLines, parseInline, splitNotes, citationFor } from '../documentContent';
 import { formatKeywords, getDocType, getDocTypeKey, hasElement, isRequired, DOCUMENT_TYPES } from '../documentTypes';
 import { tokenizeHtml, sliceHtml } from '../pagination';
 
@@ -78,5 +78,35 @@ describe('paginação: recorte de HTML', () => {
         const cut = tokens.indexOf('três');
         expect(sliceHtml(tokens, 0, cut)).toBe('um <strong>dois </strong>');
         expect(sliceHtml(tokens, cut, tokens.length)).toBe('<strong>três</strong> quatro');
+    });
+});
+
+describe('alíneas, equações e notas', () => {
+    it('reconhece alíneas com frase de introdução e subalíneas', () => {
+        const blocks = splitBlocks('Os objetivos são:\na) medir;\n- calouros;\nb) propor.');
+        expect(blocks[0]).toEqual({ kind: 'p', lines: ['Os objetivos são:'] });
+        expect(blocks[1].kind).toBe('list');
+        expect(blocks[1].items.map(i => [i.level, i.marker, i.text])).toEqual([[1, 'a)', 'medir;'], [2, '–', 'calouros;'], [1, 'b)', 'propor.']]);
+    });
+    it('não confunde parágrafo comum com alínea', () => {
+        expect(splitBlocks('a) começo\ntexto solto')[0].kind).toBe('p');
+    });
+    it('reconhece [EQUAÇÃO] e [EQUACAO]', () => {
+        expect(splitBlocks('[EQUACAO]: x^2')[0]).toEqual({ kind: 'asset', tipo: 'EQUAÇÃO', conteudo: 'x^2' });
+    });
+    it('separa notas de rodapé, inclusive com colchetes dentro', () => {
+        expect(splitNotes('OMS^[ver [1] e mais] fim')).toEqual([{ text: 'OMS' }, { note: 'ver [1] e mais' }, { text: ' fim' }]);
+        expect(splitNotes('sem nota ^[aberta')).toEqual([{ text: 'sem nota ^[aberta' }]);
+        expect(parseInline('a^[**b**]').map(s => s.note ?? s.text)).toEqual(['a', '**b**']);
+    });
+});
+
+describe('citationFor (NBR 10520:2023)', () => {
+    it('monta autor-data a partir da referência', () => {
+        expect(citationFor('SILVA, A. **Obra**. São Paulo: Saber, 2023.')).toBe('(Silva, 2023)');
+        expect(citationFor('SILVA, A.; SOUZA, B. Obra. 2020.')).toBe('(Silva; Souza, 2020)');
+        expect(citationFor('SILVA, A. et al. Obra. 2019.')).toBe('(Silva et al., 2019)');
+        expect(citationFor('IBGE. Censo. Rio de Janeiro, 2022. Disponível em: x. Acesso em: 15 mar. 2024.')).toBe('(IBGE, 2022)');
+        expect(citationFor('SANTOS, M. Texto sem data.')).toBe('(Santos, s. d.)');
     });
 });

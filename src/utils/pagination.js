@@ -4,8 +4,12 @@
 
 const EPS = 0.5; // tolerância de arredondamento (px)
 
-// Divide o HTML de um parágrafo em tags, espaços e palavras
-export const tokenizeHtml = (html) => html.match(/<[^>]+>|\s+|[^<\s]+/g) || [];
+// Divide o HTML de um parágrafo em tags, espaços e palavras.
+// A chamada de nota (<sup class="abnt-fnref">) fica presa à palavra anterior: nunca começa uma folha sozinha.
+export const tokenizeHtml = (html) => html.match(/[^<\s]*<sup class="abnt-fnref"[^>]*>[^<]*<\/sup>[^<\s]*|<[^>]+>|\s+|[^<\s]+/g) || [];
+
+// Números das notas de rodapé chamadas num trecho de HTML
+export const notesIn = (html) => [...(html || '').matchAll(/data-fn="(\d+)"/g)].map(m => Number(m[1]));
 
 const openTagsUntil = (tokens, idx) => {
     const stack = [];
@@ -34,7 +38,7 @@ const LONG_WORD_MIN_CHARS = 30;
 const explodeLongWords = (tokens, probeHeight) => {
     let lineH = null;
     return tokens.flatMap(t => {
-        if (t.length < LONG_WORD_MIN_CHARS || t.startsWith('<') || /^\s+$/.test(t)) return [t];
+        if (t.length < LONG_WORD_MIN_CHARS || t.includes('<') || /^\s+$/.test(t)) return [t];
         if (lineH === null) lineH = probeHeight('x', true);
         if (probeHeight(t, true) <= lineH * 1.5) return [t];
         return t.match(/&[^;\s]+;|[\s\S]/gu); // mantém entidades HTML (&amp; ...) inteiras
@@ -52,11 +56,14 @@ const outerHeight = (el) => {
  * @param flows    [{ key, items: [{ key, kind, keepWithNext?, html? }], reserveKey? }]
  *                 reserveKey: data-mkey de uma nota de rodapé que ocupa o pé da 1ª folha do fluxo
  * @param measurer elemento que contém: [data-page-probe] (uma .page vazia),
- *                 [data-p-probe] (um <p class="abnt-p">) e um nó [data-mkey] por item
+ *                 [data-p-probe] (um <p class="abnt-p">), [data-fn-box]/[data-fn-probe]
+ *                 (área de notas de rodapé) e um nó [data-mkey] por item
+ * @param notes    { [número]: html } das notas de rodapé; cada folha reserva no pé o espaço
+ *                 das notas chamadas nela (NBR 14724/10520)
  * @returns        { [flowKey]: Array<Array<item>> }  (páginas de cada fluxo),
  *                 ou null se o medidor ainda não tem layout (ex.: oculto)
  */
-export const paginateFlows = (flows, measurer) => {
+export const paginateFlows = (flows, measurer, notes = {}) => {
     const pageEl = measurer.querySelector('[data-page-probe]');
     const pageCs = getComputedStyle(pageEl);
     const pageH = pageEl.getBoundingClientRect().height - parseFloat(pageCs.paddingTop) - parseFloat(pageCs.paddingBottom);
@@ -69,6 +76,25 @@ export const paginateFlows = (flows, measurer) => {
         return outerHeight(probe);
     };
 
+    // Altura da área de notas: filete + cada nota (medidas uma vez e guardadas)
+    const fnBox = measurer.querySelector('[data-fn-box]');
+    const fnProbe = measurer.querySelector('[data-fn-probe]');
+    const noteHeights = {};
+    let fnFrame = null;
+    const noteHeight = (n) => {
+        if (noteHeights[n] === undefined) {
+            fnProbe.innerHTML = notes[n] || '';
+            noteHeights[n] = fnProbe ? outerHeight(fnProbe) : 0;
+            fnProbe.innerHTML = '';
+        }
+        return noteHeights[n];
+    };
+    const notesHeight = (list, framed) => {
+        if (!list.length || !fnBox) return 0;
+        if (fnFrame === null) { fnProbe.innerHTML = ''; fnFrame = outerHeight(fnBox) - outerHeight(fnProbe) + 8; } // filete, espaçamento e folga acima
+        return (framed ? 0 : fnFrame) + list.reduce((sum, n) => sum + noteHeight(n), 0);
+    };
+
     const result = {};
     flows.forEach(flow => {
         const pages = [[]];
@@ -77,7 +103,13 @@ export const paginateFlows = (flows, measurer) => {
 
         const reserveEl = flow.reserveKey && measurer.querySelector(`[data-mkey="${CSS.escape(flow.reserveKey)}"]`);
         const reserve = reserveEl ? outerHeight(reserveEl) : 0;
-        const capacity = () => pageH - (pages.length === 1 ? reserve : 0);
+        const pageNotes = () => current().flatMap(it => it._notes || []);
+        // Espaço que sobra na folha atual se ela também receber as notas `extra`
+        const room = (extra = []) => {
+            const firstWithReserve = pages.length === 1 && reserve > 0;
+            const list = [...pageNotes(), ...extra];
+            return pageH - (firstWithReserve ? reserve : 0) - notesHeight(list, firstWithReserve) - used;
+        };
 
         const newPage = () => {
             // Títulos não podem ficar sozinhos no fim da folha: levam-se para a próxima
@@ -89,7 +121,7 @@ export const paginateFlows = (flows, measurer) => {
         };
 
         const place = (item, h) => {
-            current().push({ ...item, _h: h });
+            current().push({ ...item, _h: h, _notes: notesIn(item.html) });
             used += h;
         };
 
@@ -98,7 +130,7 @@ export const paginateFlows = (flows, measurer) => {
             if (!el) return;
             const h = outerHeight(el);
 
-            if (used + h <= capacity() + EPS) { place(item, h); return; }
+            if (h <= room(notesIn(item.html)) + EPS) { place(item, h); return; }
 
             if (item.kind !== 'p') {
                 // Bloco indivisível (título, citação, figura, tabela, referência)
@@ -114,17 +146,17 @@ export const paginateFlows = (flows, measurer) => {
             for (;;) {
                 const restHtml = sliceHtml(tokens, start, tokens.length);
                 const restH = cont ? probeHeight(restHtml, true) : h;
-                if (used + restH <= capacity() + EPS) {
+                if (restH <= room(notesIn(restHtml)) + EPS) {
                     place({ ...item, key: `${item.key}@${start}`, html: restHtml, cont }, restH);
                     break;
                 }
 
-                const room = capacity() - used + EPS;
                 let lo = start + 1, hi = tokens.length - 1, best = -1, bestH = 0;
                 while (lo <= hi) {
                     const mid = (lo + hi) >> 1;
-                    const mh = probeHeight(sliceHtml(tokens, start, mid), cont);
-                    if (mh <= room) { best = mid; bestH = mh; lo = mid + 1; } else { hi = mid - 1; }
+                    const slice = sliceHtml(tokens, start, mid);
+                    const mh = probeHeight(slice, cont);
+                    if (mh <= room(notesIn(slice)) + EPS) { best = mid; bestH = mh; lo = mid + 1; } else { hi = mid - 1; }
                 }
 
                 if (best === -1) {

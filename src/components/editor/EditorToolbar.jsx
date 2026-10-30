@@ -1,11 +1,14 @@
 import React from 'react';
-import { Bold, Italic, Quote, BookOpen } from 'lucide-react';
+import { Bold, Italic, Quote, BookOpen, Superscript, Sigma, ListOrdered } from 'lucide-react';
 
 export const EditorToolbar = ({ onAction }) => {
     const buttons = [
         { id: 'bold', icon: Bold, label: 'Negrito (Ctrl+B)', syntax: '**' },
         { id: 'italic', icon: Italic, label: 'Itálico (Ctrl+I)', syntax: '*' },
         { id: 'quote', icon: Quote, label: 'Citação Longa', isBlock: true, prefix: '[CITAÇÃO]: ' },
+        { id: 'note', icon: Superscript, label: 'Nota de rodapé: palavra^[texto da nota]', wrap: ['^[', ']'] },
+        { id: 'list', icon: ListOrdered, label: 'Alíneas: a) item; b) item; - subalínea', isBlock: true, prefix: 'a) ' },
+        { id: 'equation', icon: Sigma, label: 'Equação numerada (LaTeX): [EQUAÇÃO]: E = mc^2', isBlock: true, prefix: '[EQUAÇÃO]: ' },
         { id: 'ref', icon: BookOpen, label: 'Gerador de Referência', action: 'open_ref_modal' },
     ];
 
