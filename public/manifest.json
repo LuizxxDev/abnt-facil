@@ -4,8 +4,8 @@
   "description": "Formatação automática ABNT para TCC, artigos, relatórios, projetos de pesquisa e resenhas.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f7f4",
-  "theme_color": "#1f5b40",
+  "background_color": "#f7f6f1",
+  "theme_color": "#f7f6f1",
   "orientation": "portrait-primary",
   "icons": [
     {

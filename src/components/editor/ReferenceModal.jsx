@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { X, Book, Globe, Check, FileText, GraduationCap } from 'lucide-react';
+import { Book, Globe, Check, FileText, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Dialog from '../common/Dialog';
+import { btnPrimary, btnGhost, field, label as labelCls } from '../common/ui';
 
-// Componente Abstrato para secar a repetição gigante de código
-const RefInput = ({ label, hint, colorClass, ...props }) => (
+// Campo com rótulo visível e dica opcional
+const RefInput = ({ label, hint, name, ...props }) => (
     <div>
-        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-            {label} {hint && <span className="text-[10px] text-slate-400 font-normal normal-case">{hint}</span>}
+        <label htmlFor={`ref-${name}`} className={labelCls}>
+            {label} {hint && <span className="font-normal text-ink-3">{hint}</span>}
         </label>
-        <input 
-            className={`w-full p-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none focus:ring-2 transition-shadow ${colorClass}`} 
-            {...props} 
-        />
+        <input id={`ref-${name}`} name={name} autoComplete="off" className={field} {...props} />
     </div>
 );
 
@@ -25,9 +24,7 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
         tipoTrabalho: 'Trabalho de Conclusão de Curso', grau: 'Bacharelado', curso: '', instituicao: ''
     });
 
-    if (!isOpen) return null;
-
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+        const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     // NBR 6023:2018 — "SOBRENOME, Prenome": só o sobrenome em maiúsculas; autores separados por ponto e vírgula
     const formatAuthors = (raw) => raw.split(';').map(a => a.trim()).filter(Boolean).map(a => {
@@ -77,7 +74,7 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
         }
 
         if (onAddReference) onAddReference(referenceStr);
-        toast.success("Referência gerada com sucesso!");
+        toast.success("Referência adicionada à lista");
         
         setFormData({ 
             autores: '', titulo: '', subtitulo: '', edicao: '', local: '', editora: '', ano: '', 
@@ -88,129 +85,117 @@ export default function ReferenceModal({ isOpen, onClose, onAddReference }) {
     };
 
     const tabs = [
-        { id: 'book', label: 'Obra Impressa', icon: Book, color: 'blue' },
-        { id: 'website', label: 'Site / Online', icon: Globe, color: 'emerald' },
-        { id: 'article', label: 'Artigo Científico', icon: FileText, color: 'purple' },
-        { id: 'thesis', label: 'Tese / TCC', icon: GraduationCap, color: 'orange' }
+        { id: 'book', label: 'Livro', icon: Book },
+        { id: 'website', label: 'Site', icon: Globe },
+        { id: 'article', label: 'Artigo', icon: FileText },
+        { id: 'thesis', label: 'TCC ou tese', icon: GraduationCap }
     ];
 
-    const focusRing = { book: 'focus:ring-blue-500', website: 'focus:ring-emerald-500', article: 'focus:ring-purple-500', thesis: 'focus:ring-orange-500' }[refType];
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="px-5 md:px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                    <h2 className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Gerador Automático NBR 6023</h2>
-                    <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"><X size={20} /></button>
-                </div>
-
-                <div className="p-5 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
+        <Dialog open={isOpen} onClose={onClose} title="Gerar referência" description="Preencha os campos e a referência sai no formato da NBR 6023:2018." size="lg"
+            footer={<>
+                <button type="button" onClick={onClose} className={btnGhost}>Cancelar</button>
+                <button type="submit" form="ref-form" className={btnPrimary}><Check size={16} aria-hidden="true" /> Gerar referência</button>
+            </>}>
+                    <div role="radiogroup" aria-label="Tipo de obra" className="mb-6 mt-2 grid grid-cols-2 gap-1 rounded-[var(--radius-control)] bg-surface-2 p-1 sm:grid-cols-4">
                         {tabs.map(tab => {
                             const Icon = tab.icon;
                             const isActive = refType === tab.id;
                             return (
-                                <button 
-                                    key={tab.id} type="button" onClick={() => setRefType(tab.id)}
-                                    className={`flex flex-col md:flex-row items-center justify-center gap-2 p-3 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-wider transition-all border ${isActive ? `bg-${tab.color}-600 text-white border-${tab.color}-600 shadow-md` : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                <button
+                                    key={tab.id} type="button" role="radio" aria-checked={isActive} onClick={() => setRefType(tab.id)}
+                                    className={`flex h-10 items-center justify-center gap-2 rounded-[4px] text-sm font-semibold transition-[background-color,color] duration-150 ${isActive ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2 hover:text-ink'}`}
                                 >
-                                    <Icon size={18} /> {tab.label}
+                                    <Icon size={16} aria-hidden="true" /> {tab.label}
                                 </button>
-                            )
+                            );
                         })}
                     </div>
 
-                    <form id="ref-form" onSubmit={handleGenerate} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                    <form id="ref-form" onSubmit={handleGenerate} className="space-y-4">
                         {refType === 'book' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: Silva, João; Souza, Maria" required />
+                                <RefInput label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex.: Silva, João; Souza, Maria" required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RefInput colorClass={focusRing} label="Título do Livro *" name="titulo" value={formData.titulo} onChange={handleChange} required />
-                                    <RefInput colorClass={focusRing} label="Subtítulo" hint="(opcional)" name="subtitulo" value={formData.subtitulo} onChange={handleChange} />
+                                    <RefInput label="Título do Livro *" name="titulo" value={formData.titulo} onChange={handleChange} required />
+                                    <RefInput label="Subtítulo" hint="(opcional)" name="subtitulo" value={formData.subtitulo} onChange={handleChange} />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <RefInput colorClass={focusRing} label="Edição" name="edicao" value={formData.edicao} onChange={handleChange} placeholder="Ex: 2" />
-                                    <RefInput colorClass={focusRing} label="Local *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex: São Paulo" required />
-                                    <RefInput colorClass={focusRing} label="Editora *" name="editora" value={formData.editora} onChange={handleChange} required />
-                                    <RefInput colorClass={focusRing} label="Ano *" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex: 2023" required />
+                                    <RefInput label="Edição" name="edicao" value={formData.edicao} onChange={handleChange} placeholder="Ex.: 2" />
+                                    <RefInput label="Local *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex.: São Paulo" required />
+                                    <RefInput label="Editora *" name="editora" value={formData.editora} onChange={handleChange} required />
+                                    <RefInput label="Ano *" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex.: 2023" required />
                                 </div>
                             </>
                         )}
 
                         {refType === 'website' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor / Organização *" hint="(Ex: IBGE)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA" required />
+                                <RefInput label="Autor / Organização *" hint="(Ex.: IBGE)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex.: INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA" required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RefInput colorClass={focusRing} label="Título da Página *" name="titulo" value={formData.titulo} onChange={handleChange} required />
-                                    <RefInput colorClass={focusRing} label="Nome do Site" hint="(opcional)" name="nomeSite" value={formData.nomeSite} onChange={handleChange} placeholder="Ex: G1, Wikipedia..." />
+                                    <RefInput label="Título da Página *" name="titulo" value={formData.titulo} onChange={handleChange} required />
+                                    <RefInput label="Nome do Site" hint="(opcional)" name="nomeSite" value={formData.nomeSite} onChange={handleChange} placeholder="Ex.: G1, Wikipedia…" />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <RefInput colorClass={focusRing} label="Ano" hint="(opcional)" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex: 2023" />
+                                    <RefInput label="Ano" hint="(opcional)" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex.: 2023" />
                                     <div className="md:col-span-3">
-                                        <RefInput colorClass={focusRing} label="URL (Link) *" type="url" name="url" value={formData.url} onChange={handleChange} placeholder="https://..." required />
+                                        <RefInput label="URL (Link) *" type="url" name="url" value={formData.url} onChange={handleChange} placeholder="https://…" inputMode="url" spellCheck={false} required />
                                     </div>
                                 </div>
-                                <RefInput colorClass={focusRing} label="Data de Acesso *" name="dataAcesso" value={formData.dataAcesso} onChange={handleChange} placeholder="Ex: 15 out. 2023" required />
+                                <RefInput label="Data de Acesso *" name="dataAcesso" value={formData.dataAcesso} onChange={handleChange} placeholder="Ex.: 15 out. 2023" required />
                             </>
                         )}
 
                         {refType === 'article' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex: Silva, João; Souza, Maria" required />
-                                <RefInput colorClass={focusRing} label="Título do Artigo *" name="titulo" value={formData.titulo} onChange={handleChange} required />
+                                <RefInput label="Autor(es) *" hint="(Sobrenome, Nome; vários separados por ;)" name="autores" value={formData.autores} onChange={handleChange} placeholder="Ex.: Silva, João; Souza, Maria" required />
+                                <RefInput label="Título do Artigo *" name="titulo" value={formData.titulo} onChange={handleChange} required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RefInput colorClass={focusRing} label="Nome da Revista/Periódico *" name="revista" value={formData.revista} onChange={handleChange} placeholder="Ex: Revista IEEE, Nature..." required />
-                                    <RefInput colorClass={focusRing} label="Local de Publicação *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex: São Paulo" required />
+                                    <RefInput label="Nome da Revista/Periódico *" name="revista" value={formData.revista} onChange={handleChange} placeholder="Ex.: Revista IEEE, Nature…" required />
+                                    <RefInput label="Local de Publicação *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex.: São Paulo" required />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                    <RefInput colorClass={focusRing} label="Volume" name="volume" value={formData.volume} onChange={handleChange} placeholder="Ex: 12" />
-                                    <RefInput colorClass={focusRing} label="Número" name="numero" value={formData.numero} onChange={handleChange} placeholder="Ex: 4" />
-                                    <RefInput colorClass={focusRing} label="Páginas" name="paginas" value={formData.paginas} onChange={handleChange} placeholder="Ex: 45-60" />
-                                    <RefInput colorClass={focusRing} label="Ano *" name="ano" value={formData.ano} onChange={handleChange} required />
-                                    <RefInput colorClass={focusRing} label="DOI" hint="(Opcional)" name="doi" value={formData.doi} onChange={handleChange} />
+                                    <RefInput label="Volume" name="volume" value={formData.volume} onChange={handleChange} placeholder="Ex.: 12" />
+                                    <RefInput label="Número" name="numero" value={formData.numero} onChange={handleChange} placeholder="Ex.: 4" />
+                                    <RefInput label="Páginas" name="paginas" value={formData.paginas} onChange={handleChange} placeholder="Ex.: 45-60" />
+                                    <RefInput label="Ano *" name="ano" value={formData.ano} onChange={handleChange} required />
+                                    <RefInput label="DOI" hint="(Opcional)" name="doi" value={formData.doi} onChange={handleChange} />
                                 </div>
                             </>
                         )}
 
                         {refType === 'thesis' && (
                             <>
-                                <RefInput colorClass={focusRing} label="Autor *" hint="(Ex: SOBRENOME, Nome)" name="autores" value={formData.autores} onChange={handleChange} required />
+                                <RefInput label="Autor *" hint="(Ex.: SOBRENOME, Nome)" name="autores" value={formData.autores} onChange={handleChange} required />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RefInput colorClass={focusRing} label="Título da Tese/TCC *" name="titulo" value={formData.titulo} onChange={handleChange} required />
-                                    <RefInput colorClass={focusRing} label="Subtítulo" hint="(opcional)" name="subtitulo" value={formData.subtitulo} onChange={handleChange} />
+                                    <RefInput label="Título da Tese/TCC *" name="titulo" value={formData.titulo} onChange={handleChange} required />
+                                    <RefInput label="Subtítulo" hint="(opcional)" name="subtitulo" value={formData.subtitulo} onChange={handleChange} />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">Tipo de Trabalho *</label>
-                                        <select name="tipoTrabalho" value={formData.tipoTrabalho} onChange={handleChange} className={`w-full p-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none focus:ring-2 ${focusRing}`}>
+                                        <label htmlFor="ref-tipoTrabalho" className={labelCls}>Tipo de trabalho *</label>
+                                        <select id="ref-tipoTrabalho" name="tipoTrabalho" value={formData.tipoTrabalho} onChange={handleChange} className={field}>
                                             <option value="Trabalho de Conclusão de Curso">TCC</option><option value="Dissertação">Dissertação</option><option value="Tese">Tese</option><option value="Monografia">Monografia</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">Grau Obtido *</label>
-                                        <select name="grau" value={formData.grau} onChange={handleChange} className={`w-full p-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white outline-none focus:ring-2 ${focusRing}`}>
+                                        <label htmlFor="ref-grau" className={labelCls}>Grau obtido *</label>
+                                        <select id="ref-grau" name="grau" value={formData.grau} onChange={handleChange} className={field}>
                                             <option value="Bacharelado">Bacharelado</option><option value="Licenciatura">Licenciatura</option><option value="Mestrado">Mestrado</option><option value="Doutorado">Doutorado</option><option value="Especialização">Especialização</option>
                                         </select>
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <RefInput colorClass={focusRing} label="Nome do Curso *" name="curso" value={formData.curso} onChange={handleChange} placeholder="Ex: Eng. de Controle e Automação" required />
+                                        <RefInput label="Nome do Curso *" name="curso" value={formData.curso} onChange={handleChange} placeholder="Ex.: Eng. de Controle e Automação" required />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <RefInput colorClass={focusRing} label="Instituição *" name="instituicao" value={formData.instituicao} onChange={handleChange} placeholder="Ex: IFPA" required />
-                                    <RefInput colorClass={focusRing} label="Local de Defesa *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex: Belém" required />
-                                    <RefInput colorClass={focusRing} label="Ano de Defesa *" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex: 2024" required />
+                                    <RefInput label="Instituição *" name="instituicao" value={formData.instituicao} onChange={handleChange} placeholder="Ex.: IFPA" required />
+                                    <RefInput label="Local de Defesa *" name="local" value={formData.local} onChange={handleChange} placeholder="Ex.: Belém" required />
+                                    <RefInput label="Ano de Defesa *" name="ano" value={formData.ano} onChange={handleChange} placeholder="Ex.: 2024" required />
                                 </div>
                             </>
                         )}
                     </form>
-                </div>
-
-                <div className="px-5 md:px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex flex-col-reverse md:flex-row justify-end gap-3 bg-slate-50 dark:bg-slate-800/50">
-                    <button type="button" onClick={onClose} className="w-full md:w-auto px-6 py-3 md:py-2.5 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancelar</button>
-                    <button type="submit" form="ref-form" className={`w-full md:w-auto px-8 py-3 md:py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-colors shadow-lg active:scale-95 ${refType === 'book' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30' : refType === 'website' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30' : refType === 'article' ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30' : 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/30'}`}><Check size={18} /> Gerar Referência</button>
-                </div>
-            </div>
-        </div>
+        </Dialog>
     );
 }

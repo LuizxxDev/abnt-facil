@@ -34,3 +34,5 @@ Thumbs.db
 # Backup e Cache
 .eslintcache
 .stylelintcache
+# Arquivos de trabalho da skill de direção de arte
+.taste-skill/

@@ -3,26 +3,29 @@ import { Bold, Italic, Quote, BookOpen, Superscript, Sigma, ListOrdered } from '
 
 export const EditorToolbar = ({ onAction }) => {
     const buttons = [
-        { id: 'bold', icon: Bold, label: 'Negrito (Ctrl+B)', syntax: '**' },
-        { id: 'italic', icon: Italic, label: 'Itálico (Ctrl+I)', syntax: '*' },
-        { id: 'quote', icon: Quote, label: 'Citação Longa', isBlock: true, prefix: '[CITAÇÃO]: ' },
-        { id: 'note', icon: Superscript, label: 'Nota de rodapé: palavra^[texto da nota]', wrap: ['^[', ']'] },
-        { id: 'list', icon: ListOrdered, label: 'Alíneas: a) item; b) item; - subalínea', isBlock: true, prefix: 'a) ' },
-        { id: 'equation', icon: Sigma, label: 'Equação numerada (LaTeX): [EQUAÇÃO]: E = mc^2', isBlock: true, prefix: '[EQUAÇÃO]: ' },
-        { id: 'ref', icon: BookOpen, label: 'Gerador de Referência', action: 'open_ref_modal' },
+        { id: 'bold', icon: Bold, label: 'Negrito', syntax: '**' },
+        { id: 'italic', icon: Italic, label: 'Itálico', syntax: '*' },
+        { id: 'quote', icon: Quote, label: 'Citação longa', isBlock: true, prefix: '[CITAÇÃO]: ' },
+        { id: 'note', icon: Superscript, label: 'Nota de rodapé (palavra^[texto da nota])', wrap: ['^[', ']'] },
+        { id: 'list', icon: ListOrdered, label: 'Alíneas (a) item; b) item; - subalínea)', isBlock: true, prefix: 'a) ' },
+        { id: 'equation', icon: Sigma, label: 'Equação numerada em LaTeX', isBlock: true, prefix: '[EQUAÇÃO]: ' },
+        { id: 'ref', icon: BookOpen, label: 'Gerar referência', action: 'open_ref_modal' },
     ];
 
     return (
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-lg shadow-sm mb-2 w-fit">
+        <div role="toolbar" aria-label="Formatação" className="-ml-1.5 flex flex-wrap items-center gap-0.5">
             {buttons.map(btn => (
                 <button
                     key={btn.id}
-                    // onMouseDown (e não onClick) para o campo de texto não perder a seleção
+                    type="button"
+                    // onMouseDown (e não onClick) para o campo de texto não perder a seleção; o teclado usa onClick
                     onMouseDown={(e) => { e.preventDefault(); onAction(btn); }}
+                    onClick={(e) => { if (e.detail === 0) onAction(btn); }}
                     title={btn.label}
-                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                    aria-label={btn.label}
+                    className="flex size-8 items-center justify-center rounded-[var(--radius-control)] text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink pointer-coarse:size-10"
                 >
-                    <btn.icon size={16} />
+                    <btn.icon size={16} aria-hidden="true" />
                 </button>
             ))}
         </div>

@@ -30,27 +30,20 @@ export default function App() {
         containerClassName="print:hidden print-hidden"
         toastOptions={{ 
           duration: 3000,
-          // O className permite que o toast obedeça ao .dark do HTML dinamicamente
-          className: 'dark:bg-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-2xl',
+          // Cores pelos tokens do tema (mudam sozinhas com o .dark do <html>)
+          className: 'border border-line',
           style: {
-            borderRadius: '6px',
-            padding: '16px 24px',
-            fontWeight: '600',
+            background: 'var(--surface)',
+            color: 'var(--ink)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            fontWeight: '500',
             fontSize: '14px',
-            marginTop: '32px'
+            marginTop: 'calc(16px + env(safe-area-inset-top, 0px))',
+            boxShadow: '0 12px 32px -12px rgb(28 27 25 / 0.28), 0 2px 6px rgb(28 27 25 / 0.08)'
           },
-          success: {
-            iconTheme: {
-              primary: '#16a34a',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
+          success: { iconTheme: { primary: '#1f5b40', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#a3302a', secondary: '#fff' } },
         }} 
       />
       

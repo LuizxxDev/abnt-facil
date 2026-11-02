@@ -1,6 +1,6 @@
-import React, { useState, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Copy, Check, MessageSquare, AlertTriangle, Coffee } from 'lucide-react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Copy, Check, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DOCUMENT_TYPES } from '../utils/documentTypes';
 import { EXAMPLE_ID } from '../utils/constants';
@@ -9,12 +9,13 @@ const FeedbackModal = lazy(() => import('../components/common/FeedbackModal').th
 
 const PIX_KEY = 'abntfacil9@gmail.com';
 
+// Cada recurso aponta para a parte da folha que ele resolve (a folha ao lado acende essa parte)
 const FEATURES = [
-    { title: 'Paginação real em A4', desc: 'O texto é distribuído em folhas de verdade: margens de 3 cm e 2 cm, parágrafos que continuam na folha seguinte e número da página no canto superior direito.' },
-    { title: 'Capa, sumário e listas automáticos', desc: 'Folha de rosto, folha de aprovação, sumário, listas de ilustrações e de tabelas são montados a partir do que você escreve, com os números de página certos.' },
-    { title: 'Referências na NBR 6023:2018', desc: 'Preencha autor, título e ano: o gerador monta a referência com o destaque correto e a lista sai em ordem alfabética.' },
-    { title: 'Assistente que confere as normas', desc: 'Avisa quando o resumo está fora do tamanho, quando um autor citado não está nas referências e quando a citação ainda está no formato antigo, como (SILVA, 2023).' },
-    { title: 'Seus dados ficam com você', desc: 'Sem login, tudo fica salvo só no seu navegador. Com login Google, os projetos sincronizam na nuvem.' },
+    { id: 'margens', title: 'Paginação real em A4', desc: 'O texto é distribuído em folhas de verdade: margens de 3 cm e 2 cm, parágrafos que continuam na folha seguinte e número da página no canto superior direito.' },
+    { id: 'capa', title: 'Capa, sumário e listas automáticos', desc: 'Folha de rosto, folha de aprovação, sumário, listas de ilustrações e de tabelas são montados a partir do que você escreve, com os números de página certos.' },
+    { id: 'referencias', title: 'Referências na NBR 6023:2018', desc: 'Preencha autor, título e ano: o gerador monta a referência com o destaque correto e a lista sai em ordem alfabética.' },
+    { id: 'citacao', title: 'Assistente que confere as normas', desc: 'Avisa quando o resumo está fora do tamanho, quando um autor citado não está nas referências e quando a citação ainda está no formato antigo, como (SILVA, 2023).' },
+    { id: 'dados', title: 'Seus dados ficam com você', desc: 'Sem login, tudo fica salvo só no seu navegador. Com login Google, os documentos sincronizam na nuvem.' },
 ];
 
 const FAQ = [
@@ -22,61 +23,163 @@ const FAQ = [
     { q: 'O PDF sai mesmo nas normas?', a: 'Sim: A4, margens de 3 cm (superior e esquerda) e 2 cm (inferior e direita), Arial ou Times 12, espaçamento 1,5, recuo de 1,25 cm e paginação conforme a NBR 14724.' },
     { q: 'Meus dados estão seguros?', a: 'Sem login, o texto nunca sai do seu computador. Com login, fica na sua conta, acessível só por você.' },
     { q: 'É um projeto oficial do IFPA?', a: 'Não. É um projeto independente, criado por um estudante do IFPA Campus Belém para ajudar colegas e a comunidade acadêmica.' },
-    { q: 'Como não perder meu trabalho?', a: 'Entre com sua conta Google para sincronizar na nuvem ou use "Exportar backup" no painel com frequência.' },
+    { q: 'Como não perder meu trabalho?', a: 'Entre com sua conta Google para sincronizar na nuvem ou baixe uma cópia de segurança no painel com frequência.' },
     { q: 'Minha instituição tem regras próprias.', a: 'O manual da sua instituição prevalece sobre a ABNT. Os textos da folha de rosto, a fonte e as seções podem ser ajustados no editor.' },
 ];
 
-// Página A4 em miniatura com as margens da NBR 14724 anotadas
-const PagePreview = () => (
-    <div className="relative mx-auto w-full max-w-[420px]" aria-hidden="true">
-        <div className="absolute inset-0 translate-x-4 translate-y-4 rotate-[2deg] rounded-[3px] bg-white/70 shadow-[0_20px_50px_-20px_rgba(31,91,64,0.25)] ring-1 ring-slate-200" />
-        <div className="relative aspect-[210/297] w-full rounded-[3px] bg-white shadow-[0_30px_80px_-30px_rgba(28,27,25,0.35)] ring-1 ring-slate-200">
-            {/* margens: 30mm/210mm = 14.3%, 20mm/210mm = 9.5%; 30mm/297mm = 10.1%, 20mm/297mm = 6.7% */}
-            <div className="absolute left-[14.3%] right-[9.5%] top-[10.1%] bottom-[6.7%] rounded-[2px] border border-dashed border-green-500/50" />
-            <span className="absolute left-[14.3%] top-[3.5%] -translate-x-1/2 font-mono text-[10px] text-green-700">3 cm</span>
-            <span className="absolute left-[1.5%] top-[45%] -rotate-90 font-mono text-[10px] text-green-700">3 cm</span>
-            <span className="absolute right-[1%] top-[28%] rotate-90 font-mono text-[10px] text-green-700">2 cm</span>
-            <span className="absolute bottom-[1.6%] left-1/2 -translate-x-1/2 font-mono text-[10px] text-green-700">2 cm</span>
-            <span className="absolute right-[9.5%] top-[6.6%] font-mono text-[9px] text-slate-500">11</span>
+const CREDITS = [
+    { title: 'Belém Ver-o-Peso 01', by: 'Cayambe', licence: 'CC BY-SA 3.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/3.0', page: 'https://commons.wikimedia.org/wiki/File:Bel%C3%A9m_Ver-o-Peso_01.jpg' },
+    { title: 'Theatro da Paz Belém Pará 2023-7979', by: 'Prburley', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0', page: 'https://commons.wikimedia.org/wiki/File:Theatro_da_Paz_Bel%C3%A9m_Par%C3%A1_2023-7979.jpg' },
+    { title: 'Olympia Simplex', by: 'Sammlung der Medien und Wissenschaft', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0', page: 'https://commons.wikimedia.org/wiki/File:Olympia_Simplex.jpg' },
+    { title: 'Card catalog at the Indiana State Library', by: 'TBurmeister (WMF)', licence: 'CC BY-SA 4.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/4.0', page: 'https://commons.wikimedia.org/wiki/File:Card_catalog_at_the_Indiana_State_Library_-_cabinet_exterior.jpg' },
+];
 
-            <div className="absolute left-[14.3%] right-[9.5%] top-[10.1%] flex flex-col gap-[6px] pt-2">
-                <div className="mb-2 h-[7px] w-[38%] rounded-sm bg-slate-800" />
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className={`h-[5px] rounded-sm bg-slate-300 ${i === 0 ? 'ml-[9%]' : ''} ${i === 5 ? 'w-[64%]' : ''}`} />
-                ))}
-                <div className="my-2 ml-[30%] flex flex-col gap-[4px]">
-                    {[0, 1, 2].map(i => <div key={i} className={`h-[4px] rounded-sm bg-slate-400/70 ${i === 2 ? 'w-[55%]' : ''}`} />)}
-                </div>
-                {[0, 1, 2, 3, 4].map(i => (
-                    <div key={i} className={`h-[5px] rounded-sm bg-slate-300 ${i === 0 ? 'ml-[9%]' : ''} ${i === 4 ? 'w-[48%]' : ''}`} />
-                ))}
-                <div className="mx-auto mt-3 flex w-[70%] flex-col items-center gap-[4px]">
-                    <div className="h-[4px] w-[55%] rounded-sm bg-slate-500" />
-                    <div className="grid w-full grid-cols-3 border-y border-slate-700 py-[5px]">
-                        {[0, 1, 2].map(i => <div key={i} className="mx-1 h-[4px] rounded-sm bg-slate-300" />)}
-                    </div>
-                    <div className="h-[3px] w-[35%] self-start rounded-sm bg-slate-400/70" />
-                </div>
-                <div className="mt-3 h-[6px] w-[30%] rounded-sm bg-slate-700" />
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={`b${i}`} className={`h-[5px] rounded-sm bg-slate-300 ${i === 0 ? 'ml-[9%]' : ''} ${i === 6 ? 'w-[72%]' : ''}`} />
-                ))}
-            </div>
+// As abas da pilha de folhas: cada tipo monta a primeira folha de um jeito
+const STACK = [
+    { key: 'tcc', tab: 'TCC', layout: 'capa', tipo: '' },
+    { key: 'artigo', tab: 'Artigo', layout: 'artigo' },
+    { key: 'relatorio', tab: 'Relatório', layout: 'capa', tipo: 'RELATÓRIO TÉCNICO-CIENTÍFICO' },
+    { key: 'projeto', tab: 'Projeto', layout: 'capa', tipo: 'PROJETO DE PESQUISA' },
+];
 
-            <div className="absolute -left-3 top-[30%] hidden rounded-md bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg sm:block">
-                Recuo 1,25 cm
-            </div>
-            <div className="absolute -right-4 top-[45%] hidden rounded-md bg-green-700 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg sm:block">
-                Citação longa: 4 cm, fonte 10
-            </div>
-        </div>
-    </div>
+const MARGIN = { left: '14.3%', top: '10.1%', right: '9.5%', bottom: '6.7%' }; // 30 e 20 mm sobre 210 × 297 mm
+
+// Linhas de texto desenhadas (o corpo da folha)
+const Lines = ({ n, last = 60, indent = true }) => (
+    <span className="flex flex-col gap-[0.42em]" aria-hidden="true">
+        {Array.from({ length: n }, (_, i) => (
+            <span key={i} className="block h-[0.32em] rounded-[1px] bg-slate-300" style={{ width: i === n - 1 ? `${last}%` : indent && i === 0 ? '91%' : '100%', marginLeft: indent && i === 0 ? '9%' : 0 }} />
+        ))}
+    </span>
 );
 
+// A primeira folha do trabalho, montada com o título e o nome que a pessoa digita
+const FrontSheet = ({ layout, tipo, titulo, autor }) => {
+    const T = (titulo || 'Título do seu trabalho').toUpperCase();
+    const A = (autor || 'Seu nome completo').toUpperCase();
+    return (
+        <div className="absolute flex flex-col text-[clamp(11px,2.4cqw,13px)] leading-[1.45] text-slate-950" style={MARGIN}>
+            {layout === 'capa' && (
+                <div className="flex h-full flex-col items-center text-center">
+                    <p className="font-[Arial,sans-serif] font-bold">INSTITUTO FEDERAL DO PARÁ</p>
+                    <p className="mt-[6%] font-[Arial,sans-serif]">{A}</p>
+                    <div className="mt-auto">
+                        <p className="font-[Arial,sans-serif] font-bold [overflow-wrap:anywhere]">{T}</p>
+                        {tipo && <p className="mt-[0.6em] font-[Arial,sans-serif]">{tipo}</p>}
+                    </div>
+                    <div className="mt-auto font-[Arial,sans-serif]">
+                        <p>BELÉM</p>
+                        <p suppressHydrationWarning>{new Date().getFullYear()}</p>
+                    </div>
+                </div>
+            )}
+            {layout === 'artigo' && (
+                <div className="flex h-full flex-col">
+                    <p className="text-center font-[Arial,sans-serif] font-bold [overflow-wrap:anywhere]">{T}</p>
+                    <p className="mt-[1em] text-right font-[Arial,sans-serif]">{autor || 'Seu nome completo'}</p>
+                    <p className="mt-[1.4em] font-[Arial,sans-serif] text-[0.9em]"><span className="font-bold">Resumo:</span></p>
+                    <div className="mt-[0.4em]"><Lines n={5} last={70} indent={false} /></div>
+                    <p className="mt-[0.8em] font-[Arial,sans-serif] text-[0.9em]"><span className="font-bold">Palavras-chave:</span> ABNT; normas; formatação.</p>
+                    <p className="mt-[1.6em] font-[Arial,sans-serif] font-bold">1 INTRODUÇÃO</p>
+                    <div className="mt-[0.6em]"><Lines n={7} last={48} /></div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Pilha de folhas com abas: o motivo da marca em escala grande
+const SheetStack = ({ titulo, autor }) => {
+    const [active, setActive] = useState('tcc');
+    const current = STACK.find(s => s.key === active);
+    const behind = STACK.filter(s => s.key !== active);
+
+    return (
+        <div className="mx-auto w-full max-w-[460px]">
+            <div className="relative pt-[5.5rem] [container-type:inline-size]">
+                {/* Folhas de trás: só a aba aparece; tocar numa delas a traz para a frente */}
+                {behind.map((s, i) => (
+                    <div key={s.key} className="absolute inset-x-0 top-0 aspect-[210/297] rounded-[var(--radius-sheet)] bg-white transition-transform duration-300 ease-[var(--ease-out-strong)]"
+                        style={{ transform: `translateY(${i * 1.5}rem) scale(${0.94 + i * 0.02})`, zIndex: i, background: ['#e4efe8', '#eef6f1', '#ffffff'][i] }} aria-hidden="true" />
+                ))}
+                <div role="tablist" aria-label="Tipo de trabalho" className="absolute inset-x-0 top-0 z-10 flex h-[5.5rem] items-end gap-1.5 px-3">
+                    {STACK.map(s => (
+                        <button key={s.key} type="button" role="tab" aria-selected={active === s.key} onClick={() => setActive(s.key)}
+                            className={`h-10 flex-1 rounded-t-[6px] px-2 text-sm font-semibold transition-[transform,background-color,color] duration-200 ease-[var(--ease-out-strong)] [clip-path:polygon(8%_0,92%_0,100%_100%,0_100%)] pointer-coarse:h-11 ${active === s.key ? 'translate-y-0 bg-white text-ink' : 'translate-y-2 bg-accent-fill text-white hover:translate-y-0.5'}`}>
+                            {s.tab}
+                        </button>
+                    ))}
+                </div>
+                <div className="relative z-10 aspect-[210/297] w-full rounded-[var(--radius-sheet)] bg-white shadow-[var(--shadow-sheet)] ring-1 ring-black/5" data-ui>
+                    {/* Área útil: as margens da ABNT, com as medidas */}
+                    <div className="absolute rounded-[1px] border border-dashed border-green-600/40" style={MARGIN} aria-hidden="true" />
+                    <span className="absolute left-[14.3%] top-[3.4%] -translate-x-1/2 text-[13px] font-medium text-green-700" aria-hidden="true">3 cm</span>
+                    <span className="absolute left-[2%] top-[46%] -translate-x-1/4 -rotate-90 text-[13px] font-medium text-green-700" aria-hidden="true">3 cm</span>
+                    <span className="absolute right-[0.5%] top-[46%] translate-x-1/4 rotate-90 text-[13px] font-medium text-green-700" aria-hidden="true">2 cm</span>
+                    <span className="absolute bottom-[1.4%] left-[55%] text-[13px] font-medium text-green-700" aria-hidden="true">2 cm</span>
+                    <div key={active} className="fade-in"><FrontSheet layout={current.layout} tipo={current.tipo} titulo={titulo} autor={autor} /></div>
+                    <p className="sr-only" aria-live="polite">{`Folha de exemplo: ${current.tab}. Título: ${titulo || 'não preenchido'}. Autor: ${autor || 'não preenchido'}.`}</p>
+                </div>
+            </div>
+
+        </div>
+    );
+};
+
+// Folha anotada: acende a parte que cada recurso resolve
+const AnatomySheet = ({ active }) => {
+    const on = (id) => (active === id ? 'opacity-100' : 'opacity-0');
+    return (
+        <div className="relative mx-auto aspect-[210/297] w-full max-w-[380px] rounded-[var(--radius-sheet)] bg-white text-[clamp(11px,2.6cqw,12px)] shadow-[var(--shadow-sheet)] ring-1 ring-black/5 [container-type:inline-size]" data-ui aria-hidden="true">
+            <span className="absolute right-[9.5%] top-[5.5%] font-[Arial,sans-serif] text-slate-600">11</span>
+            <div className="absolute flex flex-col gap-[1.1em]" style={MARGIN}>
+                <p className="font-[Arial,sans-serif] font-bold text-slate-950">2 REFERENCIAL TEÓRICO</p>
+                <Lines n={5} last={70} />
+                <div className="relative ml-[29%]">
+                    <Lines n={3} last={55} indent={false} />
+                    <span className="absolute bottom-[-1.7em] right-0 font-[Arial,sans-serif] text-[0.8em] text-slate-700">(Silva, 2023, p. 15)</span>
+                </div>
+                <Lines n={6} last={40} />
+                <p className="mt-[0.4em] text-center font-[Arial,sans-serif] font-bold text-slate-950">REFERÊNCIAS</p>
+                <div className="flex flex-col gap-[0.9em] font-[Arial,sans-serif] text-[0.85em] leading-snug text-slate-700">
+                    <p>SILVA, A. <b>Escrita acadêmica</b>. Belém: EDUFPA, 2023.</p>
+                    <p>SOUZA, M. <b>Normas na prática</b>. São Paulo: Atlas, 2021.</p>
+                </div>
+            </div>
+
+            {/* Destaques, um por recurso (troca por opacidade) */}
+            <div className={`absolute rounded-[2px] outline-2 outline-dashed outline-accent transition-opacity duration-[240ms] ${on('margens')}`} style={MARGIN} />
+            <div className={`absolute left-[12%] right-[7%] top-[8.5%] h-[6%] rounded-[3px] bg-accent/15 ring-2 ring-accent transition-opacity duration-[240ms] ${on('capa')}`} />
+            <div className={`absolute bottom-[5%] left-[12%] right-[7%] h-[24%] rounded-[3px] bg-accent/15 ring-2 ring-accent transition-opacity duration-[240ms] ${on('referencias')}`} />
+            <div className={`absolute left-[40%] right-[7%] top-[33%] h-[16%] rounded-[3px] bg-accent/15 ring-2 ring-accent transition-opacity duration-[240ms] ${on('citacao')}`} />
+            <div className={`absolute inset-0 flex items-end justify-center pb-[3%] transition-opacity duration-[240ms] ${on('dados')}`}>
+                <span className="rounded-[var(--radius-control)] bg-accent-fill px-3 py-1.5 text-[13px] font-semibold text-white">Salvo neste navegador</span>
+            </div>
+        </div>
+    );
+};
+
+// Seções entram uma vez ao aparecer na tela; sem script, tudo já fica visível
+const useReveal = () => {
+    useEffect(() => {
+        const root = document.documentElement;
+        if (!('IntersectionObserver' in window)) return;
+        root.classList.add('js-reveal');
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+        }, { rootMargin: '0px 0px -12% 0px' });
+        document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+        return () => { io.disconnect(); root.classList.remove('js-reveal'); };
+    }, []);
+};
+
 const LandingPage = () => {
-    const navigate = useNavigate();
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [feature, setFeature] = useState('margens');
+    const [titulo, setTitulo] = useState('');
+    const [autor, setAutor] = useState('');
+    useReveal();
 
     const copyPix = async () => {
         try {
@@ -90,198 +193,226 @@ const LandingPage = () => {
     };
 
     const delay = (ms) => ({ animationDelay: `${ms}ms` });
+    const primary = 'inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius-control)] bg-accent-fill px-6 text-base font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-accent-fill-hover';
 
     return (
-        <div className="relative min-h-dvh bg-[#f7f7f4] text-slate-900 font-sans">
-            <div className="paper-grain pointer-events-none absolute inset-0 z-0" aria-hidden="true" />
+        <div className="theme-light relative min-h-dvh bg-paper font-sans text-ink">
+            <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-[var(--radius-control)] focus:bg-surface focus:px-4 focus:py-2 focus:shadow-[var(--shadow-float)]">Pular para o conteúdo</a>
 
-            <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow">Pular para o conteúdo</a>
-
-            <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-[#f7f7f4]/85 backdrop-blur-md">
-                <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 md:px-8">
-                    <a href="/" className="flex items-center gap-2.5" aria-label="ABNTFácil, início">
-                        <img src="/favicon.svg" alt="" className="h-8 w-8" />
-                        <span className="font-serif text-[1.45rem] leading-none tracking-tight">ABNT<span className="italic text-green-700">Fácil</span></span>
+            <header className="safe-top sticky top-0 z-50 bg-paper">
+                <nav aria-label="Principal" className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 md:px-8">
+                    <a href="/" className="flex items-center gap-2.5 rounded-[var(--radius-control)] text-lg font-bold tracking-[-0.02em]" aria-label="ABNTFácil, início">
+                        <img src="/favicon.svg" alt="" width="28" height="28" className="size-7" />
+                        ABNTFácil
                     </a>
-                    <div className="flex items-center gap-1 sm:gap-3">
-                        <a href="#documentos" className="hidden rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 md:block">Documentos</a>
-                        <a href="#perguntas" className="hidden rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 md:block">Perguntas</a>
-                        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] duration-200 hover:bg-green-700">
-                            Abrir o editor <ArrowRight size={15} aria-hidden="true" />
-                        </button>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <a href="#documentos" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-base font-medium text-ink-2 transition-colors hover:text-ink md:block">Documentos</a>
+                        <a href="#como-funciona" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-base font-medium text-ink-2 transition-colors hover:text-ink md:block">Como funciona</a>
+                        <a href="#perguntas" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-base font-medium text-ink-2 transition-colors hover:text-ink md:block">Perguntas</a>
+                        <Link to="/dashboard" className="ml-1 inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] bg-ink px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-accent-fill active:scale-[0.97]">
+                            Abrir o editor <ArrowRight size={16} aria-hidden="true" />
+                        </Link>
                     </div>
                 </nav>
             </header>
 
-            <main id="conteudo" className="relative z-10">
-                {/* Hero */}
-                <section className="mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-14 md:px-8 md:pt-20 lg:grid-cols-[1.3fr_0.7fr] lg:gap-12 lg:pb-28">
-                    <div>
-                        <p className="reveal mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600" style={delay(0)}>
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden="true" />
-                            Gratuito · feito por um estudante do IFPA Belém
+            <main id="conteudo">
+                {/* Hero: o título à esquerda, a pilha de folhas com a capa ao vivo à direita */}
+                <section className="mx-auto max-w-6xl px-4 pb-24 pt-10 md:px-8 md:pt-16 lg:pb-32">
+                    <h1 className="reveal text-[clamp(2.5rem,0.9rem+6.2vw,6rem)] font-bold leading-[0.95] tracking-[-0.035em]" style={delay(0)}>
+                        <span className="md:block">Escreva o trabalho. </span><span className="md:block">A ABNT fica com a gente.</span>
+                    </h1>
+                    <div className="mt-12 grid gap-14 lg:grid-cols-12 lg:gap-8">
+                    <div className="lg:col-span-6 lg:pt-6">
+                        <p className="reveal max-w-[34rem] font-serif text-[clamp(1.125rem,1rem+0.5vw,1.375rem)] leading-[1.5] text-ink" style={delay(100)}>
+                            TCC, artigo, relatório, projeto de pesquisa ou resenha: você cuida do conteúdo e o editor monta capa, sumário, referências e o PDF em A4.
                         </p>
-                        <h1 className="font-serif text-[3.1rem] leading-[0.98] tracking-[-0.02em] text-slate-950 sm:text-7xl lg:text-[4.6rem] xl:text-[5rem]">
-                            Escreva o trabalho.<br />
-                            <span className="italic text-green-700">A ABNT fica com a gente.</span>
-                        </h1>
-                        <p className="reveal mt-7 max-w-[34rem] text-lg leading-relaxed text-slate-600" style={delay(120)}>
-                            TCC, artigo, relatório, projeto de pesquisa ou resenha: você foca no conteúdo e o editor monta capa, sumário, referências e o PDF em A4 nas normas.
-                        </p>
-                        <div className="reveal mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6" style={delay(180)}>
-                            <button onClick={() => navigate('/dashboard')} className="group flex items-center justify-center gap-2 rounded-xl bg-green-700 px-7 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(31,91,64,0.6)] transition-[background-color,transform] duration-200 hover:bg-green-800">
-                                Começar a escrever
-                                <ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-                            </button>
-                            <button onClick={() => navigate(`/editor/${EXAMPLE_ID}`)} className="text-center text-base font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-green-700 hover:decoration-green-500">
+                        <div className="reveal mt-9 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6" style={delay(160)}>
+                            <Link to="/dashboard" className={`${primary} active:scale-[0.97]`}>
+                                Começar a escrever <ArrowRight size={18} aria-hidden="true" />
+                            </Link>
+                            <Link to={`/editor/${EXAMPLE_ID}`} className="text-center text-base font-semibold text-accent underline decoration-accent/30 underline-offset-[0.3em] transition-colors hover:decoration-accent">
                                 Ver um TCC de exemplo
-                            </button>
+                            </Link>
                         </div>
-                        <p className="reveal mt-10 font-mono text-xs tracking-wide text-slate-500" style={delay(240)}>
-                            NBR 14724 · 6022 · 6023 · 6024 · 6027 · 6028 · 10520 · 10719 · 15287
+                        <p className="reveal mt-8 text-base text-ink-2" style={delay(220)}>
+                            Grátis e sem cadastro. Feito por um estudante do IFPA Belém.
                         </p>
+                        <div className="reveal mt-14 max-w-[34rem] rounded-[var(--radius-panel)] bg-surface p-5" style={delay(260)}>
+                            <p className="font-semibold">Experimente aqui</p>
+                            <p className="mt-1 text-base text-ink-2">Digite o título e o seu nome e veja a capa se montar nas normas.</p>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-ink">Título do trabalho</span>
+                    <input value={titulo} onChange={e => setTitulo(e.target.value)} maxLength={140} autoComplete="off" placeholder="Ex.: Energia solar no Pará" className="h-11 w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 text-base text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20" />
+                </label>
+                <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-ink">Seu nome</span>
+                    <input value={autor} onChange={e => setAutor(e.target.value)} maxLength={80} autoComplete="name" placeholder="Ex.: Ana Beatriz Souza" className="h-11 w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 text-base text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20" />
+                </label>
+            </div>
+                        </div>
                     </div>
-                    <div className="reveal px-4 sm:px-10 lg:px-0" style={delay(200)}>
-                        <PagePreview />
+                    <div className="reveal lg:col-span-5 lg:col-start-8" style={delay(140)}>
+                        <SheetStack titulo={titulo} autor={autor} />
+                    </div>
                     </div>
                 </section>
 
-                {/* Tipos de documento */}
-                <section id="documentos" className="border-t border-slate-200 bg-white/60">
-                    <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-                        <div className="mb-12 grid gap-4 md:grid-cols-[1fr_1.2fr] md:items-end">
-                            <h2 className="font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-6xl">Do projeto de pesquisa à tese.</h2>
-                            <p className="max-w-lg text-base leading-relaxed text-slate-600 md:justify-self-end">
+                {/* Documentos e normas */}
+                <section id="documentos" data-reveal className="scroll-mt-16 bg-surface">
+                    <div className="mx-auto max-w-6xl px-4 py-24 md:px-8 md:py-36">
+                        <div className="rv grid gap-5 md:grid-cols-12 md:items-end">
+                            <h2 className="text-[clamp(2.25rem,1.5rem+3vw,4rem)] font-bold leading-[1] tracking-[-0.03em] md:col-span-7">Do projeto de pesquisa à tese.</h2>
+                            <p className="max-w-md text-lg leading-relaxed text-ink md:col-span-5">
                                 Cada tipo de documento segue a norma que o rege: a estrutura, os elementos obrigatórios e a ordem das folhas mudam conforme o que você escolhe.
                             </p>
                         </div>
-                        <ul className="grid border-t border-slate-200 sm:grid-cols-2">
+                        <ul className="rv mt-14 grid gap-x-10 sm:grid-cols-2">
                             {Object.entries(DOCUMENT_TYPES).map(([key, t]) => (
-                                <li key={key} className="border-b border-slate-200 sm:odd:border-r sm:odd:pr-8 sm:even:pl-8">
-                                    <button onClick={() => navigate('/dashboard')} className="group flex w-full items-start gap-4 py-5 text-left">
-                                        <span className="mt-0.5 text-green-700 [&_svg]:h-5 [&_svg]:w-5" aria-hidden="true">{t.icon}</span>
-                                        <span className="flex-1">
+                                <li key={key}>
+                                    <Link to="/dashboard" className="group flex items-start gap-4 rounded-[var(--radius-control)] py-5 transition-colors">
+                                        <span className="mt-1 block aspect-[210/297] w-5 shrink-0 rounded-[1px] bg-paper ring-1 ring-line transition-colors group-hover:bg-accent-soft group-hover:ring-accent" aria-hidden="true" />
+                                        <span className="min-w-0 flex-1">
                                             <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                                                <span className="text-[1.05rem] font-semibold text-slate-900 transition-colors group-hover:text-green-700">{t.label}</span>
-                                                <span className="font-mono text-xs text-slate-500">{t.norma}</span>
+                                                <span className="text-lg font-semibold tracking-[-0.01em] transition-colors group-hover:text-accent">{t.label}</span>
+                                                <span className="tabular text-sm text-ink-2">{t.norma}</span>
                                             </span>
-                                            <span className="mt-1 block text-sm leading-relaxed text-slate-600">{t.description}</span>
+                                            <span className="mt-1 block text-base leading-relaxed text-ink-2">{t.description}</span>
                                         </span>
-                                    </button>
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </section>
 
-                {/* O que o editor faz */}
-                <section className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-                    <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
-                        <div className="lg:sticky lg:top-28 lg:self-start">
-                            <h2 className="font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-6xl">
-                                O trabalho mecânico <span className="italic text-green-700">sai da sua frente.</span>
-                            </h2>
-                            <p className="mt-5 max-w-sm text-base leading-relaxed text-slate-600">
-                                Nada de brigar com margens, quebras de página e numeração no Word às duas da manhã.
-                            </p>
-                        </div>
-                        <ol className="divide-y divide-slate-200 border-y border-slate-200">
-                            {FEATURES.map((f, i) => (
-                                <li key={f.title} className="grid grid-cols-[2.5rem_1fr] gap-4 py-7">
-                                    <span className="tabular font-mono text-sm text-green-700">{String(i + 1).padStart(2, '0')}</span>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-slate-900">{f.title}</h3>
-                                        <p className="mt-2 max-w-xl text-[0.95rem] leading-relaxed text-slate-600">{f.desc}</p>
-                                    </div>
+                {/* Como funciona: cada recurso acende a parte da folha que ele resolve */}
+                <section id="como-funciona" data-reveal className="scroll-mt-16 mx-auto max-w-6xl px-4 py-24 md:px-8 md:py-36">
+                    <h2 className="rv max-w-3xl text-[clamp(2.25rem,1.5rem+3vw,4rem)] font-bold leading-[1] tracking-[-0.03em]">O trabalho mecânico sai da sua frente.</h2>
+                    <p className="rv mt-5 max-w-xl text-lg leading-relaxed text-ink">Nada de brigar com margens, quebras de página e numeração no Word às duas da manhã.</p>
+
+                    <div className="mt-14 grid gap-12 lg:grid-cols-12 lg:gap-8">
+                        <ul className="rv space-y-1 lg:col-span-6" aria-label="Recursos do editor">
+                            {FEATURES.map((f) => (
+                                <li key={f.id}>
+                                    <button type="button" aria-pressed={feature === f.id} onClick={() => setFeature(f.id)} onMouseEnter={() => setFeature(f.id)} onFocus={() => setFeature(f.id)}
+                                        className={`w-full rounded-[var(--radius-panel)] px-5 py-5 text-left transition-colors duration-200 ${feature === f.id ? 'bg-surface' : 'hover:bg-surface/60'}`}>
+                                        <span className={`block text-xl font-bold tracking-[-0.015em] transition-colors duration-200 ${feature === f.id ? 'text-accent' : 'text-ink'}`}>{f.title}</span>
+                                        <span className="mt-2 block text-base leading-relaxed text-ink">{f.desc}</span>
+                                    </button>
                                 </li>
                             ))}
-                        </ol>
+                        </ul>
+                        <div className="rv lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
+                            <AnatomySheet active={feature} />
+                        </div>
                     </div>
                 </section>
 
-                {/* Aviso + autor + apoio */}
-                <section className="mx-auto max-w-6xl px-5 pb-20 md:px-8 md:pb-28">
-                    <div className="mb-8 flex items-start gap-4 rounded-xl border border-amber-300/70 bg-amber-50 px-5 py-4 text-amber-900">
-                        <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
-                        <p className="text-sm leading-relaxed">
-                            <strong className="font-semibold">Projeto independente, em evolução.</strong> Não é um projeto oficial do IFPA e é mantido por um único estudante. Guarde backups do seu trabalho e confira o manual da sua instituição.
-                        </p>
-                    </div>
+                {/* Fotos: de onde vêm as regras que o editor aplica sozinho */}
+                <section data-reveal aria-label="Antes do editor" className="mx-auto grid max-w-6xl gap-4 px-4 pb-24 md:grid-cols-12 md:px-8 md:pb-36">
+                    <figure className="rv md:col-span-7">
+                        <img src="/img/maquina-de-escrever.webp" alt="Máquina de escrever portátil Olympia Simplex, de 1935, sobre fundo cinza claro" width="1400" height="934" loading="lazy" decoding="async" className="aspect-[3/2] w-full object-cover" />
+                        <figcaption className="mt-3 max-w-md text-base text-ink-2">Antes, as margens eram acertadas na régua da máquina de escrever, folha por folha.</figcaption>
+                    </figure>
+                    <figure className="rv md:col-span-5 md:mt-24">
+                        <img src="/img/fichario.webp" alt="Fichário de biblioteca em madeira, com dezenas de gavetas etiquetadas" width="1400" height="1866" loading="lazy" decoding="async" className="aspect-[210/297] w-full object-cover" />
+                        <figcaption className="mt-3 max-w-sm text-base text-ink-2">E as referências viviam em fichas, em ordem alfabética. Hoje a lista se organiza sozinha.</figcaption>
+                    </figure>
+                </section>
 
-                    <div className="grid gap-6 md:grid-cols-[1.3fr_1fr] [&>*]:min-w-0">
-                        <div className="rounded-2xl bg-slate-900 p-8 text-slate-100 md:p-12">
-                            <p className="font-serif text-3xl leading-[1.15] md:text-[2.6rem]">
-                                “Sei o que é passar a madrugada brigando com as margens do Word.”
-                            </p>
-                            <p className="mt-6 max-w-lg text-sm leading-relaxed text-slate-400">
-                                Sou o Luiz Felipe, estudante de Engenharia de Controle e Automação no IFPA Belém. Criei o ABNTFácil para que nenhum colega perca tempo com formatação quando deveria estar pensando na pesquisa.
-                            </p>
-                        </div>
-                        <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-8 md:p-10">
-                            <div>
-                                <Coffee size={22} className="mb-5 text-amber-600" aria-hidden="true" />
-                                <h3 className="text-xl font-semibold">Ajude a manter o site no ar</h3>
-                                <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                                    Servidores e banco de dados têm custo. Se a ferramenta te poupou horas, um PIX de qualquer valor ajuda a mantê-la gratuita.
+                {/* Quem fez + apoio */}
+                <section data-reveal aria-labelledby="quem-fez" className="px-2 sm:px-5">
+                    <div className="mx-auto max-w-[1240px] rounded-[var(--radius-panel)] bg-green-900 px-6 py-16 text-green-50 md:px-14 md:py-24">
+                        <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
+                            <div className="rv lg:col-span-6">
+                                <h2 id="quem-fez" className="sr-only">Quem fez o ABNTFácil</h2>
+                                <blockquote className="text-[clamp(1.5rem,1.2rem+0.9vw,2.25rem)] font-bold leading-[1.2] tracking-[-0.02em] text-white">
+                                    “Sei o que é passar a madrugada brigando com as margens do Word.”
+                                </blockquote>
+                                <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-green-50">
+                                    Sou o Luiz Felipe, estudante de Engenharia de Controle e Automação no IFPA, em Belém. Criei o ABNTFácil para que nenhum colega perca tempo com formatação quando deveria estar pensando na pesquisa.
                                 </p>
-                            </div>
-                            <div className="mt-6">
-                                <p className="mb-2 text-xs font-medium text-slate-500">Chave PIX</p>
-                                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5 pl-3">
-                                    <code className="min-w-0 flex-1 truncate font-mono text-sm text-slate-800">{PIX_KEY}</code>
-                                    <button onClick={copyPix} aria-label="Copiar chave PIX" className="flex shrink-0 items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-700">
-                                        {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-                                        {copied ? 'Copiada' : 'Copiar'}
-                                    </button>
+                                <div className="mt-10 grid grid-cols-2 gap-3">
+                                    <figure>
+                                        <img src="/img/ver-o-peso.webp" alt="Mercado do Ver-o-Peso, em Belém, com barcos de pesca na frente" width="1400" height="906" loading="lazy" decoding="async" className="aspect-[210/297] w-full rounded-[var(--radius-sheet)] object-cover" />
+                                        <figcaption className="mt-2 text-sm text-green-100">Ver-o-Peso, Belém</figcaption>
+                                    </figure>
+                                    <figure className="mt-10">
+                                        <img src="/img/theatro-da-paz.webp" alt="Fachada laranja do Theatro da Paz, em Belém" width="1400" height="934" loading="lazy" decoding="async" className="aspect-[210/297] w-full rounded-[var(--radius-sheet)] object-cover object-[60%_50%]" />
+                                        <figcaption className="mt-2 text-sm text-green-100">Theatro da Paz, Belém</figcaption>
+                                    </figure>
                                 </div>
+                            </div>
+                            <div className="rv flex flex-col gap-10 lg:col-span-5 lg:col-start-8 lg:pt-2">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Ajude a manter o site no ar</h3>
+                                    <p className="mt-2 text-base leading-relaxed text-green-50">
+                                        Servidores e banco de dados têm custo. Se a ferramenta te poupou horas, um PIX de qualquer valor ajuda a mantê-la gratuita.
+                                    </p>
+                                    <p className="mb-2 mt-6 text-sm font-medium text-green-100" id="pix-label">Chave PIX</p>
+                                    <div className="flex items-center gap-2 rounded-[var(--radius-control)] bg-green-950/60 p-1.5 pl-3">
+                                        <span aria-labelledby="pix-label" className="min-w-0 flex-1 truncate text-base text-white">{PIX_KEY}</span>
+                                        <button type="button" onClick={copyPix} aria-label="Copiar chave PIX" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-white px-3 text-sm font-semibold text-green-900 transition-[background-color,transform] duration-150 hover:bg-green-100">
+                                            {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                                            {copied ? 'Copiada' : 'Copiar'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="flex items-start gap-3 text-base leading-relaxed text-green-50">
+                                    <AlertTriangle size={20} className="mt-1 shrink-0 text-[#e0b562]" aria-hidden="true" />
+                                    <span><strong className="font-semibold text-white">Projeto independente, em evolução.</strong> Não é um projeto oficial do IFPA e é mantido por um único estudante. Guarde cópias do seu trabalho e confira o manual da sua instituição.</span>
+                                </p>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Perguntas: todas visíveis, sem acordeão */}
-                <section id="perguntas" className="border-t border-slate-200 bg-white/60">
-                    <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-                        <h2 className="mb-12 font-serif text-4xl leading-[1.05] tracking-[-0.01em] md:text-6xl">Perguntas frequentes</h2>
-                        <dl className="grid gap-x-14 gap-y-10 md:grid-cols-2">
-                            {FAQ.map(item => (
-                                <div key={item.q}>
-                                    <dt className="text-base font-semibold text-slate-900">{item.q}</dt>
-                                    <dd className="mt-2 text-[0.95rem] leading-relaxed text-slate-600">{item.a}</dd>
-                                </div>
-                            ))}
-                        </dl>
-                    </div>
+                <section id="perguntas" data-reveal className="scroll-mt-16 mx-auto max-w-6xl px-4 py-24 md:px-8 md:py-36">
+                    <h2 className="rv text-[clamp(2.25rem,1.5rem+3vw,4rem)] font-bold leading-[1] tracking-[-0.03em]">Perguntas frequentes</h2>
+                    <dl className="rv mt-14 grid gap-x-14 gap-y-10 md:grid-cols-2">
+                        {FAQ.map(item => (
+                            <div key={item.q}>
+                                <dt className="text-lg font-semibold tracking-[-0.01em]">{item.q}</dt>
+                                <dd className="mt-2 text-base leading-relaxed text-ink">{item.a}</dd>
+                            </div>
+                        ))}
+                    </dl>
                 </section>
 
-                {/* Chamada final */}
-                <section className="mx-auto max-w-6xl px-5 py-24 text-center md:px-8 md:py-32">
-                    <h2 className="mx-auto max-w-3xl font-serif text-5xl leading-[1] tracking-[-0.02em] md:text-7xl">
-                        Seu próximo trabalho começa <span className="italic text-green-700">pela página certa.</span>
-                    </h2>
-                    <button onClick={() => navigate('/dashboard')} className="mx-auto mt-10 flex items-center gap-2 rounded-xl bg-green-700 px-8 py-4 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(31,91,64,0.6)] transition-[background-color,transform] duration-200 hover:bg-green-800">
-                        Abrir o editor gratuito <ArrowRight size={18} aria-hidden="true" />
-                    </button>
+                {/* Chamada final: a faixa inteira é o link */}
+                <section aria-label="Começar">
+                    <Link to="/dashboard" className="group relative block min-h-[46svh] overflow-hidden bg-accent-fill px-4 pt-6 text-white transition-colors duration-0 hover:bg-ink focus-visible:bg-ink md:min-h-[60svh] md:px-8">
+                        <span className="relative z-10 mx-auto flex max-w-6xl items-start justify-between gap-6">
+                            <span className="max-w-xs text-lg leading-snug md:text-xl">Abra o editor e comece agora. Sem cadastro e sem custo.</span>
+                            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true" className="size-8 shrink-0 transition-transform duration-200 group-hover:-translate-y-1 group-hover:translate-x-1 md:size-12"><path d="M12 36 36 12M16 12h20v20" stroke="currentColor" strokeWidth="3.5" strokeLinecap="square" /></svg>
+                        </span>
+                        <span className="absolute inset-x-0 bottom-[0.06em] block text-center text-[clamp(4.5rem,24vw,22rem)] font-bold leading-[0.8] tracking-[-0.05em]">Escrever</span>
+                    </Link>
                 </section>
             </main>
 
-            <footer className="relative z-10 border-t border-slate-200">
-                <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-slate-500 sm:flex-row md:px-8">
-                    <p suppressHydrationWarning>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
-                    <button onClick={() => setIsFeedbackModalOpen(true)} className="font-medium text-slate-600 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-green-700">
-                        Reportar um problema ou sugerir melhoria
-                    </button>
+            <footer className="bg-paper">
+                <p className="select-none overflow-hidden whitespace-nowrap px-2 pt-10 text-center text-[clamp(3rem,15.5vw,14rem)] font-bold leading-[0.85] tracking-[-0.05em] text-ink" aria-hidden="true">ABNTFácil</p>
+                <div className="mx-auto max-w-6xl space-y-6 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-10 md:px-8">
+                    <div className="flex flex-col gap-3 text-base text-ink-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p suppressHydrationWarning>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
+                        <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className="self-start font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent sm:self-auto">
+                            Relatar um problema ou sugerir melhoria
+                        </button>
+                    </div>
+                    <p className="max-w-xl text-sm leading-relaxed text-ink-2">
+                        Fotos:{' '}
+                        {CREDITS.map((c, i) => (
+                            <React.Fragment key={c.page}>
+                                <a href={c.page} className="underline decoration-line underline-offset-2 hover:text-ink" rel="noopener noreferrer" target="_blank">“{c.title}”</a>, por {c.by}, <a href={c.licenceUrl} className="underline decoration-line underline-offset-2 hover:text-ink" rel="noopener noreferrer" target="_blank">{c.licence}</a>, via Wikimedia Commons{i < CREDITS.length - 1 ? '; ' : '.'}
+                            </React.Fragment>
+                        ))}
+                    </p>
                 </div>
             </footer>
-
-            <button
-                onClick={() => setIsFeedbackModalOpen(true)}
-                className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_10px_30px_-8px_rgba(28,27,25,0.5)] transition-[background-color,transform] duration-200 hover:bg-green-700"
-                aria-label="Reportar um problema ou sugerir melhoria"
-                title="Bugs ou sugestões"
-            >
-                <MessageSquare size={20} aria-hidden="true" />
-            </button>
 
             {isFeedbackModalOpen && (
                 <Suspense fallback={null}>

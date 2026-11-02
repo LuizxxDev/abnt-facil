@@ -1,21 +1,24 @@
 import React, { useRef, useState } from 'react';
-import { X, Eye, UploadCloud, ImagePlus, Loader2 } from 'lucide-react';
+import { UploadCloud, ImagePlus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TABLE_PRESETS, TAG_RENDERERS } from '../../utils/constants';
 import { useAppContext } from '../../contexts/AppContext';
 import { supabase } from '../../lib/supabase';
+import Dialog from './Dialog';
+import { btnPrimary, btnGhost, field, label } from './ui';
+
+const TITLES = { img: 'Inserir figura', tab: 'Inserir tabela', box: 'Inserir quadro', cit: 'Inserir citação longa' };
 
 const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) => {
     const fileInputRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     
-    const { settings, user } = useAppContext();
+    const { user } = useAppContext();
 
     if (!isOpen) return null;
 
     const { type, tableData, rows, cols, localBase64, url } = assetModal;
-    const isDark = settings.theme === 'dark';
 
     const applyTablePreset = (preset) => {
         setAssetModal({...assetModal, rows: preset.rows, cols: preset.cols, tableData: JSON.parse(JSON.stringify(preset.data))});
@@ -68,7 +71,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
             }
 
             setIsUploading(true);
-            const toastId = toast.loading("Enviando a imagem para a nuvem...");
+            const toastId = toast.loading("Enviando a imagem para a nuvem…");
 
             try {
                 const fileExt = file.name.split('.').pop();
@@ -90,7 +93,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
 
             } catch (error) {
                 console.error("Erro no upload para o Supabase:", error);
-                toast.error("A nuvem não respondeu. Salvando neste aparelho...", { id: toastId });
+                toast.error("A nuvem não respondeu. Salvando neste aparelho…", { id: toastId });
                 convertToBase64(file); 
             } finally {
                 setIsUploading(false);
@@ -115,52 +118,58 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
         }
     };
 
+    const keyDrop = (e) => { if ((e.key === 'Enter' || e.key === ' ') && !isUploading) { e.preventDefault(); fileInputRef.current.click(); } };
+
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className={`${isDark ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-800'} w-full max-w-2xl rounded-3xl p-8 shadow-2xl flex flex-col max-h-[90vh] transition-colors duration-300`}>
-            <div className="flex justify-between items-center mb-6 shrink-0">
-                <h4 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-700'}`}>Inserir Elemento</h4>
-                <button onClick={onClose} disabled={isUploading} className={`hover:scale-110 transition-transform disabled:opacity-50 ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}><X size={20}/></button>
-            </div>
-            
-            <div className="overflow-y-auto flex-1 pr-2 space-y-6">
+        <Dialog open={isOpen} onClose={() => !isUploading && onClose()} title={TITLES[type] || 'Inserir elemento'} size="lg"
+            footer={<>
+                <button type="button" onClick={onClose} disabled={isUploading} className={btnGhost}>Cancelar</button>
+                <button type="button" onClick={onConfirm} disabled={isUploading} className={btnPrimary}>{isUploading ? 'Aguarde…' : 'Inserir no texto'}</button>
+            </>}>
+            <div className="space-y-6 pt-2">
               {type === 'tab' && (
-                <div className="grid grid-cols-3 gap-3">
+                <div role="group" aria-label="Modelos de tabela" className="grid grid-cols-3 gap-2">
                     {TABLE_PRESETS.map(preset => (
-                        <button key={preset.id} onClick={() => applyTablePreset(preset)} className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${isDark ? 'border-slate-700 hover:border-green-500 hover:bg-green-900/20' : 'border-slate-200 hover:border-green-500 hover:bg-green-50'}`}>
-                            <div className={isDark ? 'text-slate-400' : 'text-slate-500'}>{preset.icon}</div>
-                            <span className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{preset.label}</span>
+                        <button key={preset.id} type="button" onClick={() => applyTablePreset(preset)} className="flex flex-col items-center gap-2 rounded-[var(--radius-control)] bg-surface-2 p-3 text-ink-2 transition-[background-color,color] duration-150 hover:bg-accent-soft hover:text-accent">
+                            <span aria-hidden="true">{preset.icon}</span>
+                            <span className="text-xs font-semibold">{preset.label}</span>
                         </button>
                     ))}
                 </div>
               )}
-              
+
               {type !== 'cit' && (
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="text-xs font-bold text-slate-500 uppercase">Título</label>
-                        <input autoFocus={type !== 'tab'} className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-green-500 outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} value={assetModal.title} onChange={e => setAssetModal({...assetModal, title: e.target.value})} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label htmlFor="asset-titulo" className={label}>Título</label>
+                        <input id="asset-titulo" data-autofocus={type !== 'tab' || undefined} autoComplete="off" className={field} value={assetModal.title} onChange={e => setAssetModal({...assetModal, title: e.target.value})} />
                     </div>
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="text-xs font-bold text-slate-500 uppercase">Fonte</label>
-                        <input className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-green-500 outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} value={assetModal.source} onChange={e => setAssetModal({...assetModal, source: e.target.value})} />
+                    <div>
+                        <label htmlFor="asset-fonte" className={label}>Fonte</label>
+                        <input id="asset-fonte" autoComplete="off" placeholder="Ex.: Elaborado pelo autor (2026)" className={field} value={assetModal.source} onChange={e => setAssetModal({...assetModal, source: e.target.value})} />
                     </div>
                 </div>
               )}
-              
+
               {type === 'tab' && (
-                <div className={`p-4 rounded-xl border space-y-4 ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex items-center gap-4">
-                        <input type="number" min="1" max="20" className={`w-full p-2 border rounded-lg text-sm outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`} value={rows} onChange={e => updateTableGrid(e.target.value, cols)} />
-                        <input type="number" min="1" max="10" className={`w-full p-2 border rounded-lg text-sm outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`} value={cols} onChange={e => updateTableGrid(rows, e.target.value)} />
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="asset-linhas" className={label}>Linhas</label>
+                            <input id="asset-linhas" type="number" inputMode="numeric" min="1" max="20" className={field} value={rows} onChange={e => updateTableGrid(e.target.value, cols)} />
+                        </div>
+                        <div>
+                            <label htmlFor="asset-colunas" className={label}>Colunas</label>
+                            <input id="asset-colunas" type="number" inputMode="numeric" min="1" max="10" className={field} value={cols} onChange={e => updateTableGrid(rows, e.target.value)} />
+                        </div>
                     </div>
-                    <div className={`overflow-x-auto border rounded-lg shadow-inner max-h-[300px] ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <table className="w-full text-xs">
+                    <div className="max-h-[300px] overflow-auto rounded-[var(--radius-control)] border border-line bg-surface">
+                        <table className="w-full text-sm">
                             <tbody>
                                 {tableData.map((row, rI) => (
                                     <tr key={rI}>{row.map((cell, cI) => (
-                                        <td key={cI} className={`border-b border-r p-0 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                                            <input className={`w-full p-2 outline-none text-center bg-transparent ${rI === 0 ? 'font-bold' : ''} ${isDark ? 'text-white' : 'text-slate-800'}`} value={cell} onChange={e => handleCellChange(rI, cI, e.target.value)} />
+                                        <td key={cI} className="border-b border-r border-line p-0">
+                                            <input aria-label={`Linha ${rI + 1}, coluna ${cI + 1}`} className={`w-full min-w-24 bg-transparent p-2 text-center text-ink outline-none focus:bg-accent-soft ${rI === 0 ? 'font-semibold' : ''}`} value={cell} onChange={e => handleCellChange(rI, cI, e.target.value)} />
                                         </td>
                                     ))}</tr>
                                 ))}
@@ -169,50 +178,48 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                     </div>
                 </div>
               )}
-              
+
               {type === 'img' && (
                   <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                        <label className="text-xs font-bold text-slate-500 uppercase">Upload de Imagem</label>
-                        {user ? (
-                            <span className="text-[9px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Modo Nuvem (Até 5MB)</span>
-                        ) : (
-                            <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Modo Local (Até 500KB)</span>
-                        )}
-                      </div>
-                      
-                      <div 
+                      <div
+                        role="button"
+                        tabIndex={isUploading ? -1 : 0}
+                        aria-label="Escolher imagem do aparelho"
+                        onKeyDown={keyDrop}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         onClick={() => !isUploading && fileInputRef.current.click()}
-                        className={`w-full p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 transition-all duration-300 text-center ${isUploading ? 'opacity-50 cursor-not-allowed border-slate-300' : 'cursor-pointer'} ${isDragging ? 'border-green-500 bg-green-500/10 scale-[1.02]' : isDark ? 'border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/50' : 'border-slate-300 hover:border-blue-500/50 hover:bg-slate-50'}`}
+                        className={`flex w-full flex-col items-center justify-center gap-3 rounded-[var(--radius-panel)] border-2 border-dashed p-8 text-center transition-[background-color,border-color] duration-150 ${isUploading ? 'cursor-not-allowed border-line opacity-60' : 'cursor-pointer'} ${isDragging ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent hover:bg-surface-2'}`}
                       >
                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
-                          <div className={`p-4 rounded-full transition-colors ${isUploading ? 'bg-blue-500 text-white' : isDragging ? 'bg-green-500 text-white' : localBase64 || url ? 'bg-green-100 text-green-600' : isDark ? 'bg-slate-800 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                              {isUploading ? <Loader2 size={32} className="animate-spin" /> : isDragging || localBase64 || url ? <ImagePlus size={32} /> : <UploadCloud size={32} />}
-                          </div>
-                          <div>
-                              <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{isUploading ? 'Processando a imagem...' : isDragging ? 'Solte a imagem aqui...' : localBase64 || url ? 'Imagem carregada! Clica para trocar.' : 'Clica para enviar ou arrasta uma imagem'}</p>
-                              <p className={`text-[10px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Suporta JPG, PNG, GIF</p>
-                          </div>
+                          <span className={`rounded-full p-3 ${localBase64 || url ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-ink-2'}`} aria-hidden="true">
+                              {isUploading ? <Loader2 size={28} className="animate-spin" /> : isDragging || localBase64 || url ? <ImagePlus size={28} /> : <UploadCloud size={28} />}
+                          </span>
+                          <span>
+                              <span className="block text-sm font-semibold text-ink">{isUploading ? 'Processando a imagem…' : isDragging ? 'Solte a imagem aqui' : localBase64 || url ? 'Imagem carregada. Toque para trocar.' : 'Toque para escolher ou arraste uma imagem'}</span>
+                              <span className="mt-1 block text-xs text-ink-3">JPG, PNG ou GIF · até {user ? '5 MB (nuvem)' : '500 KB (neste aparelho)'}</span>
+                          </span>
                       </div>
 
-                      <div className="pt-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Ou usa um link da internet direto (URL)</label>
-                        <input disabled={isUploading} className={`w-full p-3 border rounded-xl text-sm mt-1 focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50 ${isDark ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 placeholder:text-slate-400'}`} placeholder="https://exemplo.com/imagem.png" value={url} onChange={e => setAssetModal({...assetModal, url: e.target.value, localBase64: null})} />
+                      <div>
+                        <label htmlFor="asset-url" className={label}>Ou cole o link de uma imagem</label>
+                        <input id="asset-url" type="url" inputMode="url" spellCheck={false} disabled={isUploading} className={field} placeholder="https://exemplo.com/imagem.png" value={url} onChange={e => setAssetModal({...assetModal, url: e.target.value, localBase64: null})} />
                       </div>
                   </div>
               )}
 
               {(type === 'box' || type === 'cit') && (
-                <textarea placeholder="Conteúdo..." className={`w-full p-3 border rounded-xl text-sm mt-1 h-32 focus:ring-1 focus:ring-green-500 outline-none resize-none ${isDark ? 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 placeholder:text-slate-400'}`} value={assetModal.content} onChange={e => setAssetModal({...assetModal, content: e.target.value})} />
+                <div>
+                    <label htmlFor="asset-conteudo" className={label}>{type === 'cit' ? 'Texto da citação' : 'Conteúdo do quadro'}</label>
+                    <textarea id="asset-conteudo" data-autofocus={type === 'cit' || undefined} placeholder={type === 'cit' ? 'Cole a citação com mais de três linhas…' : 'Conteúdo…'} className={`${field} h-32 resize-none`} value={assetModal.content} onChange={e => setAssetModal({...assetModal, content: e.target.value})} />
+                </div>
               )}
-              
-              <div className={`border-t pt-4 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                <p className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-2"><Eye size={12}/> Pré-visualização</p>
-                <div className={`p-4 rounded-xl border min-h-[100px] flex items-center justify-center ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                    <div className={`p-4 shadow-sm w-full text-sm overflow-hidden ${isDark ? 'bg-slate-800 text-slate-200' : 'bg-white text-black'}`}>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold text-ink">Como fica no trabalho</p>
+                <div className="rounded-[var(--radius-control)] bg-surface-2 p-4">
+                    <div className="w-full overflow-hidden bg-white p-4 text-sm text-black shadow-[var(--shadow-sheet)]">
                         {type === 'img' && TAG_RENDERERS['IMAGEM'](`${assetModal.title}|${assetModal.source}|${localBase64 || url}`, 0)}
                         {type === 'tab' && TAG_RENDERERS['TABELA'](`${assetModal.title}|${assetModal.source}|${JSON.stringify(assetModal.tableData)}`, 0)}
                         {type === 'box' && TAG_RENDERERS['QUADRO'](`${assetModal.title}|${assetModal.source}|${assetModal.content}`, 0)}
@@ -221,13 +228,7 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                 </div>
               </div>
             </div>
-            
-            <div className="mt-8 flex gap-3 shrink-0">
-                <button onClick={onClose} disabled={isUploading} className={`flex-1 py-3 font-bold transition-colors rounded-xl disabled:opacity-50 ${isDark ? 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200'}`}>Cancelar</button>
-                <button onClick={onConfirm} disabled={isUploading} className="flex-[2] py-3 bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-green-600 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0">{isUploading ? 'Aguarde...' : 'Inserir no Texto'}</button>
-            </div>
-          </div>
-        </div>
+        </Dialog>
     );
 };
 

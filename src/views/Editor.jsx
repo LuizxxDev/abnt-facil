@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Lock, Loader2, CheckCircle2, AlertTriangle, AlertCircle,
   ZoomOut, ZoomIn, List, FileEdit, Copy, Download, FileText,
-  ListTodo, ShieldCheck, CheckSquare, Settings2,
+  ListTodo, ShieldCheck,
   Sun, Moon, Eye, FileCog, Globe, BookOpen, BookMarked
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,6 +19,9 @@ import { splitBlocks } from '../utils/documentContent';
 import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
 import ABNTViewer from '../components/preview/ABNTViewer';
+import Sheet from '../components/common/Sheet';
+import { btnPrimary, btnSecondary, btnGhost, iconBtn } from '../components/common/ui';
+import Dialog from '../components/common/Dialog';
 
 // Modais só são baixados quando abertos pela primeira vez
 const ReferenceModal = lazy(() => import('../components/editor/ReferenceModal'));
@@ -29,7 +32,7 @@ const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     
-    const { projects, setProjects, settings, setSettings, createFromExample } = useAppContext();
+    const { projects, setProjects, settings, setSettings, createFromExample, user } = useAppContext();
     
     const [data, setData] = useState(null);
     const [authors, setAuthors] = useState(['']);
@@ -51,6 +54,7 @@ const Editor = () => {
     const [assetModal, setAssetModal] = useState({ open: false, type: 'img', sectionIndex: null, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: [], localBase64: null });
     
     const [attachmentModal, setAttachmentModal] = useState({ open: false, type: 'apendice' });
+    const [exportGate, setExportGate] = useState(null); // 'pdf' | 'docx' quando há ajustes pendentes
 
     useEffect(() => {
         if (!id) return;
@@ -183,9 +187,9 @@ const Editor = () => {
     }, [data]);
 
     const abntStatus = useMemo(() => {
-        if (abntErrors.length === 0) return { label: 'ABNT OK', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 size={14}/> };
-        if (abntErrors.length <= 2) return { label: `${abntErrors.length} ajuste${abntErrors.length > 1 ? 's' : ''}`, color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300', icon: <AlertCircle size={14}/> };
-        return { label: `${abntErrors.length} pendências`, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: <AlertTriangle size={14}/> };
+        if (abntErrors.length === 0) return { label: 'ABNT ok', tone: 'bg-accent-soft text-accent', icon: <CheckCircle2 size={16} aria-hidden="true" /> };
+        const n = abntErrors.length;
+        return { label: `${n} ${n === 1 ? 'ajuste' : 'ajustes'}`, tone: n <= 2 ? 'bg-warn-soft text-warn' : 'bg-danger-soft text-danger', icon: <AlertCircle size={16} aria-hidden="true" /> };
     }, [abntErrors]);
 
     const numberSections = getDocType(data).numberedSections !== false;
@@ -213,6 +217,14 @@ const Editor = () => {
         });
         return groups;
     }, [secoes, sumarioItens]);
+
+    // Só a gravação na nuvem é assíncrona: sem login o texto já está no navegador
+    useEffect(() => {
+        if (!isSaving || !user) return;
+        const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [isSaving, user]);
 
     const deferredData = useDeferredValue(data);
     const deferredAuthors = useDeferredValue(authors);
@@ -279,7 +291,7 @@ const Editor = () => {
             if (type === 'cit') tag = `\n\n[CITAÇÃO]: ${content}`;
             else if (type === 'img') tag = `\n\n[IMAGEM]: ${title} | ${source} | ${finalUrl}`;
             else if (type === 'tab') tag = `\n\n[TABELA]: ${title} | ${source} | ${JSON.stringify(tableData)}`;
-            else if (type === 'box') tag = `\n\n[QUADRO]: ${title} | ${source} | ${content || 'Conteúdo...'}`;
+            else if (type === 'box') tag = `\n\n[QUADRO]: ${title} | ${source} | ${content || 'Conteúdo…'}`;
             
             const newSec = [...newData.secoes]; 
             newSec[sectionIndex] = { ...newSec[sectionIndex], conteudo: newSec[sectionIndex].conteudo + tag };
@@ -292,94 +304,97 @@ const Editor = () => {
 
     const handleCreateFromExample = async () => {
         const newId = await createFromExample();
-        toast.success("Exemplo clonado com sucesso!");
+        toast.success('Exemplo copiado para os seus documentos');
         navigate(`/editor/${newId}`);
     };
 
-    if (!data) return <div className="flex h-dvh items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-green-700" size={40}/></div>;
-
-    const headerBgClass = isReadOnly 
-        ? (settings.theme === 'dark' ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-200')
-        : (settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200');
-
-    const readOnlyBadgeClass = settings.theme === 'dark' 
-        ? 'bg-amber-900/50 text-amber-400 border-amber-700/50' 
-        : 'bg-amber-100 text-amber-800 border-amber-300';
+    if (!data) return (
+        <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-paper" role="status">
+            <Sheet progress={60} className="w-12 animate-pulse" />
+            <p className="text-sm text-ink-2">Abrindo o documento…</p>
+        </div>
+    );
 
     const docType = getDocType(data);
     const isArticle = docType.layout === 'article';
     const hasPreTextual = ['dedicatoria', 'agradecimentos', 'agradecimentosPos', 'epigrafe', 'resumoPt', 'resumoEn'].some(el => hasElement(docType, el));
     const panels = [
-        { id: 'documento', label: 'Documento', icon: FileCog },
-        ...(hasPreTextual ? [{ id: 'pretextuais', label: isArticle ? 'Resumo' : 'Pré-textuais', icon: Globe }] : []),
-        { id: 'capitulos', label: isArticle ? 'Texto' : 'Capítulos', icon: BookOpen },
-        { id: 'referencias', label: 'Referências', icon: BookMarked },
-        { id: 'revisao', label: 'Revisão', icon: ShieldCheck, badge: abntErrors.length },
+        { id: 'documento', label: 'Documento', short: 'Dados', icon: FileCog },
+        ...(hasPreTextual ? [{ id: 'pretextuais', label: isArticle ? 'Resumo' : 'Pré-textuais', short: isArticle ? 'Resumo' : 'Pré', icon: Globe }] : []),
+        { id: 'capitulos', label: isArticle ? 'Texto' : 'Capítulos', short: isArticle ? 'Texto' : 'Texto', icon: BookOpen },
+        { id: 'referencias', label: 'Referências', short: 'Refs.', icon: BookMarked },
+        { id: 'revisao', label: 'Revisão', short: 'Revisão', icon: ShieldCheck, badge: abntErrors.length },
     ];
     // Documento novo começa pela identificação; os demais abrem direto no texto
     const currentPanel = panels.some(p => p.id === panel) ? panel : (data.titulo ? 'capitulos' : 'documento');
     const nextPanel = panels[panels.findIndex(p => p.id === currentPanel) + 1];
-
+    const checklistDone = checklist.filter(i => i.done).length;
     const isDark = settings.theme === 'dark';
 
     return (
-        <div className={`flex flex-col h-dvh overflow-hidden abnt-editor-app transition-colors duration-300 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
-            <header className={`h-14 lg:h-16 border-b flex items-center justify-between gap-3 px-3 lg:px-5 shrink-0 z-30 print:hidden transition-colors ${headerBgClass}`}>
-                <div className="flex items-center gap-2 lg:gap-3 min-w-0">
-                    <button onClick={() => { if(isSaving && !window.confirm("Salvando... Sair?")) return; navigate('/dashboard'); }} aria-label="Voltar ao painel" className="p-2 shrink-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-green-700"><ArrowLeft size={20} /></button>
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <h1 className={`font-semibold text-sm truncate leading-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{data.titulo || "Documento sem título"}</h1>
-                            {isReadOnly && (
-                                <span className={`flex items-center shrink-0 gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold border ${readOnlyBadgeClass}`}>
-                                    <Lock size={10}/> Leitura
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 min-w-0">
-                            <span className="truncate hidden sm:inline">{docType.label}</span>
-                            <span className="hidden sm:inline" aria-hidden="true">·</span>
-                            {isSaving || isExporting
-                                ? <span className="flex items-center gap-1 text-amber-600 shrink-0"><Loader2 size={10} className="animate-spin"/> Salvando</span>
-                                : <span className="flex items-center gap-1 text-green-600 dark:text-green-400 shrink-0"><CheckCircle2 size={10}/> Salvo</span>}
+        <div className="abnt-editor-app flex h-dvh flex-col overflow-hidden bg-paper text-ink">
+            <header className="safe-top z-30 shrink-0 border-b border-line bg-surface print:hidden">
+                <div className="flex h-14 items-center justify-between gap-2 px-2 lg:px-4">
+                    <div className="flex min-w-0 items-center gap-1">
+                        <button type="button" onClick={() => { if (isSaving && !window.confirm('Ainda salvando. Sair mesmo assim?')) return; navigate('/dashboard'); }} aria-label="Voltar aos documentos" className={iconBtn}><ArrowLeft size={20} /></button>
+                        <div className="flex min-w-0 flex-col">
+                            <h1 className="truncate text-sm font-semibold leading-tight" title={data.titulo || 'Documento sem título'}>{data.titulo || 'Documento sem título'}</h1>
+                            <p className="flex min-w-0 items-center gap-1.5 text-xs text-ink-3" aria-live="polite">
+                                <span className="hidden truncate sm:inline">{docType.label}</span>
+                                <span className="hidden sm:inline" aria-hidden="true">·</span>
+                                {isReadOnly
+                                    ? <span className="flex min-w-0 items-center gap-1"><Lock size={12} className="shrink-0" aria-hidden="true" /><span className="truncate">Somente leitura</span></span>
+                                    : isSaving || isExporting
+                                        ? <span className="flex shrink-0 items-center gap-1"><Loader2 size={12} className="animate-spin" aria-hidden="true" /> Salvando…</span>
+                                        : <span className="flex shrink-0 items-center gap-1"><CheckCircle2 size={12} className="text-accent" aria-hidden="true" /> Salvo</span>}
+                            </p>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
-                    <button onClick={() => { setPanel('revisao'); setMobileView('editor'); }} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${abntStatus.color}`} title="Ver revisão ABNT">
-                        {abntStatus.icon}<span className="hidden sm:inline">{abntStatus.label}</span>
-                    </button>
-                    <button onClick={() => setShowOutline(!showOutline)} aria-label="Alternar navegação" aria-pressed={showOutline} className={`p-2 rounded-lg transition-colors ${showOutline ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><List size={18}/></button>
-                    <button onClick={() => setSettings(s => ({...s, theme: s.theme === 'dark' ? 'light' : 'dark'}))} aria-label="Alternar tema" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{isDark ? <Sun size={18}/> : <Moon size={18}/>}</button>
-                    {!isReadOnly ? (
-                        <>
-                            <button onClick={handleExportDocx} disabled={isExporting} title="Baixar no formato do Word (.docx)" className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 border transition-colors disabled:opacity-60 ${isDark ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-200 hover:bg-slate-50'}`}><FileText size={16}/><span className="hidden sm:inline">Word</span></button>
-                            <button onClick={handleExportPDF} disabled={isExporting} title="Baixar o PDF em A4" className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors disabled:opacity-60">{isExporting ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}<span className="hidden sm:inline">Baixar PDF</span></button>
-                        </>
-                    ) : (
-                        <button onClick={handleCreateFromExample} className="bg-green-700 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-green-800 transition-colors"><Copy size={15}/><span className="hidden sm:inline">Usar como base</span></button>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1">
+                        <button type="button" onClick={() => { setPanel('revisao'); setMobileView('editor'); }} title="Ver a revisão ABNT"
+                            className={`flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-xs font-semibold transition-colors duration-150 pointer-coarse:h-11 ${abntStatus.tone}`}>
+                            {abntStatus.icon}<span className="hidden sm:inline">{abntStatus.label}</span><span className="sr-only sm:hidden">{abntStatus.label}</span>
+                        </button>
+                        <button type="button" onClick={() => setShowOutline(!showOutline)} aria-label="Sumário do documento" aria-pressed={showOutline} className={`${iconBtn} max-sm:hidden ${showOutline ? 'bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent' : ''}`}><List size={18} /></button>
+                        <button type="button" onClick={() => setSettings(s => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))} aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'} className={`${iconBtn} max-sm:hidden`}>{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+                        {!isReadOnly ? (
+                            <>
+                                <button type="button" onClick={() => abntErrors.length ? setExportGate('docx') : handleExportDocx()} disabled={isExporting} aria-label="Baixar no formato do Word (.docx)" title="Baixar .docx" className={`${btnSecondary} px-3`}><FileText size={16} aria-hidden="true" /><span className="hidden md:inline">Word</span></button>
+                                <button type="button" onClick={() => abntErrors.length ? setExportGate('pdf') : handleExportPDF()} disabled={isExporting} aria-label="Baixar PDF em A4" title="Baixar PDF" className={`${btnPrimary} px-3`}>{isExporting ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} aria-hidden="true" />}<span className="hidden md:inline">Baixar PDF</span></button>
+                            </>
+                        ) : (
+                            <button type="button" onClick={handleCreateFromExample} className={`${btnPrimary} px-3`}><Copy size={16} aria-hidden="true" /> <span className="hidden sm:inline">Usar como base</span><span className="sm:hidden">Usar</span></button>
+                        )}
+                    </div>
                 </div>
             </header>
 
-            <main className="flex flex-1 overflow-hidden relative">
+            <main className="relative flex flex-1 overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
                 {!focusMode && (
-                    <aside className={`absolute inset-0 z-10 lg:relative lg:z-auto w-full lg:w-[440px] border-r flex-col print:hidden ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'} ${isReadOnly ? 'opacity-90' : ''} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        {/* Etapas do documento */}
-                        <nav aria-label="Etapas do documento" className={`grid shrink-0 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`} style={{ gridTemplateColumns: `repeat(${panels.length}, minmax(0, 1fr))` }}>
+                    <aside aria-label="Editor" className={`fade-in absolute inset-0 z-10 w-full flex-col border-r border-line bg-surface print:hidden lg:relative lg:z-auto lg:w-[460px] ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'}`}>
+                        <nav aria-label="Etapas do documento" className="grid shrink-0 border-b border-line" style={{ gridTemplateColumns: `repeat(${panels.length}, minmax(0, 1fr))` }}>
                             {panels.map(p => {
                                 const active = currentPanel === p.id;
                                 return (
-                                    <button key={p.id} onClick={() => setPanel(p.id)} aria-current={active ? 'step' : undefined}
-                                        className={`relative flex flex-col items-center gap-1 pt-2.5 pb-2 text-[11px] font-medium transition-colors border-b-2 -mb-px ${active ? 'text-green-700 dark:text-green-400 border-green-600' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200'}`}>
-                                        <p.icon size={16} aria-hidden="true" />
-                                        <span className="truncate max-w-full px-1">{p.label}</span>
-                                        {p.badge > 0 && <span className="absolute top-1.5 right-[calc(50%-18px)] min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold leading-4 tabular">{p.badge}</span>}
+                                    <button key={p.id} type="button" onClick={() => setPanel(p.id)} aria-current={active ? 'step' : undefined}
+                                        className={`relative -mb-px flex min-h-14 flex-col items-center justify-center gap-1 border-b-2 px-1 text-xs font-medium transition-colors duration-150 ${active ? 'border-accent text-accent' : 'border-transparent text-ink-2 hover:text-ink'}`}>
+                                        <span className="relative">
+                                            <p.icon size={18} aria-hidden="true" />
+                                            {p.badge > 0 && <span className="tabular absolute -right-2.5 -top-1.5 min-w-4 rounded-full bg-warn px-1 text-[11px] font-bold leading-4 text-white dark:text-slate-950" aria-label={`${p.badge} pendências`}>{p.badge}</span>}
+                                        </span>
+                                        <span className="max-w-full truncate"><span className="min-[400px]:hidden">{p.short}</span><span className="hidden min-[400px]:inline">{p.label}</span></span>
                                     </button>
                                 );
                             })}
                         </nav>
+
+                        {isReadOnly && (
+                            <p className="flex shrink-0 items-center gap-2 bg-warn-soft px-4 py-2.5 text-sm text-ink">
+                                <Lock size={14} className="shrink-0 text-warn" aria-hidden="true" />
+                                Este é o exemplo. Para editar, toque em “Usar como base”.
+                            </p>
+                        )}
 
                         {currentPanel !== 'revisao' ? (
                             <EditorForm
@@ -393,76 +408,83 @@ const Editor = () => {
                                 setFocusedSection={setFocusedSection}
                                 panel={currentPanel}
                                 next={nextPanel && { label: nextPanel.label, onClick: () => setPanel(nextPanel.id) }}
-                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('...')) : [], localBase64: null })}
+                                onOpenAssetModal={(type, sectionIndex) => setAssetModal({ open: true, type, sectionIndex, title: '', source: '', url: '', content: '', rows: 3, cols: 3, tableData: type === 'tab' ? Array(3).fill('').map(()=>Array(3).fill('…')) : [], localBase64: null })}
                                 onOpenRefModal={() => setIsRefModalOpen(true)}
                                 onOpenAttachmentModal={(type) => setAttachmentModal({ open: true, type })}
                             />
                         ) : (
-                            <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
-                                <section className="grid grid-cols-2 gap-3">
-                                    <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Palavras</p>
-                                        <p className="tabular text-2xl font-semibold mt-1">{stats.words.toLocaleString('pt-BR')}</p>
+                            <div className="flex-1 space-y-8 overflow-y-auto overscroll-contain p-5">
+                                <dl className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-[var(--radius-panel)] bg-surface-2 p-4">
+                                        <dt className="text-xs text-ink-3">Palavras</dt>
+                                        <dd className="tabular mt-1 text-2xl font-bold">{stats.words.toLocaleString('pt-BR')}</dd>
                                     </div>
-                                    <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Norma</p>
-                                        <p className="text-sm font-semibold mt-1.5">{docType.norma}</p>
+                                    <div className="rounded-[var(--radius-panel)] bg-surface-2 p-4">
+                                        <dt className="text-xs text-ink-3">Norma</dt>
+                                        <dd className="tabular mt-1.5 text-sm font-semibold">{docType.norma}</dd>
                                     </div>
-                                </section>
-                                <section className={`p-5 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                    <h3 className="text-sm font-semibold flex items-center gap-2 mb-4"><ShieldCheck size={16} className="text-green-600"/> Conferência ABNT</h3>
+                                </dl>
+                                <section aria-labelledby="conferencia">
+                                    <h2 id="conferencia" className="mb-3 flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-accent" aria-hidden="true" /> Conferência ABNT</h2>
                                     {abntErrors.length === 0 ? (
-                                        <div className="text-center py-6"><CheckCircle2 size={36} className="text-green-500 mx-auto mb-2"/><p className="text-sm font-semibold">Tudo certo</p><p className="text-xs text-slate-500 dark:text-slate-400">Nenhum problema estrutural encontrado.</p></div>
+                                        <div className="flex flex-col items-center rounded-[var(--radius-panel)] bg-accent-soft px-4 py-8 text-center">
+                                            <CheckCircle2 size={28} className="text-accent" aria-hidden="true" />
+                                            <p className="mt-2 font-semibold">Tudo certo</p>
+                                            <p className="text-sm text-ink-2">Nenhum problema de estrutura encontrado.</p>
+                                        </div>
                                     ) : (
                                         <ul className="space-y-2">
                                             {abntErrors.map((err, i) => (
-                                                <li key={i} className="text-xs text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-300 p-3 rounded-lg">
-                                                    <div className="flex items-center gap-2 font-semibold mb-1"><AlertTriangle size={14} className="shrink-0"/> {err.msg}</div>
-                                                    <div className="pl-6 opacity-80 leading-relaxed">{err.explain}</div>
+                                                <li key={i} className="rounded-[var(--radius-control)] bg-warn-soft p-3 text-sm">
+                                                    <p className="flex items-start gap-2 font-semibold"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" /> {err.msg}</p>
+                                                    <p className="mt-1 pl-6 leading-relaxed text-ink-2">{err.explain}</p>
                                                 </li>
                                             ))}
                                         </ul>
                                     )}
                                 </section>
-                                <section className={`p-5 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-sm font-semibold flex items-center gap-2"><ListTodo size={16} className="text-green-600"/> Checklist do trabalho</h3>
-                                        <span className="tabular text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full">{Math.round((checklist.filter(i=>i.done).length / (checklist.length || 1))*100)}%</span>
+                                <section aria-labelledby="checklist">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h2 id="checklist" className="flex items-center gap-2 font-semibold"><ListTodo size={18} className="text-accent" aria-hidden="true" /> Checklist do trabalho</h2>
+                                        <span className="tabular text-sm font-semibold text-ink-2">{checklistDone} de {checklist.length}</span>
                                     </div>
-                                    <div className="space-y-2">
+                                    <ul className="space-y-1.5">
                                         {checklist.map(item => (
-                                            <button key={item.id} disabled={item.auto || isReadOnly} onClick={() => setChecklist(checklist.map(i => i.id === item.id ? {...i, done: !i.done} : i))}
-                                                className={`w-full text-left flex items-center gap-3 p-3 rounded-lg border transition-colors disabled:cursor-default ${item.done ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')} ${!item.auto && !isReadOnly ? 'hover:border-green-400' : 'opacity-80'}`}>
-                                                <span className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${item.done ? 'bg-green-600 text-white' : 'bg-slate-200 dark:bg-slate-600 text-transparent'}`}>{item.auto ? <Settings2 size={12}/> : <CheckSquare size={14}/>}</span>
-                                                <span className="flex-1">
-                                                    <span className={`text-xs font-medium ${item.done ? 'text-green-800 dark:text-green-400 line-through' : ''}`}>{item.text}</span>
-                                                    {item.auto && <span className="text-[10px] text-slate-400 block mt-0.5">Automático</span>}
-                                                </span>
-                                            </button>
+                                            <li key={item.id}>
+                                                <label className={`flex items-start gap-3 rounded-[var(--radius-control)] p-3 transition-colors duration-150 ${item.done ? 'bg-accent-soft' : 'bg-surface-2'} ${!item.auto && !isReadOnly ? 'cursor-pointer hover:bg-line/60' : ''}`}>
+                                                    <input type="checkbox" checked={!!item.done} disabled={item.auto || isReadOnly}
+                                                        onChange={() => setChecklist(checklist.map(i => i.id === item.id ? { ...i, done: !i.done } : i))}
+                                                        className="mt-0.5 size-4 shrink-0 accent-[var(--accent-fill)]" />
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className={`block text-sm ${item.done ? 'text-ink-2 line-through decoration-ink-3' : ''}`}>{item.text}</span>
+                                                        {item.auto && <span className="mt-0.5 block text-xs text-ink-3">Conferido automaticamente</span>}
+                                                    </span>
+                                                </label>
+                                            </li>
                                         ))}
-                                    </div>
+                                    </ul>
                                 </section>
                             </div>
                         )}
                     </aside>
                 )}
 
-                <div className={`absolute inset-0 z-0 lg:relative lg:z-auto flex-1 overflow-hidden flex-col ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'} ${isDark ? 'bg-slate-900' : 'bg-slate-200'}`}>
+                <div className={`fade-in absolute inset-0 z-0 flex-1 flex-col overflow-hidden bg-surface-2 lg:relative lg:z-auto ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
                     {/* useDeferredValue devolve o valor anterior (null) no primeiro render após carregar */}
                     {previewData && <ABNTViewer data={previewData} authors={previewAuthors} zoomLevel={zoomLevel} fontFamily={fontFamily} groupedSections={previewSections} />}
 
                     {/* Controles da pré-visualização, perto da folha */}
-                    <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 rounded-xl border shadow-lg print:hidden ${isDark ? 'bg-slate-900/95 border-slate-700' : 'bg-white/95 border-slate-200'}`}>
-                        <button onClick={() => setZoomLevel(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="Diminuir zoom" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ZoomOut size={16}/></button>
-                        <span className="tabular text-xs font-semibold w-11 text-center text-slate-600 dark:text-slate-300">{Math.round(zoomLevel * 100)}%</span>
-                        <button onClick={() => setZoomLevel(z => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="Aumentar zoom" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ZoomIn size={16}/></button>
+                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-[var(--radius-panel)] bg-surface p-1 shadow-[var(--shadow-float)] ring-1 ring-line print:hidden">
+                        <button type="button" onClick={() => setZoomLevel(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="Diminuir zoom" className={iconBtn}><ZoomOut size={16} /></button>
+                        <span className="tabular w-12 text-center text-xs font-semibold text-ink-2" aria-live="polite">{Math.round(zoomLevel * 100)}%</span>
+                        <button type="button" onClick={() => setZoomLevel(z => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="Aumentar zoom" className={iconBtn}><ZoomIn size={16} /></button>
                         {!isReadOnly && (
-                            <>
-                                <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+                            <div role="radiogroup" aria-label="Fonte do documento" className="ml-1 flex gap-0.5 border-l border-line pl-1.5">
                                 {['Arial', 'Times New Roman'].map(f => (
-                                    <button key={f} onClick={() => setFontFamily(f)} aria-pressed={fontFamily === f} className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${fontFamily === f ? 'bg-green-700 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{f === 'Arial' ? 'Arial' : 'Times'}</button>
+                                    <button key={f} type="button" role="radio" onClick={() => setFontFamily(f)} aria-checked={fontFamily === f}
+                                        className={`h-9 rounded-[var(--radius-control)] px-2.5 text-xs font-semibold transition-colors duration-150 pointer-coarse:h-11 ${fontFamily === f ? 'bg-accent-fill text-white' : 'text-ink-2 hover:bg-surface-2 hover:text-ink'}`}>{f === 'Arial' ? 'Arial' : 'Times'}</button>
                                 ))}
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -485,11 +507,43 @@ const Editor = () => {
                         data={data}
                     />
                 )}
-
-                <button onClick={() => setMobileView(v => v === 'editor' ? 'preview' : 'editor')} aria-label={mobileView === 'editor' ? 'Ver o documento' : 'Voltar a editar'} className="lg:hidden fixed bottom-20 right-4 z-30 h-14 w-14 rounded-full shadow-[0_10px_30px_-8px_rgba(28,27,25,0.5)] bg-green-700 text-white flex items-center justify-center">
-                    {mobileView === 'editor' ? <Eye size={22}/> : <FileEdit size={22}/>}
-                </button>
             </main>
+
+            {/* Celular: alterna entre escrever e ver a folha, sem cobrir o texto */}
+            <nav aria-label="Modo de visualização" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] lg:hidden print:hidden">
+                <div role="tablist" className="grid grid-cols-3 gap-1 rounded-[var(--radius-control)] bg-surface-2 p-1">
+                    <button type="button" role="tab" aria-selected={mobileView === 'editor'} onClick={() => setMobileView('editor')}
+                        className={`col-span-1 flex h-10 items-center justify-center gap-2 rounded-[4px] text-sm font-semibold transition-colors duration-150 ${mobileView === 'editor' ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2'}`}>
+                        <FileEdit size={16} aria-hidden="true" /> Editar
+                    </button>
+                    <button type="button" role="tab" aria-selected={mobileView === 'preview'} onClick={() => setMobileView('preview')}
+                        className={`col-span-1 flex h-10 items-center justify-center gap-2 rounded-[4px] text-sm font-semibold transition-colors duration-150 ${mobileView === 'preview' ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2'}`}>
+                        <Eye size={16} aria-hidden="true" /> Ver folha
+                    </button>
+                    <button type="button" onClick={() => setShowOutline(!showOutline)} aria-pressed={showOutline}
+                        className={`col-span-1 flex h-10 items-center justify-center gap-2 rounded-[4px] text-sm font-semibold transition-colors duration-150 ${showOutline ? 'bg-surface text-accent shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2'}`}>
+                        <List size={16} aria-hidden="true" /> Sumário
+                    </button>
+                </div>
+            </nav>
+
+            {/* Antes de entregar: avisa o que a revisão ainda aponta, sem impedir o download */}
+            <Dialog open={!!exportGate} onClose={() => setExportGate(null)} size="sm"
+                title={`${abntErrors.length} ${abntErrors.length === 1 ? 'ajuste pendente' : 'ajustes pendentes'} antes de entregar`}
+                description="A revisão ABNT ainda aponta estes pontos. Você pode corrigir agora ou baixar assim mesmo."
+                footer={<>
+                    <button type="button" className={btnGhost} onClick={() => { setExportGate(null); setPanel('revisao'); setMobileView('editor'); }}>Ver os ajustes</button>
+                    <button type="button" className={btnPrimary} data-autofocus onClick={() => { const kind = exportGate; setExportGate(null); if (kind === 'pdf') handleExportPDF(); else handleExportDocx(); }}>
+                        Baixar {exportGate === 'pdf' ? 'PDF' : '.docx'} assim mesmo
+                    </button>
+                </>}>
+                <ul className="space-y-2 pt-1">
+                    {abntErrors.slice(0, 4).map((err, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" /> {err.msg}</li>
+                    ))}
+                    {abntErrors.length > 4 && <li className="pl-6 text-sm text-ink-3">e mais {abntErrors.length - 4}.</li>}
+                </ul>
+            </Dialog>
 
             <Suspense fallback={null}>
                 {isRefModalOpen && <ReferenceModal isOpen onClose={() => setIsRefModalOpen(false)} onAddReference={(referenceStr) => { setData(prev => ({ ...prev, referencias: prev.referencias ? prev.referencias + '\n\n' + referenceStr : referenceStr })); }} />}

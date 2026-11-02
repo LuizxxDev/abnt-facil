@@ -1,8 +1,8 @@
-import React, { useRef, useMemo } from 'react';
-import { 
-  Settings2, Users, Trash2, Globe, BookOpen, Wand2, Lightbulb, 
-  Quote, Image as ImageIcon, TableIcon, Box, BookMarked, GripVertical,
-  UserCheck, Heart, Layers, Plus, ArrowRight, ArrowLeft, FileType, Stamp
+import React, { useRef, useMemo, useState, useId } from 'react';
+import {
+  Trash2, Wand2, Lightbulb,
+  Quote, Image as ImageIcon, TableIcon, Box, GripVertical,
+  Plus, ArrowRight, ChevronLeft, ChevronRight, Copy
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -15,21 +15,43 @@ import { generateId } from '../../utils/helpers';
 import { DOCUMENT_TYPES, getDocType, getDocTypeKey, hasElement, isRequired } from '../../utils/documentTypes';
 import { EditorToolbar } from './EditorToolbar';
 import { useAppContext } from '../../contexts/AppContext';
+import { ConfirmDialog } from '../common/Dialog';
+import { field, iconBtn, help } from '../common/ui';
 
-// -- Componentes Internos Abstratos --
+// -- Componentes internos --
 
-const ThemedInput = ({ theme, className = '', ...props }) => (
-    <input 
-        {...props}
-        className={`w-full p-2.5 border rounded-lg text-sm outline-none focus:border-green-600 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'} ${className}`} 
-    />
+// Campo com rótulo visível (o placeholder fica só como exemplo)
+const Field = ({ label, hint, children, className = '' }) => {
+    const id = useId();
+    return (
+        <div className={className}>
+            <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-ink">{label}</label>
+            {React.cloneElement(children, { id })}
+            {hint && <p className={help}>{hint}</p>}
+        </div>
+    );
+};
+
+const Input = ({ className = '', ...props }) => <input autoComplete="off" {...props} className={`${field} ${className}`} />;
+const TextArea = ({ className = '', ...props }) => <textarea {...props} className={`${field} write-area min-h-24 resize-y leading-relaxed ${className}`} />;
+
+const SectionTitle = ({ children, action }) => (
+    <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="font-bold tracking-[-0.01em]">{children}</h2>
+        {action}
+    </div>
 );
 
-const ThemedTextarea = ({ theme, className = '', ...props }) => (
-    <textarea 
-        {...props}
-        className={`w-full p-3 border rounded-lg text-xs outline-none focus:border-green-600 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'} ${className}`} 
-    />
+// Ação secundária em texto, ao lado de um título
+const TextAction = ({ children, ...props }) => (
+    <button type="button" {...props} className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-sm font-semibold text-accent transition-colors duration-150 hover:bg-accent-soft pointer-coarse:h-10">{children}</button>
+);
+
+// "+ Adicionar …" ao fim de uma lista de campos
+const AddButton = ({ children, ...props }) => (
+    <button type="button" {...props} className="flex h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] text-sm font-semibold text-ink-2 border border-dashed border-line transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
+        <Plus size={16} aria-hidden="true" /> {children}
+    </button>
 );
 
 const WordCounter = ({ text, min = 150, max = 500 }) => {
@@ -37,36 +59,30 @@ const WordCounter = ({ text, min = 150, max = 500 }) => {
         if (!text || typeof text !== 'string') return 0;
         return text.trim().split(/\s+/).filter(word => word.length > 0).length;
     }, [text]);
-    
-    let colorClass = 'text-slate-400 bg-slate-100 border-transparent dark:bg-slate-800';
-    let statusText = '';
 
-    if (count > 0) {
-        if (count < min) {
-            colorClass = 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-900/30 dark:border-yellow-700/50';
-            statusText = `Curto (Mín: ${min})`;
-        } else if (count >= min && count <= max) {
-            colorClass = 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/30 dark:border-green-700/50';
-            statusText = 'Ideal ABNT';
-        } else if (count > max) {
-            colorClass = 'text-red-600 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-900/30 dark:border-red-700/50';
-            statusText = `Longo (Máx: ${max})`;
-        }
-    }
+    let tone = 'text-ink-3';
+    let status = `${min} a ${max} palavras`;
+    if (count > 0 && count < min) { tone = 'text-warn'; status = `curto, mínimo ${min}`; }
+    else if (count >= min && count <= max) { tone = 'text-accent'; status = 'dentro da norma'; }
+    else if (count > max) { tone = 'text-danger'; status = `longo, máximo ${max}`; }
 
-    return (
-        <div className={`text-[10px] font-bold px-2 py-1 rounded border flex items-center gap-1 w-fit transition-colors ${colorClass}`}>
-            {count} palavras {statusText && `- ${statusText}`}
-        </div>
-    );
+    return <p className={`tabular mt-1.5 text-right text-xs font-medium ${tone}`} aria-live="polite">{count} {count === 1 ? 'palavra' : 'palavras'} · {status}</p>;
 };
 
-const LEVEL_NAMES = { 1: 'Primária', 2: 'Secundária', 3: 'Terciária', 4: 'Quaternária', 5: 'Quinária' };
+const LEVEL_NAMES = { 1: 'primária', 2: 'secundária', 3: 'terciária', 4: 'quaternária', 5: 'quinária' };
 
-const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onAddSubsection, onOpenRefModal }) => {
+const INSERTS = [
+    { type: 'cit', label: 'Citação', icon: Quote },
+    { type: 'img', label: 'Figura', icon: ImageIcon },
+    { type: 'tab', label: 'Tabela', icon: TableIcon },
+    { type: 'box', label: 'Quadro', icon: Box },
+];
+
+const SortableSection = ({ s, i, isReadOnly, focusedSection, setFocusedSection, insertTemplate, onDelete, onOpenAssetModal, onUpdate, onAddSubsection, onOpenRefModal }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
     const textareaRef = useRef(null);
-    
+    const titleId = useId();
+
     const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.6 : 1 };
 
     const handleToolbarAction = (action) => {
@@ -101,68 +117,84 @@ const SortableSection = ({ s, i, settings, isReadOnly, focusedSection, setFocuse
     };
 
     const currentLevel = Number(s.level) || 1;
+    const guideKey = Object.keys(SECTION_GUIDES).find(k => s.titulo.toUpperCase().includes(k));
+    const hasTemplate = Object.keys(SECTION_TEMPLATES).some(k => s.titulo.toUpperCase().includes(k));
 
     return (
-        <div ref={setNodeRef} id={`edit-sec-${s.id}`} style={style} className={`p-4 border rounded-xl space-y-3 transition-all scroll-mt-4 ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} ${currentLevel > 1 ? 'ml-6 border-l-4 border-l-green-200' : ''}`}>
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    {!isReadOnly && <button {...attributes} {...listeners} className="cursor-grab p-1 text-slate-300 hover:text-slate-500 active:cursor-grabbing touch-none"><GripVertical size={16}/></button>}
-                    <span className={`text-[8px] font-black uppercase tracking-tighter ${currentLevel > 1 ? 'text-slate-400' : 'text-green-500'}`}>Seção {LEVEL_NAMES[currentLevel] || 'Secundária'}</span>
-                </div>
-                <div className="flex gap-2">
+        // Subseções: recuo e uma linha-guia fina, como num sumário
+        <section ref={setNodeRef} id={`edit-sec-${s.id}`} style={{ ...style, marginLeft: `${(currentLevel - 1) * 0.875}rem` }} aria-labelledby={titleId}
+            className={`scroll-mt-4 bg-surface py-6 ${currentLevel > 1 ? 'border-l border-line pl-4' : ''}`}>
+            <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1">
                     {!isReadOnly && (
-                        <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded p-0.5">
-                            <button onClick={() => onUpdate(i, 'level', Math.max(1, currentLevel - 1))} disabled={currentLevel === 1} className={`p-1 rounded transition-colors ${currentLevel === 1 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-blue-500 hover:bg-white dark:hover:bg-slate-600 shadow-sm'}`}><ArrowLeft size={12}/></button>
-                            <span className="text-[9px] font-bold w-3 text-center my-auto text-slate-500">{currentLevel}</span>
-                            <button onClick={() => onUpdate(i, 'level', Math.min(5, currentLevel + 1))} disabled={currentLevel === 5} className={`p-1 rounded transition-colors ${currentLevel === 5 ? 'opacity-30 cursor-not-allowed text-slate-400' : 'text-blue-500 hover:bg-white dark:hover:bg-slate-600 shadow-sm'}`}><ArrowRight size={12}/></button>
-                        </div>
+                        <button type="button" {...attributes} {...listeners} aria-label="Arrastar para mudar a ordem da seção" className={`${iconBtn} -ml-2 size-8 cursor-grab touch-none text-ink-3 active:cursor-grabbing`}><GripVertical size={16} /></button>
                     )}
-                    <button onClick={() => insertTemplate(i, s.titulo)} className="p-1 text-slate-300 hover:text-purple-500 hover:bg-purple-50 rounded"><Wand2 size={12}/></button>
-                    {!isReadOnly && <button onClick={() => onDelete(s.id)} className="p-1 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded"><Trash2 size={12}/></button>}
+                    <span className="text-xs text-ink-3">Seção {LEVEL_NAMES[currentLevel] || 'secundária'}</span>
+                </div>
+                <div className="-mr-2 flex items-center">
+                    {!isReadOnly && (
+                        <>
+                            <button type="button" onClick={() => onUpdate(i, 'level', Math.max(1, currentLevel - 1))} disabled={currentLevel === 1} aria-label="Subir um nível (menos recuo)" title="Subir um nível" className={`${iconBtn} size-8`}><ChevronLeft size={16} /></button>
+                            <span className="tabular w-5 text-center text-xs font-semibold text-ink-2" aria-label={`Nível ${currentLevel}`}>{currentLevel}</span>
+                            <button type="button" onClick={() => onUpdate(i, 'level', Math.min(5, currentLevel + 1))} disabled={currentLevel === 5} aria-label="Descer um nível (mais recuo)" title="Descer um nível" className={`${iconBtn} size-8`}><ChevronRight size={16} /></button>
+                        </>
+                    )}
+                    {!isReadOnly && hasTemplate && <button type="button" onClick={() => insertTemplate(i, s.titulo)} aria-label="Inserir texto-modelo desta seção" title="Inserir texto-modelo" className={`${iconBtn} size-8`}><Wand2 size={16} /></button>}
+                    {!isReadOnly && <button type="button" onClick={() => onDelete(s.id, s.titulo)} aria-label={`Remover a seção ${s.titulo || 'sem título'}`} title="Remover seção" className={`${iconBtn} size-8 hover:bg-danger-soft hover:text-danger`}><Trash2 size={16} /></button>}
                 </div>
             </div>
-            
-            <input 
-                readOnly={isReadOnly} 
-                className={`font-bold text-xs ${currentLevel === 1 ? 'uppercase' : ''} w-full bg-transparent border-b focus:border-green-600 outline-none pb-1 ${settings.theme === 'dark' ? 'border-slate-600 text-white' : 'border-slate-200 text-slate-800'}`} 
-                value={s.titulo} 
-                onChange={e => onUpdate(i, 'titulo', e.target.value)} 
-                placeholder={`Título da Seção Nível ${currentLevel}`}
+
+            <input
+                id={titleId}
+                readOnly={isReadOnly}
+                aria-label="Título da seção"
+                autoComplete="off"
+                className={`w-full border-b border-line bg-transparent pb-2 text-base font-bold tracking-[-0.01em] text-ink outline-none transition-colors duration-150 placeholder:font-normal focus:border-accent ${currentLevel === 1 ? 'uppercase' : ''}`}
+                value={s.titulo}
+                onChange={e => onUpdate(i, 'titulo', e.target.value)}
+                placeholder={currentLevel === 1 ? 'TÍTULO DA SEÇÃO' : 'Título da subseção'}
             />
 
-            {!isReadOnly && <EditorToolbar onAction={handleToolbarAction} />}
+            {!isReadOnly && <div className="mt-2"><EditorToolbar onAction={handleToolbarAction} /></div>}
 
-            <textarea 
+            <textarea
                 ref={textareaRef}
-                readOnly={isReadOnly} 
-                onFocus={() => setFocusedSection(s.titulo)} 
-                onBlur={() => setFocusedSection(null)} 
-                className={`w-full p-3 rounded-lg text-xs h-40 outline-none focus:ring-1 focus:ring-green-100 ${settings.theme === 'dark' ? 'bg-slate-900 text-slate-300' : 'bg-white text-slate-800'}`} 
-                value={s.conteudo} 
-                onChange={e => onUpdate(i, 'conteudo', e.target.value)} 
+                readOnly={isReadOnly}
+                aria-label={`Texto da seção ${s.titulo || 'sem título'}`}
+                onFocus={() => setFocusedSection(s.titulo)}
+                onBlur={() => setFocusedSection(null)}
+                placeholder="Escreva aqui. Uma linha em branco começa um novo parágrafo."
+                className="write-area mt-1 block min-h-64 w-full resize-y rounded-[var(--radius-control)] bg-transparent px-0 py-2 font-serif text-[1.0625rem] leading-[1.65] text-ink outline-none placeholder:text-ink-3 focus:bg-paper/60"
+                value={s.conteudo}
+                onChange={e => onUpdate(i, 'conteudo', e.target.value)}
             />
-            
-            {focusedSection === s.titulo && Object.keys(SECTION_GUIDES).find(k => s.titulo.toUpperCase().includes(k)) && (
-                <div className="text-[10px] text-blue-600 bg-blue-50 p-2 rounded mt-1 flex gap-2 animate-in fade-in slide-in-from-top-1">
-                    <Lightbulb size={12} className="shrink-0"/> {SECTION_GUIDES[Object.keys(SECTION_GUIDES).find(k => s.titulo.toUpperCase().includes(k))]}
+
+            {focusedSection === s.titulo && guideKey && (
+                <p className="fade-in mt-2 flex gap-2 rounded-[var(--radius-control)] bg-accent-soft px-3 py-2 text-sm text-ink">
+                    <Lightbulb size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" /> {SECTION_GUIDES[guideKey]}
+                </p>
+            )}
+
+            {!isReadOnly && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="-ml-2 flex flex-wrap gap-0.5" role="group" aria-label="Inserir no texto">
+                        {INSERTS.map((it) => {
+                            const Icon = it.icon;
+                            return (
+                                <button key={it.type} type="button" onClick={() => onOpenAssetModal(it.type, i)} className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-sm font-medium text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink pointer-coarse:h-10">
+                                    <Icon size={16} aria-hidden="true" /> {it.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {currentLevel < 5 && (
+                        <button type="button" onClick={() => onAddSubsection(i, currentLevel)} className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-sm font-semibold text-accent transition-colors duration-150 hover:bg-accent-soft pointer-coarse:h-10">
+                            <Plus size={16} aria-hidden="true" /> Subseção
+                        </button>
+                    )}
                 </div>
             )}
-            
-            <div className="flex justify-between items-center mt-2">
-                <div className="flex flex-wrap gap-1">
-                    <button onClick={() => onOpenAssetModal('cit', i)} className="text-[8px] font-bold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100 flex items-center gap-1 hover:bg-green-100"><Quote size={10}/> Citação</button>
-                    <button onClick={() => onOpenAssetModal('img', i)} className="text-[8px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center gap-1 hover:bg-blue-100"><ImageIcon size={10}/> Imagem</button>
-                    <button onClick={() => onOpenAssetModal('tab', i)} className="text-[8px] font-bold text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 flex items-center gap-1 hover:bg-orange-100"><TableIcon size={10}/> Tabela</button>
-                    <button onClick={() => onOpenAssetModal('box', i)} className="text-[8px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 flex items-center gap-1 hover:bg-indigo-100"><Box size={10}/> Quadro</button>
-                </div>
-                
-                {!isReadOnly && currentLevel < 5 && (
-                    <button onClick={() => onAddSubsection(i, currentLevel)} className="text-[9px] font-bold text-slate-500 hover:text-green-700 bg-slate-100 dark:bg-slate-700/50 px-2 py-1 rounded border border-transparent flex items-center gap-1 uppercase">
-                        <Plus size={10}/> Subseção Nvl {currentLevel + 1}
-                    </button>
-                )}
-            </div>
-        </div>
+        </section>
     );
 };
 
@@ -177,7 +209,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 const newIndex = prev.secoes.findIndex(s => s.id === over.id);
                 return { ...prev, secoes: arrayMove(prev.secoes, oldIndex, newIndex) };
             });
-            toast.success("Ordem atualizada!");
+            toast.success('Ordem atualizada');
         }
     };
 
@@ -198,18 +230,8 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
         setData(prev => ({ ...prev, secoes: [...prev.secoes, { id: generateId(), titulo: 'NOVA SEÇÃO', conteudo: '', level: 1 }] }));
     };
 
-    const handleDeleteSection = (id) => {
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2"><Trash2 className="text-red-500" size={20} /><span className="font-bold text-sm">Remover esta seção?</span></div>
-                <p className="text-xs text-slate-500">Toda a informação será apagada permanentemente.</p>
-                <div className="flex gap-2 justify-end mt-2">
-                    <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 text-xs font-bold bg-slate-100 rounded-lg">Cancelar</button>
-                    <button onClick={() => { setData(prev => ({...prev, secoes: prev.secoes.filter(s => s.id !== id)})); toast.dismiss(t.id); toast.success("Removida."); }} className="px-3 py-1.5 text-xs font-bold text-white bg-red-500 rounded-lg">Sim, Remover</button>
-                </div>
-            </div>
-        ));
-    };
+    const [pendingDelete, setPendingDelete] = useState(null);
+    const handleDeleteSection = (id, titulo) => setPendingDelete({ id, titulo });
 
     const insertTemplate = (index, sectionTitle) => {
         if(isReadOnly) return;
@@ -221,9 +243,9 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
                 newSecoes[index] = { ...newSecoes[index], conteudo: (newSecoes[index].conteudo + "\n\n" + SECTION_TEMPLATES[key]).trim() };
                 return { ...prev, secoes: newSecoes };
             });
-            toast.success("Modelo inserido com sucesso!");
+            toast.success('Texto-modelo inserido');
         } else {
-            toast.error("Nenhum modelo disponível para este título.");
+            toast.error('Não há texto-modelo para este título.');
         }
     };
 
@@ -268,164 +290,145 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
         toast.success('Texto gerado. Complete os campos entre [colchetes].');
     };
 
+    const authorsLabel = authors.length > 1 ? 'Autores' : 'Autor';
+    const block = 'border-t border-line pt-6';
+
     return (
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-20">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-10 pt-6 sm:px-6">
             {panel === 'documento' && (
             <div className="space-y-8">
-            {/* Tipo de documento */}
-            <section className="space-y-2">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><FileType size={12}/> Tipo de Documento</h3>
-              <select
-                disabled={isReadOnly}
-                className={`w-full p-2.5 border rounded-lg text-sm font-bold outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                value={typeKey}
-                onChange={e => updateField('tipoDocumento', e.target.value)}
-              >
-                {Object.entries(DOCUMENT_TYPES).map(([key, t]) => <option key={key} value={key}>{t.label}</option>)}
-              </select>
-              <p className="text-[10px] text-slate-400 leading-snug">
-                <span className="font-bold text-green-600">{docType.norma}</span> — {docType.description}
-              </p>
-            </section>
-
-            {/* Identificação */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Settings2 size={12}/> Identificação</h3>
-                {!isReadOnly && (
-                  <div className="flex gap-3">
-                    {hasPerfil && <button type="button" onClick={aplicarPerfil} className="text-[10px] font-bold text-green-700 dark:text-green-400 hover:underline" title="Preencher instituição, curso, cidade e orientador com o seu perfil">Usar meu perfil</button>}
-                    <button type="button" onClick={salvarPerfil} className="text-[10px] font-bold text-slate-500 hover:text-green-700 hover:underline" title="Salvar instituição, curso, cidade e orientador para os próximos documentos">Salvar como perfil</button>
-                  </div>
-                )}
-              </div>
-              {hasElement(docType, 'folhaRosto') && (
-                <>
-                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Instituição" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} />
-                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Nome do Curso / Programa" value={data.curso} onChange={e => updateField('curso', e.target.value)} />
-                </>
-              )}
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Título Oficial" className="font-bold" value={data.titulo} onChange={e => updateField('titulo', e.target.value)} />
-              <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Subtítulo (opcional)" value={data.subtitulo} onChange={e => updateField('subtitulo', e.target.value)} />
-              {hasElement(docType, 'tituloEn') && (
-                <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Título em outro idioma (opcional)" className="italic" value={data.tituloEn || ''} onChange={e => updateField('tituloEn', e.target.value)} />
-              )}
-
-              {hasElement(docType, 'folhaRosto') && (
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Natureza do Trabalho (Folha de Rosto)</label>
-                    {!isReadOnly && docType.natureza && <button onClick={gerarNatureza} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md"><Wand2 size={10}/> Gerar</button>}
-                  </div>
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Ex: Trabalho de Conclusão de Curso apresentado ao IFPA..." value={data.naturezaTrabalho} onChange={e => updateField('naturezaTrabalho', e.target.value)} />
-                </div>
-              )}
-
-              {hasElement(docType, 'obraResenhada') && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Referência da Obra Resenhada (Obrigatório)</label>
-                  <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="SOBRENOME, Nome. **Título da obra**. Edição. Local: Editora, ano." value={data.obraResenhada || ''} onChange={e => updateField('obraResenhada', e.target.value)} />
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Cidade" className="flex-1" value={data.cidade} onChange={e => updateField('cidade', e.target.value)} />
-                <select disabled={isReadOnly} className={`p-2 border rounded-lg text-xs outline-none focus:border-green-600 transition-colors ${settings.theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} value={data.estado} onChange={e => updateField('estado', e.target.value)}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select>
-              </div>
-
-              {(docType.elements.capa === 'opc' || hasElement(docType, 'listas') || hasElement(docType, 'fichaCatalografica')) && (
-                <div className="flex flex-col gap-1.5 pt-1">
-                  {docType.elements.capa === 'opc' && (
-                    <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
-                      <input type="checkbox" disabled={isReadOnly} checked={data.incluirCapa !== false} onChange={e => updateField('incluirCapa', e.target.checked)} /> Incluir capa (opcional neste tipo)
-                    </label>
-                  )}
-                  {hasElement(docType, 'listas') && (
-                    <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
-                      <input type="checkbox" disabled={isReadOnly} checked={data.incluirListas !== false} onChange={e => updateField('incluirListas', e.target.checked)} /> Gerar listas de ilustrações e de tabelas
-                    </label>
-                  )}
-                  {hasElement(docType, 'fichaCatalografica') && (
-                    <>
-                      <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
-                        <input type="checkbox" disabled={isReadOnly} checked={Boolean(data.fichaCatalografica)} onChange={e => updateField('fichaCatalografica', e.target.checked)} /> Incluir ficha catalográfica (verso da folha de rosto)
-                      </label>
-                      {data.fichaCatalografica && (
-                        <div className="pl-5 space-y-1">
-                          <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="text-xs" placeholder="Classificação da biblioteca (ex.: CDD 616.89)" value={data.fichaCdd || ''} onChange={e => updateField('fichaCdd', e.target.value)} />
-                          <p className="text-[10px] text-slate-400 leading-snug">A ficha usa as palavras-chave como assuntos. A classificação (CDD/CDU) é fornecida pela biblioteca da instituição.</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* Autores */}
             <section>
-                <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Users size={12}/> Autores</h3>
-                    <button disabled={isReadOnly} onClick={() => setAuthors([...authors].sort())} className="text-[10px] font-bold text-green-700 hover:underline">A-Z</button>
-                </div>
-                <div className="space-y-2">
-                    {authors.map((a, i) => (
-                        <div key={i} className="flex gap-2">
-                            <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={a} onChange={e => { const n = [...authors]; n[i] = e.target.value; setAuthors(n); }} placeholder="Nome Completo" />
-                            {!isReadOnly && authors.length > 1 && <button onClick={() => setAuthors(authors.filter((_, idx) => idx !== i))} className="text-red-300"><Trash2 size={16}/></button>}
-                        </div>
-                    ))}
-                    {!isReadOnly && <button onClick={() => setAuthors([...authors, ''])} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR AUTOR</button>}
-                </div>
-                {hasElement(docType, 'notaAutores') && (
-                    <div className="space-y-1 mt-3">
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Nota de rodapé dos autores (um por linha)</label>
-                        <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Graduando em Engenharia pelo IFPA. E-mail: autor@email.com" value={data.notaAutores || ''} onChange={e => updateField('notaAutores', e.target.value)} />
+              <Field label="Tipo de documento" hint={<><span className="tabular font-semibold text-ink-2">{docType.norma}</span>. {docType.description}</>}>
+                <select disabled={isReadOnly} className={field} value={typeKey} onChange={e => updateField('tipoDocumento', e.target.value)}>
+                  {Object.entries(DOCUMENT_TYPES).map(([key, t]) => <option key={key} value={key}>{t.label}</option>)}
+                </select>
+              </Field>
+            </section>
+
+            <section className={block}>
+              <SectionTitle action={!isReadOnly && (
+                  <div className="-mr-2 flex">
+                    {hasPerfil && <TextAction onClick={aplicarPerfil} title="Preencher instituição, curso, cidade e orientador com o seu perfil">Usar meu perfil</TextAction>}
+                    <TextAction onClick={salvarPerfil} title="Guardar instituição, curso, cidade e orientador para os próximos documentos">Salvar como perfil</TextAction>
+                  </div>
+              )}>Identificação</SectionTitle>
+              <div className="space-y-4">
+                {hasElement(docType, 'folhaRosto') && (
+                  <>
+                    <Field label="Instituição"><Input readOnly={isReadOnly} placeholder="Ex.: Universidade Federal do Pará" value={data.instituicao} onChange={e => updateField('instituicao', e.target.value)} /></Field>
+                    <Field label="Curso ou programa"><Input readOnly={isReadOnly} placeholder="Ex.: Bacharelado em Engenharia Civil" value={data.curso} onChange={e => updateField('curso', e.target.value)} /></Field>
+                  </>
+                )}
+                <Field label="Título do trabalho"><Input readOnly={isReadOnly} className="font-semibold" value={data.titulo} onChange={e => updateField('titulo', e.target.value)} /></Field>
+                <Field label="Subtítulo (opcional)"><Input readOnly={isReadOnly} value={data.subtitulo} onChange={e => updateField('subtitulo', e.target.value)} /></Field>
+                {hasElement(docType, 'tituloEn') && (
+                  <Field label="Título em outro idioma (opcional)"><Input readOnly={isReadOnly} className="italic" value={data.tituloEn || ''} onChange={e => updateField('tituloEn', e.target.value)} /></Field>
+                )}
+
+                {hasElement(docType, 'folhaRosto') && (
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label htmlFor="natureza" className="text-sm font-medium text-ink">Natureza do trabalho <span className="font-normal text-ink-3">(folha de rosto)</span></label>
+                      {!isReadOnly && docType.natureza && <TextAction onClick={gerarNatureza}><Wand2 size={14} aria-hidden="true" /> Gerar texto</TextAction>}
                     </div>
+                    <TextArea id="natureza" readOnly={isReadOnly} placeholder="Ex.: Trabalho de Conclusão de Curso apresentado ao Instituto Federal do Pará…" value={data.naturezaTrabalho} onChange={e => updateField('naturezaTrabalho', e.target.value)} />
+                  </div>
+                )}
+
+                {hasElement(docType, 'obraResenhada') && (
+                  <Field label="Referência da obra resenhada (obrigatório)">
+                    <TextArea readOnly={isReadOnly} placeholder="SOBRENOME, Nome. **Título da obra**. Edição. Local: Editora, ano." value={data.obraResenhada || ''} onChange={e => updateField('obraResenhada', e.target.value)} />
+                  </Field>
+                )}
+
+                <div className="flex gap-2">
+                  <Field label="Cidade" className="min-w-0 flex-1"><Input readOnly={isReadOnly} autoComplete="address-level2" value={data.cidade} onChange={e => updateField('cidade', e.target.value)} /></Field>
+                  <Field label="Estado" className="w-24"><select disabled={isReadOnly} className={field} value={data.estado} onChange={e => updateField('estado', e.target.value)}>{ESTADOS_BR.map(u => <option key={u} value={u}>{u}</option>)}</select></Field>
+                </div>
+
+                {(docType.elements.capa === 'opc' || hasElement(docType, 'listas') || hasElement(docType, 'fichaCatalografica')) && (
+                  <fieldset className="space-y-1">
+                    <legend className="sr-only">Elementos opcionais</legend>
+                    {docType.elements.capa === 'opc' && (
+                      <label className="flex cursor-pointer items-start gap-3 py-1.5 text-sm text-ink">
+                        <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--accent-fill)]" disabled={isReadOnly} checked={data.incluirCapa !== false} onChange={e => updateField('incluirCapa', e.target.checked)} /> Incluir capa (opcional neste tipo)
+                      </label>
+                    )}
+                    {hasElement(docType, 'listas') && (
+                      <label className="flex cursor-pointer items-start gap-3 py-1.5 text-sm text-ink">
+                        <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--accent-fill)]" disabled={isReadOnly} checked={data.incluirListas !== false} onChange={e => updateField('incluirListas', e.target.checked)} /> Gerar listas de ilustrações e de tabelas
+                      </label>
+                    )}
+                    {hasElement(docType, 'fichaCatalografica') && (
+                      <>
+                        <label className="flex cursor-pointer items-start gap-3 py-1.5 text-sm text-ink">
+                          <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--accent-fill)]" disabled={isReadOnly} checked={Boolean(data.fichaCatalografica)} onChange={e => updateField('fichaCatalografica', e.target.checked)} /> Incluir ficha catalográfica (verso da folha de rosto)
+                        </label>
+                        {data.fichaCatalografica && (
+                          <Field className="pl-7" label="Classificação da biblioteca" hint="A ficha usa as palavras-chave como assuntos. A classificação (CDD/CDU) é fornecida pela biblioteca da instituição.">
+                            <Input readOnly={isReadOnly} placeholder="Ex.: CDD 616.89" value={data.fichaCdd || ''} onChange={e => updateField('fichaCdd', e.target.value)} />
+                          </Field>
+                        )}
+                      </>
+                    )}
+                  </fieldset>
+                )}
+              </div>
+            </section>
+
+            <section className={block}>
+                <SectionTitle action={!isReadOnly && authors.length > 1 && <TextAction onClick={() => setAuthors([...authors].sort())}>Ordenar A–Z</TextAction>}>{authorsLabel}</SectionTitle>
+                <ul className="space-y-2">
+                    {authors.map((a, i) => (
+                        <li key={i} className="flex gap-1">
+                            <Input readOnly={isReadOnly} aria-label={`Nome completo do autor ${i + 1}`} autoComplete="name" className="min-w-0 flex-1" value={a} onChange={e => { const n = [...authors]; n[i] = e.target.value; setAuthors(n); }} placeholder="Nome completo" />
+                            {!isReadOnly && authors.length > 1 && <button type="button" onClick={() => setAuthors(authors.filter((_, idx) => idx !== i))} aria-label={`Remover ${a || `autor ${i + 1}`}`} className={`${iconBtn} size-11 hover:bg-danger-soft hover:text-danger`}><Trash2 size={16} /></button>}
+                        </li>
+                    ))}
+                </ul>
+                {!isReadOnly && <div className="mt-2"><AddButton onClick={() => setAuthors([...authors, ''])}>Adicionar autor</AddButton></div>}
+                {hasElement(docType, 'notaAutores') && (
+                    <Field className="mt-4" label="Nota de rodapé dos autores" hint="Uma linha por autor, na mesma ordem.">
+                        <TextArea readOnly={isReadOnly} placeholder="Graduando em Engenharia pelo IFPA. E-mail: autor@email.com" value={data.notaAutores || ''} onChange={e => updateField('notaAutores', e.target.value)} />
+                    </Field>
                 )}
             </section>
 
-            {/* Orientadores */}
             {hasElement(docType, 'folhaRosto') && (
-            <section>
-                <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><UserCheck size={12}/> Orientadores</h3>
-                </div>
-                <div className="space-y-2">
+            <section className={block}>
+                <SectionTitle>Orientação</SectionTitle>
+                <ul className="space-y-2">
                     {(data.orientadores || ['']).map((o, i) => (
-                        <div key={i} className="flex gap-2">
-                            <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={o} onChange={e => { setData(prev => { const n = [...(prev.orientadores || [''])]; n[i] = e.target.value; return {...prev, orientadores: n}; }); }} placeholder="Nome do Orientador/Coorientador" />
-                            {!isReadOnly && (data.orientadores || ['']).length > 1 && <button onClick={() => setData(prev => ({...prev, orientadores: prev.orientadores.filter((_, idx) => idx !== i)}))} className="text-red-300"><Trash2 size={16}/></button>}
-                        </div>
+                        <li key={i} className="flex gap-1">
+                            <Input readOnly={isReadOnly} aria-label={i === 0 ? 'Orientador(a)' : `Coorientador(a) ${i}`} className="min-w-0 flex-1" value={o} onChange={e => { setData(prev => { const n = [...(prev.orientadores || [''])]; n[i] = e.target.value; return {...prev, orientadores: n}; }); }} placeholder={i === 0 ? 'Orientador(a): Prof. Dr. Nome' : 'Coorientador(a)'} />
+                            {!isReadOnly && (data.orientadores || ['']).length > 1 && <button type="button" onClick={() => setData(prev => ({...prev, orientadores: prev.orientadores.filter((_, idx) => idx !== i)}))} aria-label={`Remover ${o || 'orientador'}`} className={`${iconBtn} size-11 hover:bg-danger-soft hover:text-danger`}><Trash2 size={16} /></button>}
+                        </li>
                     ))}
-                    {!isReadOnly && <button onClick={() => setData(prev => ({...prev, orientadores: [...(prev.orientadores || ['']), '']}))} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR ORIENTADOR</button>}
-                </div>
+                </ul>
+                {!isReadOnly && <div className="mt-2"><AddButton onClick={() => setData(prev => ({...prev, orientadores: [...(prev.orientadores || ['']), '']}))}>Adicionar coorientador</AddButton></div>}
             </section>
             )}
 
-            {/* Folha de aprovação (NBR 14724) */}
             {hasElement(docType, 'folhaAprovacao') && (
-            <section className="space-y-3">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Stamp size={12}/> Folha de Aprovação ({tag('folhaAprovacao')})</h3>
-                <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1 shrink-0">Aprovado em</label>
-                    <ThemedInput theme={settings.theme} readOnly={isReadOnly} type="date" value={data.dataAprovacao || ''} onChange={e => updateField('dataAprovacao', e.target.value)} />
-                </div>
-                <div className="space-y-2">
+            <section className={block}>
+                <SectionTitle>Folha de aprovação <span className="text-sm font-normal text-ink-3">({tag('folhaAprovacao').toLowerCase()})</span></SectionTitle>
+                <Field label="Data da aprovação" className="mb-4 max-w-56"><Input readOnly={isReadOnly} type="date" value={data.dataAprovacao || ''} onChange={e => updateField('dataAprovacao', e.target.value)} /></Field>
+                <p className="mb-2 text-sm font-medium text-ink">Banca examinadora</p>
+                <ul className="space-y-3">
                     {banca.map((m, i) => (
-                        <div key={i} className={`p-2 rounded-lg border space-y-1.5 ${settings.theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                            <div className="flex gap-2">
-                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={m.nome || ''} onChange={e => updateBanca(i, 'nome', e.target.value)} placeholder="Prof. Dr. Nome Completo" />
-                                {!isReadOnly && <button onClick={() => setData(prev => ({...prev, banca: prev.banca.filter((_, idx) => idx !== i)}))} className="text-red-300"><Trash2 size={16}/></button>}
+                        <li key={i} className="space-y-2 rounded-[var(--radius-control)] bg-surface-2 p-3">
+                            <div className="flex gap-1">
+                                <Input readOnly={isReadOnly} aria-label={`Nome do membro ${i + 1} da banca`} className="min-w-0 flex-1 bg-surface" value={m.nome || ''} onChange={e => updateBanca(i, 'nome', e.target.value)} placeholder="Prof. Dr. Nome Completo" />
+                                {!isReadOnly && <button type="button" onClick={() => setData(prev => ({...prev, banca: prev.banca.filter((_, idx) => idx !== i)}))} aria-label={`Remover ${m.nome || `membro ${i + 1}`} da banca`} className={`${iconBtn} size-11 hover:bg-danger-soft hover:text-danger`}><Trash2 size={16} /></button>}
                             </div>
                             <div className="flex gap-2">
-                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="flex-1" value={m.titulacao || ''} onChange={e => updateBanca(i, 'titulacao', e.target.value)} placeholder="Função (Orientador, Examinador...)" />
-                                <ThemedInput theme={settings.theme} readOnly={isReadOnly} className="w-28" value={m.instituicao || ''} onChange={e => updateBanca(i, 'instituicao', e.target.value)} placeholder="Instituição" />
+                                <Input readOnly={isReadOnly} aria-label="Função na banca" className="min-w-0 flex-1 bg-surface" value={m.titulacao || ''} onChange={e => updateBanca(i, 'titulacao', e.target.value)} placeholder="Orientador, examinador…" />
+                                <Input readOnly={isReadOnly} aria-label="Instituição do membro" className="w-28 bg-surface" value={m.instituicao || ''} onChange={e => updateBanca(i, 'instituicao', e.target.value)} placeholder="Instituição" />
                             </div>
-                        </div>
+                        </li>
                     ))}
-                    {!isReadOnly && <button onClick={() => setData(prev => ({...prev, banca: [...(prev.banca || []), { nome: '', titulacao: '', instituicao: '' }]}))} className="w-full py-1.5 border-2 border-dashed rounded text-[10px] font-bold text-slate-400 hover:text-green-700 transition-all">+ ADICIONAR MEMBRO DA BANCA</button>}
-                </div>
+                </ul>
+                {!isReadOnly && <div className="mt-2"><AddButton onClick={() => setData(prev => ({...prev, banca: [...(prev.banca || []), { nome: '', titulacao: '', instituicao: '' }]}))}>Adicionar membro da banca</AddButton></div>}
             </section>
             )}
 
@@ -434,98 +437,86 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
 
             {panel === 'pretextuais' && (
             <div className="space-y-8">
-            {/* Elementos Pré-Textuais */}
             {(hasElement(docType, 'dedicatoria') || hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos') || hasElement(docType, 'epigrafe')) && (
-            <section className="space-y-4">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Heart size={12}/> Elementos Opcionais</h3>
-              {hasElement(docType, 'dedicatoria') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20" placeholder="Dedicatória..." value={data.dedicatoria || ''} onChange={e => updateField('dedicatoria', e.target.value)} />}
-              {(hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos')) && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder={hasElement(docType, 'agradecimentosPos') ? 'Agradecimentos (no artigo, ficam após as referências)...' : 'Agradecimentos...'} value={data.agradecimentos || ''} onChange={e => updateField('agradecimentos', e.target.value)} />}
-              {hasElement(docType, 'epigrafe') && <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-20 italic" placeholder="Epígrafe (Citação que inspira o trabalho)..." value={data.epigrafe || ''} onChange={e => updateField('epigrafe', e.target.value)} />}
+            <section>
+              <SectionTitle>Elementos opcionais</SectionTitle>
+              <div className="space-y-4">
+                {hasElement(docType, 'dedicatoria') && <Field label="Dedicatória"><TextArea readOnly={isReadOnly} className="font-serif text-base" value={data.dedicatoria || ''} onChange={e => updateField('dedicatoria', e.target.value)} /></Field>}
+                {(hasElement(docType, 'agradecimentos') || hasElement(docType, 'agradecimentosPos')) && <Field label="Agradecimentos" hint={hasElement(docType, 'agradecimentosPos') ? 'No artigo, os agradecimentos ficam depois das referências.' : undefined}><TextArea readOnly={isReadOnly} className="min-h-32 font-serif text-base" value={data.agradecimentos || ''} onChange={e => updateField('agradecimentos', e.target.value)} /></Field>}
+                {hasElement(docType, 'epigrafe') && <Field label="Epígrafe" hint="Uma citação que inspira o trabalho, com o autor."><TextArea readOnly={isReadOnly} className="font-serif text-base italic" value={data.epigrafe || ''} onChange={e => updateField('epigrafe', e.target.value)} /></Field>}
+              </div>
             </section>
             )}
 
-            {/* Resumos (NBR 6028:2021) */}
             {(hasElement(docType, 'resumoPt') || hasElement(docType, 'resumoEn')) && (
-            <section className="space-y-4">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Globe size={12}/> Resumos</h3>
-              {hasElement(docType, 'resumoPt') && (
-                <>
-                  <div className="space-y-1">
-                      <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder={`Resumo (${tag('resumoPt')}) — parágrafo único, ${resumoMin} a ${resumoMax} palavras`} value={data.resumoPt} onChange={e => updateField('resumoPt', e.target.value)} />
-                      <div className="flex justify-end"><WordCounter text={data.resumoPt} min={resumoMin} max={resumoMax} /></div>
-                  </div>
-                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Palavras-chave: termo 1; termo 2; termo 3." value={data.palavrasChavePt} onChange={e => updateField('palavrasChavePt', e.target.value)} />
-                </>
-              )}
-              {hasElement(docType, 'resumoEn') && (
-                <>
-                  <div className="space-y-1">
-                      <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32 italic" placeholder={`Abstract (${tag('resumoEn')})`} value={data.resumoEn} onChange={e => updateField('resumoEn', e.target.value)} />
-                      <div className="flex justify-end"><WordCounter text={data.resumoEn} min={resumoMin} max={resumoMax} /></div>
-                  </div>
-                  <ThemedInput theme={settings.theme} readOnly={isReadOnly} placeholder="Keywords: term 1; term 2; term 3." value={data.palavrasChaveEn} onChange={e => updateField('palavrasChaveEn', e.target.value)} />
-                </>
-              )}
-              <p className="text-[10px] text-slate-400">Separe as palavras-chave com ponto e vírgula; o documento já aplica o formato da NBR 6028:2021.</p>
+            <section className={hasElement(docType, 'dedicatoria') || hasElement(docType, 'epigrafe') || hasElement(docType, 'agradecimentos') ? block : ''}>
+              <SectionTitle>Resumos</SectionTitle>
+              <div className="space-y-5">
+                {hasElement(docType, 'resumoPt') && (
+                  <>
+                    <div>
+                      <Field label={`Resumo (${tag('resumoPt').toLowerCase()})`}>
+                        <TextArea readOnly={isReadOnly} className="min-h-40 font-serif text-base" placeholder={`Parágrafo único, de ${resumoMin} a ${resumoMax} palavras.`} value={data.resumoPt} onChange={e => updateField('resumoPt', e.target.value)} />
+                      </Field>
+                      <WordCounter text={data.resumoPt} min={resumoMin} max={resumoMax} />
+                    </div>
+                    <Field label="Palavras-chave" hint="Separe com ponto e vírgula. O documento já aplica o formato da NBR 6028:2021."><Input readOnly={isReadOnly} placeholder="termo 1; termo 2; termo 3" value={data.palavrasChavePt} onChange={e => updateField('palavrasChavePt', e.target.value)} /></Field>
+                  </>
+                )}
+                {hasElement(docType, 'resumoEn') && (
+                  <>
+                    <div>
+                      <Field label={`Abstract (${tag('resumoEn').toLowerCase()})`}>
+                        <TextArea readOnly={isReadOnly} lang="en" className="min-h-40 font-serif text-base italic" value={data.resumoEn} onChange={e => updateField('resumoEn', e.target.value)} />
+                      </Field>
+                      <WordCounter text={data.resumoEn} min={resumoMin} max={resumoMax} />
+                    </div>
+                    <Field label="Keywords"><Input readOnly={isReadOnly} lang="en" placeholder="term 1; term 2; term 3" value={data.palavrasChaveEn} onChange={e => updateField('palavrasChaveEn', e.target.value)} /></Field>
+                  </>
+                )}
+              </div>
             </section>
             )}
-
             </div>
             )}
 
             {panel === 'capitulos' && (
-            <div className="space-y-8">
-            {/* Capítulos */}
-            <section className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><BookOpen size={12}/> Capítulos</h3>
-              </div>
+            <section aria-label="Capítulos" className="-mt-6">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={data.secoes.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-3">
+                  <div className="divide-y divide-line">
                     {data.secoes.map((s, i) => (
-                      <SortableSection key={s.id} s={s} i={i} settings={settings} isReadOnly={isReadOnly} focusedSection={focusedSection} setFocusedSection={setFocusedSection} insertTemplate={insertTemplate} onDelete={handleDeleteSection} onOpenAssetModal={onOpenAssetModal} onUpdate={handleUpdateSection} onAddSubsection={handleAddSubsection} onOpenRefModal={onOpenRefModal} />
+                      <SortableSection key={s.id} s={s} i={i} isReadOnly={isReadOnly} focusedSection={focusedSection} setFocusedSection={setFocusedSection} insertTemplate={insertTemplate} onDelete={handleDeleteSection} onOpenAssetModal={onOpenAssetModal} onUpdate={handleUpdateSection} onAddSubsection={handleAddSubsection} onOpenRefModal={onOpenRefModal} />
                     ))}
                   </div>
                 </SortableContext>
               </DndContext>
-              {!isReadOnly && (
-                <div className="flex pt-2">
-                        <button 
-                    onClick={handleAddSection} 
-                    className="w-full py-2.5 border-2 border-dashed border-green-300 dark:border-green-800 rounded-lg text-[10px] font-bold text-green-700 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex items-center justify-center gap-1 uppercase"
-                  >
-                    <Plus size={14}/> Adicionar Nova Seção
-                  </button>
-                </div>
-              )}
+              {!isReadOnly && <div className="mt-2"><AddButton onClick={handleAddSection}>Adicionar seção</AddButton></div>}
             </section>
-            
-            </div>
             )}
 
             {panel === 'referencias' && (
             <div className="space-y-8">
-            {/* Referências */}
-            <section id="edit-sec-referencias" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><BookMarked size={12}/> Referências</h3>
-                {!isReadOnly && <button onClick={onOpenRefModal} className="text-[9px] font-bold text-green-700 hover:underline uppercase transition-all">Gerar NBR 6023</button>}
-              </div>
-              <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-40 font-mono text-[10px]" placeholder="Cole as referências..." value={data.referencias} onChange={e => updateField('referencias', e.target.value)} />
+            <section id="edit-sec-referencias">
+              <SectionTitle action={!isReadOnly && <TextAction onClick={onOpenRefModal}><Wand2 size={14} aria-hidden="true" /> Gerar referência</TextAction>}>Referências</SectionTitle>
+              <Field label="Lista de referências" hint="Uma referência por parágrafo. A ordem alfabética é aplicada no documento.">
+                <TextArea readOnly={isReadOnly} className="min-h-48 text-sm" placeholder="SOBRENOME, Nome. **Título**. Local: Editora, ano." value={data.referencias} onChange={e => updateField('referencias', e.target.value)} />
+              </Field>
               {/* Citação pronta (NBR 10520:2023) a partir de cada referência: evita citar sem referenciar */}
               {orderedLines(data.referencias).length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[10px] text-slate-400">Toque em uma referência para copiar a citação e colar no texto.</p>
-                  <ul className="space-y-1">
+                <div className="mt-5">
+                  <p className="mb-2 text-sm font-medium text-ink">Citação pronta</p>
+                  <p className={`${help} -mt-1 mb-2`}>Toque numa referência para copiar a citação e colar no texto.</p>
+                  <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-control)] ring-1 ring-line">
                     {orderedLines(data.referencias).map((ref, i) => {
                       const cit = citationFor(ref);
                       return (
                         <li key={i}>
-                          <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(cit); toast.success(`${cit} copiada. Cole no texto.`); } catch { toast.error('Não foi possível copiar.'); } }}
-                            className={`w-full flex items-center gap-2 text-left rounded-lg border px-2.5 py-1.5 transition-colors ${settings.theme === 'dark' ? 'border-slate-700 hover:border-green-700' : 'border-slate-200 hover:border-green-500 hover:bg-green-50/50'}`}>
-                            <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">{ref.replace(/\*/g, '')}</span>
-                            <span className="shrink-0 font-mono text-[10px] font-semibold text-green-700 dark:text-green-400">{cit}</span>
+                          <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(cit); toast.success(`${cit} copiada`); } catch { toast.error('Não foi possível copiar. Selecione e copie à mão.'); } }}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 hover:bg-surface-2">
+                            <span className="min-w-0 flex-1 truncate text-sm text-ink-2" title={ref.replace(/\*/g, '')}>{ref.replace(/\*/g, '')}</span>
+                            <span className="tabular shrink-0 text-sm font-semibold text-accent">{cit}</span>
+                            <Copy size={14} className="shrink-0 text-ink-3" aria-hidden="true" />
                           </button>
                         </li>
                       );
@@ -535,48 +526,56 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
               )}
             </section>
 
-            {/* Pós-Textuais */}
             {(hasElement(docType, 'glossario') || hasElement(docType, 'apendices') || hasElement(docType, 'anexos')) && (
-            <section className="space-y-4 ">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2"><Layers size={12}/> Elementos Pós-Textuais Opcionais</h3>
+            <section className={block}>
+              <SectionTitle>Elementos pós-textuais</SectionTitle>
+              <div className="space-y-5">
               {hasElement(docType, 'glossario') && (
-                <div id="edit-sec-glossario" className="space-y-2">
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Glossário (um termo por linha, ordenado automaticamente)</label>
-                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-24" placeholder="Termo: definição do termo." value={data.glossario || ''} onChange={e => updateField('glossario', e.target.value)} />
+                <div id="edit-sec-glossario">
+                    <Field label="Glossário" hint="Um termo por linha. A ordem alfabética é automática.">
+                        <TextArea readOnly={isReadOnly} placeholder="Termo: definição do termo." value={data.glossario || ''} onChange={e => updateField('glossario', e.target.value)} />
+                    </Field>
                 </div>
               )}
               {hasElement(docType, 'apendices') && (
-                <div id="edit-sec-apendices" className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Apêndices (Do Autor)</label>
-                        {!isReadOnly && <button onClick={() => onOpenAttachmentModal('apendice')} className="text-[9px] font-bold text-purple-600 flex items-center gap-1 uppercase bg-purple-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
+                <div id="edit-sec-apendices">
+                    <div className="mb-1.5 flex items-center justify-between">
+                        <label htmlFor="apendices" className="text-sm font-medium text-ink">Apêndices <span className="font-normal text-ink-3">(material seu)</span></label>
+                        {!isReadOnly && <TextAction onClick={() => onOpenAttachmentModal('apendice')}><Plus size={14} aria-hidden="true" /> Novo apêndice</TextAction>}
                     </div>
-                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Documentos do próprio autor..." value={data.apendices || ''} onChange={e => updateField('apendices', e.target.value)} />
+                    <TextArea id="apendices" readOnly={isReadOnly} className="min-h-32" placeholder="Questionários, roteiros e outros documentos do próprio autor…" value={data.apendices || ''} onChange={e => updateField('apendices', e.target.value)} />
                 </div>
               )}
               {hasElement(docType, 'anexos') && (
-                <div id="edit-sec-anexos" className="space-y-2 mt-6">
-                    <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 ml-1">Anexos (De Terceiros)</label>
-                        {!isReadOnly && <button onClick={() => onOpenAttachmentModal('anexo')} className="text-[9px] font-bold text-orange-600 flex items-center gap-1 uppercase bg-orange-50 px-2 py-1 rounded-md"><Plus size={10}/> Automático</button>}
+                <div id="edit-sec-anexos">
+                    <div className="mb-1.5 flex items-center justify-between">
+                        <label htmlFor="anexos" className="text-sm font-medium text-ink">Anexos <span className="font-normal text-ink-3">(material de terceiros)</span></label>
+                        {!isReadOnly && <TextAction onClick={() => onOpenAttachmentModal('anexo')}><Plus size={14} aria-hidden="true" /> Novo anexo</TextAction>}
                     </div>
-                    <ThemedTextarea theme={settings.theme} readOnly={isReadOnly} className="h-32" placeholder="Leis, mapas de terceiros..." value={data.anexos || ''} onChange={e => updateField('anexos', e.target.value)} />
+                    <TextArea id="anexos" readOnly={isReadOnly} className="min-h-32" placeholder="Leis, mapas e documentos de terceiros…" value={data.anexos || ''} onChange={e => updateField('anexos', e.target.value)} />
                 </div>
               )}
+              </div>
             </section>
             )}
             </div>
             )}
 
             {next && (
-                <button onClick={next.onClick} className={`w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${settings.theme === 'dark' ? 'border-slate-800 hover:border-green-700 hover:bg-slate-800/60' : 'border-slate-200 hover:border-green-500 hover:bg-green-50/50'}`}>
+                <button type="button" onClick={next.onClick} className="mt-10 flex w-full items-center justify-between gap-3 rounded-[var(--radius-panel)] bg-surface-2 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent-soft">
                     <span>
-                        <span className="block text-xs text-slate-500 dark:text-slate-400">Próxima etapa</span>
-                        <span className="block text-sm font-semibold">{next.label}</span>
+                        <span className="block text-xs text-ink-3">Próxima etapa</span>
+                        <span className="block font-semibold">{next.label}</span>
                     </span>
-                    <ArrowRight size={16} className="text-green-600 shrink-0" />
+                    <ArrowRight size={18} className="shrink-0 text-accent" aria-hidden="true" />
                 </button>
             )}
+
+            <ConfirmDialog open={!!pendingDelete} onClose={() => setPendingDelete(null)}
+                title="Remover esta seção?"
+                description={pendingDelete ? `“${pendingDelete.titulo || 'Sem título'}” e todo o texto dela serão apagados.` : ''}
+                confirmLabel="Remover seção"
+                onConfirm={() => { setData(prev => ({ ...prev, secoes: prev.secoes.filter(s => s.id !== pendingDelete.id) })); toast.success('Seção removida'); }} />
         </div>
     );
 };

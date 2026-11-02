@@ -23,7 +23,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) { 
       console.error('Erro ao ler settings do localStorage:', e); 
     }
-    return { theme: 'dark', autoSave: true, defaultFont: 'Arial', userName: '' };
+    return { theme: 'light', autoSave: true, defaultFont: 'Arial', userName: '' };
   });
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export const AppProvider = ({ children }) => {
     const hash = window.location.hash;
     if (hash && hash.includes('access_token')) {
         setIsAuthLoading(true);
-        toast.loading("Entrando na sua conta...", { id: 'auth-toast' });
+        toast.loading("Entrando na sua conta…", { id: 'auth-toast' });
 
         const hashParams = new URLSearchParams(hash.replace('#', ''));
         const accessToken = hashParams.get('access_token');
@@ -46,7 +46,7 @@ export const AppProvider = ({ children }) => {
                     toast.error(`Falha no login: ${error.message}`, { id: 'auth-toast' });
                 } else {
                     if (mounted) setUser(data.session?.user ?? null);
-                    toast.success("Conta sincronizada com sucesso!", { id: 'auth-toast' });
+                    toast.success("Conta conectada. Seus documentos estão na nuvem.", { id: "auth-toast" });
                     window.history.replaceState(null, '', window.location.pathname);
                 }
             })
@@ -146,8 +146,10 @@ export const AppProvider = ({ children }) => {
       } catch(e) {
           console.error("Falha ao salvar settings:", e);
       }
-      if (settings.theme === 'dark') document.documentElement.classList.add('dark');
-      else document.documentElement.classList.remove('dark');
+      const dark = settings.theme === 'dark';
+      document.documentElement.classList.toggle('dark', dark);
+      // Barra de status do celular na cor do cabeçalho do tema
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#1c1b19' : '#ffffff');
   }, [settings]);
 
   const loginWithGoogle = useCallback(async () => {
@@ -160,7 +162,7 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    toast.loading("Saindo da conta...", { id: 'logout-toast' });
+    toast.loading("Saindo da conta…", { id: 'logout-toast' });
     try {
         const { error } = await supabase.auth.signOut();
         if (error) {

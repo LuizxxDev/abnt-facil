@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
-    FileText, Settings2, PlusCircle, Lightbulb, Search,
-    Trash2, Star, Eye, MoreVertical,
-    RotateCcw, Copy, Clock, CheckCircle2, FileEdit, Ghost,
-    ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
-    Sun, Moon, Cloud, CloudOff, User, MessageSquare, SearchX
+    Settings2, Plus, Lightbulb, Search, Trash2, Star, Eye, MoreVertical,
+    RotateCcw, Copy, ChevronRight, Loader2, LayoutGrid, List as ListIcon, Download, Upload,
+    Sun, Moon, CloudOff, MessageSquare, SearchX, ArchiveRestore
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { ABNT_TIPS, EXAMPLE_ID } from '../utils/constants';
 import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE, getDocType } from '../utils/documentTypes';
 import { calculateProgress, timeAgo } from '../utils/helpers';
-import { TitleModal, SettingsModal } from '../components/common/Modals';
+import { TitleModal, SettingsModal, GoogleIcon } from '../components/common/Modals';
+import { ConfirmDialog } from '../components/common/Dialog';
+import Sheet from '../components/common/Sheet';
+import { btnPrimary, btnSecondary, btnGhost, iconBtn, field } from '../components/common/ui';
 import { FeedbackModal } from '../components/common/FeedbackModal';
 
 const Dashboard = () => {
@@ -33,7 +34,7 @@ const Dashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterTab, setFilterTab] = useState('all');
     const [sortOrder, setSortOrder] = useState('recent');
-    const [viewMode, setViewMode] = useState('list'); 
+    const [viewMode, setViewMode] = useState('list');
     const [tipIndex, setTipIndex] = useState(0);
     const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -41,6 +42,8 @@ const Dashboard = () => {
     const [newProjectTitle, setNewProjectTitle] = useState('');
     const [newProjectType, setNewProjectType] = useState(DEFAULT_DOC_TYPE);
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [confirm, setConfirm] = useState(null);
+    const [modelsOpen, setModelsOpen] = useState(null); // null = automático: aberto só sem documentos
 
     const isLoadingGlobal = isAuthLoading || isDataLoading;
 
@@ -58,18 +61,11 @@ const Dashboard = () => {
         setTipIndex(Math.floor(Math.random() * ABNT_TIPS.length));
     }, []);
 
-    const displayName = user?.user_metadata?.full_name?.split(' ')[0] || settings.userName || "Estudante";
-
-    const userAvatar = useMemo(() => {
-        if (user?.user_metadata?.avatar_url) {
-            return <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded-2xl md:rounded-3xl" referrerPolicy="no-referrer" />;
-        }
-        return <User size={28} className="md:w-8 md:h-8" />;
-    }, [user]);
+    const displayName = (user?.user_metadata?.full_name || settings.userName || 'Estudante').trim().split(/\s+/)[0];
 
     const handleExportBackup = () => {
         if (projects.length === 0) {
-            toast.error("Não há projetos para exportar.");
+            toast.error('Ainda não há documentos para guardar.');
             return;
         }
         const dataStr = JSON.stringify(projects, null, 2);
@@ -80,7 +76,7 @@ const Dashboard = () => {
         link.download = `backup_abnt_facil_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
-        toast.success("Backup gerado com sucesso!");
+        toast.success('Cópia de segurança baixada');
     };
 
     const handleImportBackup = (e) => {
@@ -95,12 +91,12 @@ const Dashboard = () => {
                 
                 const count = importAllProjects(imported);
                 if (count > 0) {
-                    toast.success(`${count} projeto(s) importado(s)!`);
+                    toast.success(count === 1 ? '1 documento restaurado' : `${count} documentos restaurados`);
                 } else {
-                    toast.error("Nenhum projeto novo encontrado no arquivo.");
+                    toast.error('Todos os documentos deste arquivo já estão aqui.');
                 }
             } catch {
-                toast.error("Arquivo de backup inválido.");
+                toast.error('Este arquivo não é uma cópia de segurança do ABNTFácil.');
             }
         };
         reader.readAsText(file);
@@ -113,7 +109,7 @@ const Dashboard = () => {
         e.target.value = null;
         if (!file) return;
         setIsImporting(true);
-        const toastId = toast.loading('Lendo o arquivo do Word...');
+        const toastId = toast.loading('Lendo o arquivo do Word…');
         try {
             const { importDocx } = await import('../utils/docxImport');
             const imported = await importDocx(file);
@@ -162,384 +158,300 @@ const Dashboard = () => {
         });
     }, [projects, filterTab, searchTerm, sortOrder]);
 
+    // Lixeira com "Desfazer" no aviso, em vez de pedir confirmação
+    const moveToTrash = (p) => {
+        deleteProject(p.id);
+        toast((t) => (
+            <span className="flex items-center gap-3">
+                Movido para a lixeira
+                <button type="button" onClick={() => { restoreProject(p.id); toast.dismiss(t.id); }} className="font-semibold text-accent underline underline-offset-2">Desfazer</button>
+            </span>
+        ), { duration: 6000 });
+    };
+
     const handleCreate = async () => {
         if (!newProjectTitle.trim()) return;
         const id = await createNewProject(newProjectTitle, newProjectType);
-        toast.success("Projeto criado!");
+        toast.success('Documento criado');
         navigate(`/editor/${id}`);
     };
 
     const handleCreateModel = async (key) => {
         const id = await createFromModel(key);
-        toast.success(`${DOCUMENT_TYPES[key].label} criado!`);
+        toast.success(`${DOCUMENT_TYPES[key].label} criado`);
         navigate(`/editor/${id}`);
-    };
-
-    const theme = {
-        bg: settings.theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50',
-        text: settings.theme === 'dark' ? 'text-slate-100' : 'text-slate-800',
-        textMuted: settings.theme === 'dark' ? 'text-slate-400' : 'text-slate-500',
-        cardBg: settings.theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200',
-        inputBg: settings.theme === 'dark' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800',
     };
 
     if (isLoadingGlobal) {
         return (
-            <div className={`h-dvh flex items-center justify-center transition-colors duration-300 ${theme.bg}`}>
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="animate-spin text-green-700" size={48} />
-                    <p className={`text-xs font-black uppercase tracking-widest animate-pulse ${theme.textMuted}`}>A Sincronizar Informações...</p>
-                </div>
+            <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-paper" role="status">
+                <Sheet progress={60} className="w-12 animate-pulse" />
+                <p className="text-sm text-ink-2">Carregando seus documentos…</p>
             </div>
         );
     }
 
-    return (
-        <div className={`h-dvh overflow-y-auto font-sans p-4 md:p-8 scroll-smooth transition-colors duration-300 ${theme.bg} ${theme.text}`}>
-            <div className="max-w-7xl mx-auto space-y-6 pb-24">
-                
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-                    <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left duration-500">
-                        <div className="relative group cursor-pointer shrink-0" onClick={() => setIsSettingsModalOpen(true)}>
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-3xl bg-green-600 text-white flex items-center justify-center shadow-lg shadow-green-900/20 group-hover:scale-105 transition-all">
-                                {userAvatar}
-                            </div>
-                            <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 p-1 rounded-lg border shadow-sm text-slate-400 group-hover:text-green-600 transition-colors z-10">
-                                <Settings2 size={12} />
-                            </div>
-                            {user && (
-                                <div className="absolute -top-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-10" title="Sincronizado na Nuvem">
-                                    <Cloud size={10} strokeWidth={3}/>
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <h1 className={`font-serif text-3xl md:text-[2.6rem] leading-none tracking-tight mb-1 ${theme.text}`}>
-                                Olá, {displayName}
-                            </h1>
-                            <p className={`text-xs md:text-sm max-w-md ${theme.textMuted}`}><span className="tabular">{stats.total}</span> {stats.total === 1 ? 'documento' : 'documentos'} no seu painel</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 md:gap-3 w-full xl:w-auto animate-in fade-in slide-in-from-right duration-500 overflow-x-auto pb-2 xl:pb-0" style={{ scrollbarWidth: 'none' }}>
-                        <div className={`${theme.cardBg} hidden sm:flex transition-colors px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl border items-center gap-3 shrink-0`}>
-                            <div className="bg-blue-50 text-blue-600 p-1.5 md:p-2 rounded-lg"><FileText size={16} /></div>
-                            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Total</p><p className={`tabular text-lg font-semibold leading-none mt-1 ${theme.text}`}>{stats.total}</p></div>
-                        </div>
-                        <div className={`${theme.cardBg} hidden sm:flex transition-colors px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl border items-center gap-3 shrink-0`}>
-                            <div className="bg-green-50 text-green-600 p-1.5 md:p-2 rounded-lg"><CheckCircle2 size={16} /></div>
-                            <div><p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Concluídos</p><p className={`tabular text-lg font-semibold leading-none mt-1 ${theme.text}`}>{stats.completed}</p></div>
-                        </div>
-                        
-                        <div className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
-                        
-                        <div className="flex gap-2 shrink-0">
-                            <button onClick={() => setIsFeedbackModalOpen(true)} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-blue-500 hover:text-blue-600 dark:hover:text-blue-400`} title="Enviar Feedback / Reportar Bug">
-                                <MessageSquare size={18} />
-                            </button>
-                            <button onClick={toggleTheme} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-amber-500 dark:hover:text-amber-400`} title="Alternar Tema">
-                                {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                            </button>
-                            <button onClick={() => setIsSettingsModalOpen(true)} className={`${theme.cardBg} h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-600 dark:hover:text-white`} title="Configurações">
-                                <Settings2 size={18} />
-                            </button>
-                            
-                            <input type="file" ref={docxInputRef} className="hidden" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportDocx} />
-                            <button onClick={() => docxInputRef.current.click()} disabled={isImporting} className={`${theme.cardBg} h-10 md:h-12 px-3 md:px-4 rounded-xl md:rounded-2xl shadow-sm border flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-500 hover:text-green-700 disabled:opacity-60`} title="Importar um trabalho começado no Word (.docx)">
-                                {isImporting ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                                <span className="hidden md:inline text-sm font-semibold">Importar .docx</span>
-                            </button>
+    const showModels = modelsOpen ?? stats.total === 0;
+    const tabs = [
+        { id: 'all', label: 'Todos', count: counts.all },
+        { id: 'favorites', label: 'Favoritos', count: counts.favorites },
+        { id: 'trash', label: 'Lixeira', count: counts.trash },
+    ];
 
-                            <button onClick={() => setIsTitleModalOpen(true)} className="fixed bottom-6 right-6 md:static md:bottom-auto md:right-auto z-40 bg-green-700 text-white px-4 md:px-5 h-14 w-14 md:w-auto md:h-12 rounded-full md:rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-800 transition-[background-color,transform] duration-200 shadow-[0_10px_30px_-10px_rgba(31,91,64,0.7)]" aria-label="Novo documento">
-                                <PlusCircle size={20} />
-                                <span className="hidden md:inline text-sm">Novo documento</span>
-                            </button>
-                        </div>
+    return (
+        <div className="h-dvh overflow-y-auto overscroll-contain bg-paper text-ink">
+            <header className="safe-top sticky top-0 z-30 bg-paper/95 supports-[backdrop-filter]:bg-paper/85 supports-[backdrop-filter]:backdrop-blur-sm">
+                <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:px-8">
+                    <Link to="/" className="flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] text-[15px] font-bold tracking-[-0.01em]" aria-label="ABNTFácil, página inicial">
+                        <Sheet className="w-[15px]" progress={70} />
+                        ABNTFácil
+                    </Link>
+                    <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className={iconBtn} aria-label="Enviar comentário ou relatar erro" title="Comentários e erros"><MessageSquare size={18} /></button>
+                        <button type="button" onClick={toggleTheme} className={iconBtn} aria-label={settings.theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} title="Tema">{settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
+                        <button type="button" onClick={() => setIsSettingsModalOpen(true)} className={iconBtn} aria-label="Configurações" title="Configurações">
+                            {user?.user_metadata?.avatar_url
+                                ? <img src={user.user_metadata.avatar_url} alt="" width="24" height="24" className="size-6 rounded-full" referrerPolicy="no-referrer" />
+                                : <Settings2 size={18} />}
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 md:px-8 md:pt-10">
+                <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                    <div className="min-w-0">
+                        <h1 className="line-clamp-2 text-[1.75rem] font-bold leading-[1.1] tracking-[-0.02em] md:text-[2.25rem]">Olá, {displayName}</h1>
+                        <p className="mt-1.5 text-[15px] text-ink-2">
+                            {stats.total === 0 ? 'Nenhum documento ainda.' : <><span className="tabular">{stats.total}</span> {stats.total === 1 ? 'documento' : 'documentos'}{stats.completed > 0 && <>, <span className="tabular">{stats.completed}</span> {stats.completed === 1 ? 'quase pronto' : 'quase prontos'}</>}</>}
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <input type="file" ref={docxInputRef} className="hidden" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleImportDocx} />
+                        <button type="button" onClick={() => docxInputRef.current.click()} disabled={isImporting} className={`${btnSecondary} whitespace-nowrap`} title="Trazer um trabalho começado no Word (.docx)">
+                            {isImporting ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
+                            <span>Importar<span className="hidden sm:inline"> do Word</span></span>
+                        </button>
+                        <button type="button" onClick={() => setIsTitleModalOpen(true)} className={`${btnPrimary} flex-1 whitespace-nowrap md:flex-none`}>
+                            <Plus size={16} aria-hidden="true" /> Novo documento
+                        </button>
                     </div>
                 </div>
 
                 {!user && (
-                    <div className={`${theme.cardBg} rounded-2xl border p-4 md:px-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
-                        <div className="flex items-center gap-3">
-                            <div className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 p-2 rounded-lg shrink-0">
-                                <CloudOff size={18} />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm">Modo local, sem backup na nuvem</h3>
-                                <p className={`text-xs max-w-xl ${theme.textMuted}`}>Seus documentos estão só neste navegador. Entre com o Google para não perder nada.</p>
-                            </div>
-                        </div>
-                        <button onClick={loginWithGoogle} className={`w-full md:w-auto px-4 py-2 rounded-lg font-semibold text-sm border transition-colors flex items-center justify-center gap-2 ${settings.theme === 'dark' ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                            Entrar com Google
-                        </button>
+                    <div className="mt-6 flex flex-col gap-3 rounded-[var(--radius-panel)] bg-warn-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="flex items-start gap-2.5 text-sm text-ink">
+                            <CloudOff size={18} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />
+                            <span><strong className="font-semibold">Seus documentos estão só neste navegador.</strong> Entre com o Google para guardar uma cópia na nuvem.</span>
+                        </p>
+                        <button type="button" onClick={loginWithGoogle} className={`${btnSecondary} shrink-0 bg-surface hover:bg-surface-2`}><GoogleIcon /> Entrar com Google</button>
                     </div>
                 )}
 
                 {filterTab === 'all' && !searchTerm && (
-                    <div className="space-y-4 animate-in fade-in zoom-in-95 duration-700">
-                        <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg p-2 flex items-center gap-2 text-blue-800 dark:text-blue-300">
-                            <Lightbulb size={14} className="text-blue-500 shrink-0 ml-1"/>
-                            <p className="text-xs"><span className="font-semibold mr-1">Dica:</span> {ABNT_TIPS[tipIndex]}</p>
+                    <section aria-labelledby="novo" className="mt-10">
+                        <div className="flex items-center justify-between gap-3">
+                            <h2 id="novo" className="text-lg font-bold tracking-[-0.01em]">Começar um documento</h2>
+                            {stats.total > 0 && (
+                                <button type="button" onClick={() => setModelsOpen(!showModels)} aria-expanded={showModels} aria-controls="modelos" className={`${btnGhost} -mr-2 h-9 px-2 text-accent hover:text-accent`}>
+                                    {showModels ? 'Esconder modelos' : 'Ver modelos'} <ChevronRight size={16} className={`transition-transform duration-200 ${showModels ? '-rotate-90' : 'rotate-90'}`} aria-hidden="true" />
+                                </button>
+                            )}
                         </div>
+                        <p className="mt-1 flex items-start gap-2 text-sm text-ink-2">
+                            <Lightbulb size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+                            <span><span className="sr-only">Dica: </span>{ABNT_TIPS[tipIndex]}</span>
+                        </p>
 
-                        <div>
-                            <h2 className={`text-sm font-semibold mb-3 ${theme.textMuted}`}>Começar um novo documento</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                                <div className="col-span-2 rounded-2xl p-4 border border-green-200 bg-green-50 dark:border-green-900/60 dark:bg-green-950/40 flex flex-col">
-                                    <div className="flex items-center gap-2 text-green-800 dark:text-green-300">
-                                        <Star size={15} />
-                                        <h3 className="font-semibold text-sm">TCC de exemplo completo</h3>
-                                    </div>
-                                    <p className="text-xs text-green-900/70 dark:text-green-200/70 leading-snug mt-1.5 flex-1">Todos os elementos preenchidos, para ver como o documento final fica.</p>
-                                    <div className="flex gap-2 mt-3">
-                                        <button onClick={() => navigate(`/editor/${EXAMPLE_ID}`)} className="flex-1 py-2 rounded-lg text-xs font-semibold bg-white/70 dark:bg-slate-900/60 text-green-800 dark:text-green-300 hover:bg-white dark:hover:bg-slate-900 transition-colors border border-green-200 dark:border-green-900/60 flex items-center justify-center gap-1.5"><Eye size={13}/> Ver</button>
-                                        <button onClick={async () => { const id = await createFromExample(); navigate(`/editor/${id}`); toast.success("Exemplo copiado para os seus documentos"); }} className="flex-1 py-2 rounded-lg text-xs font-semibold bg-green-700 text-white hover:bg-green-800 transition-colors flex items-center justify-center gap-1.5"><Copy size={13}/> Usar como base</button>
+                        {showModels && <div id="modelos" className="fade-in mt-5 grid gap-3 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+                            <div className="flex gap-5 rounded-[var(--radius-panel)] bg-accent-soft p-5">
+                                <Sheet progress={100} className="w-14 self-start sm:w-20" />
+                                <div className="flex min-w-0 flex-col">
+                                    <h3 className="font-bold">TCC de exemplo completo</h3>
+                                    <p className="mt-1 text-sm text-ink-2">Capa, resumo, capítulos, citações e referências já preenchidos. Veja como o trabalho final fica ou comece por ele.</p>
+                                    <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                                        <button type="button" onClick={async () => { const id = await createFromExample(); navigate(`/editor/${id}`); toast.success('Exemplo copiado para os seus documentos'); }} className={btnPrimary}><Copy size={16} aria-hidden="true" /> Usar como base</button>
+                                        <Link to={`/editor/${EXAMPLE_ID}`} className={`${btnGhost} text-accent hover:text-accent`}><Eye size={16} aria-hidden="true" /> Só ver</Link>
                                     </div>
                                 </div>
+                            </div>
 
+                            <ul className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] bg-line sm:grid-cols-2" aria-label="Modelos de documento">
                                 {Object.keys(DOCUMENT_TYPES).map((key) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => handleCreateModel(key)}
-                                        className={`${theme.cardBg} p-4 rounded-2xl border hover:border-green-500 dark:hover:border-green-600 transition-[border-color,transform] duration-200 text-left group flex flex-col`}
-                                    >
-                                        <div className="text-green-700 dark:text-green-400 mb-3 [&_svg]:h-5 [&_svg]:w-5">
-                                            {DOCUMENT_TYPES[key].icon}
-                                        </div>
-                                        <h3 className="font-semibold text-sm leading-tight">{DOCUMENT_TYPES[key].label}</h3>
-                                        <p className={`text-xs leading-snug mt-1 mb-3 flex-1 line-clamp-2 ${theme.textMuted}`}>{DOCUMENT_TYPES[key].description}</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-mono text-[10px] text-slate-400">{DOCUMENT_TYPES[key].norma}</span>
-                                            <ChevronRight size={14} className="text-slate-400 group-hover:text-green-600 group-hover:translate-x-0.5 transition-[color,transform] duration-200" />
-                                        </div>
+                                    <li key={key} className="bg-surface">
+                                        <button type="button" onClick={() => handleCreateModel(key)} className="group flex h-full w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-surface-2">
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block text-sm font-semibold leading-snug">{DOCUMENT_TYPES[key].label}</span>
+                                                <span className="tabular block text-xs text-ink-3">{DOCUMENT_TYPES[key].norma}</span>
+                                            </span>
+                                            <ChevronRight size={16} className="shrink-0 text-ink-3 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>}
+                    </section>
+                )}
+
+                <section aria-labelledby="meus" className="mt-12">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <h2 id="meus" className="text-lg font-bold tracking-[-0.01em]">Seus documentos</h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div role="tablist" aria-label="Filtrar documentos" className="flex rounded-[var(--radius-control)] bg-surface-2 p-1">
+                                {tabs.map(t => (
+                                    <button key={t.id} type="button" role="tab" aria-selected={filterTab === t.id} onClick={() => setFilterTab(t.id)}
+                                        className={`flex h-8 items-center gap-1.5 rounded-[4px] px-3 text-sm font-semibold transition-[background-color,color] duration-150 pointer-coarse:h-10 ${filterTab === t.id ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2 hover:text-ink'}`}>
+                                        {t.label} <span className="tabular text-xs font-medium text-ink-3">{t.count}</span>
                                     </button>
                                 ))}
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className={`flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 p-1.5 rounded-2xl shadow-sm border ${theme.cardBg}`}>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-                        <div className={`flex overflow-x-auto p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`} style={{ scrollbarWidth: 'none' }}>
-                            <button onClick={() => setFilterTab('all')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-slate-600 text-white shadow-sm' : 'bg-white text-slate-800 shadow-sm') : 'text-slate-400 hover:text-slate-600'}`}>
-                                Todos <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${filterTab === 'all' ? (settings.theme === 'dark' ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (settings.theme === 'dark' ? 'bg-slate-600' : 'bg-slate-200')}`}>{counts.all}</span>
-                            </button>
-                            <button onClick={() => setFilterTab('favorites')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 ${filterTab === 'favorites' ? (settings.theme === 'dark' ? 'bg-slate-600 text-orange-400 shadow-sm' : 'bg-white text-orange-500 shadow-sm') : 'text-slate-400 hover:text-orange-400'}`}>
-                                <Star size={12} /> Favoritos
-                            </button>
-                            <button onClick={() => setFilterTab('trash')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shrink-0 ${filterTab === 'trash' ? (settings.theme === 'dark' ? 'bg-slate-600 text-red-400 shadow-sm' : 'bg-white text-red-500 shadow-sm') : 'text-slate-400 hover:text-red-400'}`}>
-                                <Trash2 size={12} /> Lixeira
-                            </button>
-                        </div>
-
-                        <div className="flex gap-1.5 justify-end">
+                            <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" size={16} aria-hidden="true" />
+                                <input type="search" aria-label="Procurar documento" placeholder="Procurar…" autoComplete="off" className={`${field} h-10 py-0 pl-9`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            </div>
+                            <select aria-label="Ordenar" className={`${field.replace('w-full ', '')} h-10 py-0 pr-8 text-sm`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                                <option value="recent">Mais recentes</option>
+                                <option value="az">A–Z</option>
+                                <option value="progress">Mais adiantados</option>
+                            </select>
+                            <div className="hidden rounded-[var(--radius-control)] bg-surface-2 p-1 md:flex" role="group" aria-label="Modo de exibição">
+                                <button type="button" onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} aria-label="Ver em lista" className={`flex size-8 items-center justify-center rounded-[4px] ${viewMode === 'list' ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2 hover:text-ink'}`}><ListIcon size={16} /></button>
+                                <button type="button" onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} aria-label="Ver em grade" className={`flex size-8 items-center justify-center rounded-[4px] ${viewMode === 'grid' ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(28_27_25/0.12)]' : 'text-ink-2 hover:text-ink'}`}><LayoutGrid size={16} /></button>
+                            </div>
                             <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleImportBackup} />
-                            <button onClick={() => fileInputRef.current.click()} className={`p-1.5 rounded-lg border transition-all flex justify-center ${theme.cardBg} hover:text-blue-600 hover:border-blue-200`} title="Importar Backup">
-                                <Upload size={14}/>
-                            </button>
-                            <button onClick={handleExportBackup} className={`p-1.5 rounded-lg border transition-all flex justify-center ${theme.cardBg} hover:text-green-600 hover:border-green-200`} title="Exportar Backup">
-                                <Download size={14}/>
-                            </button>
+                            <button type="button" onClick={() => fileInputRef.current.click()} className={iconBtn} aria-label="Restaurar cópia de segurança (.json)" title="Restaurar cópia de segurança"><ArchiveRestore size={18} /></button>
+                            <button type="button" onClick={handleExportBackup} className={iconBtn} aria-label="Baixar cópia de segurança de todos os documentos" title="Baixar cópia de segurança"><Download size={18} /></button>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full lg:w-auto">
-                        <div className={`hidden md:flex p-1 rounded-xl ${settings.theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Grid"><LayoutGrid size={14}/></button>
-                            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? (settings.theme === 'dark' ? 'bg-slate-600 text-green-400 shadow-sm' : 'bg-white text-green-700 shadow-sm') : 'text-slate-400'}`} title="Vista em Lista"><ListIcon size={14}/></button>
-                        </div>
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                            <input type="text" aria-label="Procurar documento" placeholder="Procurar documento..." className={`w-full pl-8 pr-3 py-1.5 border-none rounded-xl text-xs outline-none focus:ring-2 focus:ring-green-500/20 ${theme.inputBg}`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                        </div>
-                        <select className={`bg-transparent text-[10px] font-bold outline-none cursor-pointer p-1.5 ${settings.theme === 'dark' ? 'text-slate-300' : 'text-slate-500'}`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-                            <option value="recent">Recentes</option>
-                            <option value="az">A-Z</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className={viewMode === 'grid' && window.innerWidth >= 768 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-2.5"}>
-                    {processedProjects.map((p, idx) => (
-                        <div key={p.id} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 30}ms` }}>
-                            <ProjectCard 
-                                project={p} theme={theme}
-                                viewMode={window.innerWidth < 768 ? 'list' : viewMode}
-                                isMenuOpen={activeMenuId === p.id}
-                                onToggleMenu={() => setActiveMenuId(activeMenuId === p.id ? null : p.id)}
-                                onLoad={() => navigate(`/editor/${p.id}`)}
-                                onFav={() => { updateProject(p.id, { favorite: !p.favorite }); toast.success(p.favorite ? "Removido dos favoritos" : "Favorito!"); }}
-                                onDel={() => { deleteProject(p.id); toast.success("Movido para a lixeira"); }}
-                                onRestore={() => { restoreProject(p.id); toast.success("Restaurado!"); }}
-                                onDeletePermanent={() => { if(window.confirm("Apagar permanentemente?")) { deleteProject(p.id, true); toast.success("Eliminado."); } }}
-                                onDuplicate={() => { duplicateProject(p.id); toast.success("Cópia criada!"); }}
-                            />
-                        </div>
-                    ))}
-                    
-                    {processedProjects.length === 0 && (
-                        <div className="text-center py-16 opacity-70 border-2 border-dashed rounded-3xl border-slate-300 dark:border-slate-700 mt-4 bg-slate-50/50 dark:bg-slate-800/20">
+                    {processedProjects.length > 0 ? (
+                        <ul className={`mt-4 ${viewMode === 'grid' ? 'grid gap-3 md:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-2'}`}>
+                            {processedProjects.map((p) => (
+                                <li key={p.id} className="min-w-0">
+                                    <ProjectCard
+                                        project={p}
+                                        grid={viewMode === 'grid'}
+                                        isMenuOpen={activeMenuId === p.id}
+                                        onToggleMenu={() => setActiveMenuId(activeMenuId === p.id ? null : p.id)}
+                                        onCloseMenu={() => setActiveMenuId(null)}
+                                        onFav={() => updateProject(p.id, { favorite: !p.favorite })}
+                                        onDel={() => moveToTrash(p)}
+                                        onRestore={() => { restoreProject(p.id); toast.success('Documento restaurado'); }}
+                                        onDeletePermanent={() => setConfirm({ title: 'Apagar de vez?', description: `“${p.title}” será apagado para sempre. Esta ação não pode ser desfeita.`, confirmLabel: 'Apagar de vez', onConfirm: () => { deleteProject(p.id, true); toast.success('Documento apagado'); } })}
+                                        onDuplicate={() => { duplicateProject(p.id); toast.success('Cópia criada'); }}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="mt-4 flex flex-col items-center rounded-[var(--radius-panel)] bg-surface-2 px-6 py-14 text-center">
                             {searchTerm ? (
                                 <>
-                                    <SearchX size={48} className="mx-auto mb-4 text-slate-400"/>
-                                    <p className="text-sm font-bold">Nenhum resultado encontrado.</p>
-                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Não conseguimos encontrar nenhum projeto correspondente a "{searchTerm}".</p>
+                                    <SearchX size={32} className="text-ink-3" aria-hidden="true" />
+                                    <p className="mt-4 font-semibold">Nada encontrado</p>
+                                    <p className="mt-1 max-w-xs text-sm text-ink-2">Nenhum documento tem “{searchTerm}” no título.</p>
                                 </>
                             ) : filterTab === 'favorites' ? (
                                 <>
-                                    <Star size={48} className="mx-auto mb-4 text-slate-400"/>
-                                    <p className="text-sm font-bold">Sem projetos favoritos.</p>
-                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Toque na estrela de um projeto para guardá-lo aqui.</p>
+                                    <Star size={32} className="text-ink-3" aria-hidden="true" />
+                                    <p className="mt-4 font-semibold">Nenhum favorito</p>
+                                    <p className="mt-1 max-w-xs text-sm text-ink-2">Toque na estrela de um documento para encontrá-lo aqui.</p>
                                 </>
                             ) : filterTab === 'trash' ? (
                                 <>
-                                    <Trash2 size={48} className="mx-auto mb-4 text-slate-400"/>
-                                    <p className="text-sm font-bold">A lixeira está vazia.</p>
-                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Os projetos eliminados aparecerão aqui.</p>
+                                    <Trash2 size={32} className="text-ink-3" aria-hidden="true" />
+                                    <p className="mt-4 font-semibold">A lixeira está vazia</p>
+                                    <p className="mt-1 max-w-xs text-sm text-ink-2">Os documentos que você apagar ficam aqui até serem apagados de vez.</p>
                                 </>
                             ) : (
                                 <>
-                                    <Ghost size={48} className="mx-auto mb-4 text-slate-400"/>
-                                    <p className="text-sm font-bold">Nenhum projeto por aqui.</p>
-                                    <p className="text-xs mt-1 max-w-xs mx-auto text-slate-500">Cria um novo projeto do zero ou clona um dos nossos modelos para começares a escrever.</p>
-                                    <button onClick={() => setIsTitleModalOpen(true)} className="mt-6 inline-flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-green-500 transition-colors">
-                                        <PlusCircle size={14}/> Começar Novo Projeto
-                                    </button>
+                                    <Sheet className="w-20" />
+                                    <p className="mt-5 font-semibold">Nenhum documento ainda</p>
+                                    <p className="mt-1 max-w-xs text-sm text-ink-2">Comece um trabalho em branco, escolha um modelo acima ou traga um arquivo do Word.</p>
+                                    <button type="button" onClick={() => setIsTitleModalOpen(true)} className={`${btnPrimary} mt-6`}><Plus size={16} aria-hidden="true" /> Novo documento</button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </section>
+            </main>
+
+            <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} typeKey={newProjectType} setTypeKey={setNewProjectType} onConfirm={handleCreate} />
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                settings={settings}
+                setSettings={setSettings}
+                onDeleteAll={() => setConfirm({ title: 'Apagar tudo?', description: 'Todos os documentos e configurações deste navegador serão apagados. Esta ação não pode ser desfeita.', confirmLabel: 'Apagar tudo', onConfirm: () => { localStorage.clear(); window.location.reload(); } })}
+                user={user}
+                loginWithGoogle={loginWithGoogle}
+                logout={logout}
+            />
+            <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
+            <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} {...confirm} />
+        </div>
+    );
+};
+
+const ProjectCard = ({ project, grid, isMenuOpen, onToggleMenu, onCloseMenu, onFav, onDel, onRestore, onDeletePermanent, onDuplicate }) => {
+    const progress = calculateProgress(project.data);
+    const isTrash = project.deleted;
+    const docLabel = getDocType(project.data).label;
+    const menuItem = 'flex w-full items-center gap-2.5 rounded-[4px] px-3 py-2 text-left text-sm text-ink hover:bg-surface-2 pointer-coarse:py-3';
+
+    const title = isTrash
+        ? <span className="line-clamp-2 font-semibold leading-snug text-ink-2">{project.title}</span>
+        : (
+            // O link cobre o card inteiro (::after); estrela e menu ficam por cima
+            <Link to={`/editor/${project.id}`} className="line-clamp-2 font-semibold leading-snug after:absolute after:inset-0 after:rounded-[var(--radius-panel)] after:content-[''] hover:text-accent focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-accent" title={project.title}>
+                {project.title}
+            </Link>
+        );
+
+    return (
+        <article className={`project-menu-container relative flex rounded-[var(--radius-panel)] bg-surface ring-1 ring-transparent transition-[box-shadow] duration-150 hover:ring-line ${grid ? 'h-full flex-col gap-4 p-4' : 'items-center gap-4 px-4 py-3'}`}
+            onKeyDown={(e) => { if (e.key === 'Escape' && isMenuOpen) { e.stopPropagation(); onCloseMenu(); } }}>
+            <div className={`flex min-w-0 flex-1 gap-4 ${grid ? 'items-start' : 'items-center'}`}>
+                <Sheet progress={progress.percent} faded={isTrash} className={grid ? 'w-12' : 'w-9'} />
+                <div className="min-w-0 flex-1">
+                    {title}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink-3">
+                        <span className="truncate">{docLabel}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className={`tabular ${progress.status === 'green' ? 'font-semibold text-accent' : ''}`}>{progress.percent}% pronto</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{timeAgo(project.updatedAt)}</span>
+                    </p>
+                </div>
+            </div>
+
+            <div className={`relative z-10 flex shrink-0 items-center gap-0.5 ${grid ? 'self-end -mb-1 -mr-1' : '-mr-2'}`}>
+                {!isTrash && (
+                    <button type="button" onClick={onFav} aria-pressed={!!project.favorite} aria-label={project.favorite ? 'Tirar dos favoritos' : 'Marcar como favorito'}
+                        className={`${iconBtn} ${project.favorite ? 'text-warn hover:text-warn' : ''}`}>
+                        <Star size={18} fill={project.favorite ? 'currentColor' : 'none'} />
+                    </button>
+                )}
+                <div className="relative">
+                    <button type="button" onClick={onToggleMenu} aria-label={`Mais ações para ${project.title}`} aria-haspopup="menu" aria-expanded={isMenuOpen} className={iconBtn}><MoreVertical size={18} /></button>
+                    {isMenuOpen && (
+                        <div role="menu" className="pop-in absolute right-0 top-full z-50 mt-1 w-48 rounded-[var(--radius-panel)] bg-surface p-1 shadow-[var(--shadow-float)] ring-1 ring-line">
+                            {isTrash ? (
+                                <>
+                                    <button type="button" role="menuitem" onClick={() => { onRestore(); onCloseMenu(); }} className={menuItem}><RotateCcw size={16} aria-hidden="true" /> Restaurar</button>
+                                    <button type="button" role="menuitem" onClick={() => { onDeletePermanent(); onCloseMenu(); }} className={`${menuItem} text-danger hover:bg-danger-soft`}><Trash2 size={16} aria-hidden="true" /> Apagar de vez</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button type="button" role="menuitem" onClick={() => { onDuplicate(); onCloseMenu(); }} className={menuItem}><Copy size={16} aria-hidden="true" /> Duplicar</button>
+                                    <button type="button" role="menuitem" onClick={() => { onDel(); onCloseMenu(); }} className={`${menuItem} text-danger hover:bg-danger-soft`}><Trash2 size={16} aria-hidden="true" /> Mover para a lixeira</button>
                                 </>
                             )}
                         </div>
                     )}
                 </div>
-
-                <TitleModal isOpen={isTitleModalOpen} onClose={() => setIsTitleModalOpen(false)} title={newProjectTitle} setTitle={setNewProjectTitle} typeKey={newProjectType} setTypeKey={setNewProjectType} onConfirm={handleCreate} />
-                <SettingsModal 
-                    isOpen={isSettingsModalOpen} 
-                    onClose={() => setIsSettingsModalOpen(false)} 
-                    settings={settings} 
-                    setSettings={setSettings} 
-                    onDeleteAll={() => { if(window.confirm("Desejas apagar TUDO? Esta ação é irreversível.")) { localStorage.clear(); toast.error("Todos os dados foram eliminados."); window.location.reload(); } }} 
-                    user={user}
-                    loginWithGoogle={loginWithGoogle}
-                    logout={logout}
-                />
             </div>
-            
-            <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
-        </div>
-    );
-};
-
-const ProjectCard = ({ project, theme, viewMode, isMenuOpen, onToggleMenu, onLoad, onFav, onDel, onRestore, onDeletePermanent, onDuplicate }) => {
-    const progress = calculateProgress(project.data);
-    const isTrash = project.deleted;
-
-    if (viewMode === 'list') {
-        return (
-            <div className={`${theme.cardBg} rounded-xl border hover:border-green-500 dark:hover:border-green-700 transition-colors px-4 py-3 group flex items-center justify-between project-menu-container`}>
-                <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={!isTrash ? onLoad : undefined}>
-                    <div className={`p-2 rounded-lg shrink-0 ${isTrash ? 'bg-slate-100 text-slate-400 dark:bg-slate-800' : 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'}`}>
-                        <FileText size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0 pr-2">
-                        <h3 className="font-semibold text-[0.95rem] truncate group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{project.title}</h3>
-                        <div className="flex items-center gap-x-2 text-xs text-slate-400 mt-0.5 min-w-0">
-                            <span className="truncate">{getDocType(project.data).label}</span>
-                            <span aria-hidden="true">·</span>
-                            <span className={`tabular shrink-0 ${progress.status === 'green' ? 'text-green-600 dark:text-green-400' : ''}`}>{progress.percent}%</span>
-                            <span aria-hidden="true" className="hidden sm:inline">·</span>
-                            <span className="hidden sm:flex items-center gap-1 shrink-0"><Clock size={11}/> {timeAgo(project.updatedAt)}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-1 shrink-0">
-                    {!isTrash && (
-                        <button onClick={onFav} className={`p-2 transition-colors ${project.favorite ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}>
-                            <Star size={16} fill={project.favorite ? "currentColor" : "none"} />
-                        </button>
-                    )}
-                    <div className="relative">
-                        <button onClick={onToggleMenu} aria-label="Mais ações" aria-expanded={isMenuOpen} className="p-2 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 dark:hover:text-white"><MoreVertical size={16}/></button>
-                        {isMenuOpen && (
-                            <div className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:border-slate-600 animate-in fade-in zoom-in-95 duration-100">
-                                {isTrash ? (
-                                    <button onClick={onRestore} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg flex items-center gap-2"><RotateCcw size={14}/> Restaurar</button>
-                                ) : (
-                                    <>
-                                        <button onClick={onLoad} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><FileEdit size={14}/> Abrir</button>
-                                        <button onClick={onDuplicate} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><Copy size={14}/> Duplicar</button>
-                                    </>
-                                )}
-                                <div className="h-px w-full bg-slate-100 dark:bg-slate-600 my-1"></div>
-                                <button onClick={isTrash ? onDeletePermanent : onDel} className="w-full text-left px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14}/> {isTrash ? 'Eliminar Definitivo' : 'Mover p/ Lixeira'}</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className={`${theme.cardBg} rounded-2xl border-2 border-transparent hover:border-green-600 transition-all p-5 group flex flex-col relative h-full shadow-sm hover:shadow-md project-menu-container`}>
-            <div className="flex justify-between mb-3">
-                <div onClick={!isTrash ? onLoad : undefined} className={`p-2.5 rounded-xl transition-transform group-hover:scale-105 ${isTrash ? 'bg-slate-100 dark:bg-slate-800 cursor-default text-slate-400' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-pointer'}`}><FileText size={20} /></div>
-                
-                <div className="flex items-center gap-0.5">
-                    <div className="hidden lg:flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                         {!isTrash ? (
-                             <>
-                                <button onClick={onLoad} className="p-1.5 text-slate-400 hover:text-green-600 transition-colors" title="Abrir Editor"><FileEdit size={14}/></button>
-                                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600 mx-0.5"></div>
-                                <button onClick={onDel} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Mover para Lixeira"><Trash2 size={14}/></button>
-                             </>
-                         ) : (
-                             <button onClick={onRestore} className="p-1.5 text-slate-400 hover:text-green-600 transition-colors" title="Restaurar Projeto"><RotateCcw size={14}/></button>
-                         )}
-                    </div>
-
-                    {!isTrash && (
-                        <button onClick={(e) => { e.stopPropagation(); onFav(); }} className={`p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${project.favorite ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}>
-                            <Star size={16} fill={project.favorite ? "currentColor" : "none"} />
-                        </button>
-                    )}
-                    <div className="relative">
-                        <button onClick={onToggleMenu} className="p-1.5 rounded-full text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"><MoreVertical size={16} /></button>
-                        {isMenuOpen && (
-                            <div className="absolute right-6 top-10 w-44 bg-white dark:bg-slate-700 dark:text-white dark:border-slate-600 rounded-xl shadow-2xl border p-1.5 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-100">
-                                {isTrash ? (
-                                    <>
-                                        <button onClick={onRestore} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 rounded-lg flex items-center gap-2"><RotateCcw size={14} /> Restaurar</button>
-                                        <button onClick={onDeletePermanent} className="w-full text-left px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Eliminar</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button onClick={onLoad} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><FileEdit size={14} /> Abrir</button>
-                                        <button onClick={onDuplicate} className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg flex items-center gap-2"><Copy size={14} /> Duplicar</button>
-                                        <div className="h-px w-full bg-slate-100 dark:bg-slate-600 my-1"></div>
-                                        <button onClick={onDel} className="w-full text-left px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg flex items-center gap-2"><Trash2 size={14} /> Lixeira</button>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            
-            <div onClick={!isTrash ? onLoad : undefined} className={`flex-1 ${!isTrash ? 'cursor-pointer' : ''}`}>
-                <h3 className="font-bold text-base mb-1.5 line-clamp-2 leading-tight group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">{project.title}</h3>
-                <div className="flex items-center gap-2 mb-3 text-[11px] text-slate-400 font-medium">
-                    <span className={`px-1.5 py-0.5 rounded normal-case ${progress.status === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-700'}`}>{progress.label}</span>
-                    <span className="truncate">{getDocType(project.data).label}</span>
-                    <span className="flex items-center gap-1"><Clock size={9} /> {timeAgo(project.updatedAt)}</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden shadow-inner">
-                    <div className={`h-full rounded-full transition-all duration-1000 ${progress.status === 'green' ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-500'}`} style={{ width: `${progress.percent}%` }} />
-                </div>
-            </div>
-        </div>
+        </article>
     );
 };
 

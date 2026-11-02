@@ -442,7 +442,7 @@ const ABNTViewer = ({ data, authors, zoomLevel, fontFamily, groupedSections }) =
     const fixedClass = { capa: 'text-center text-[12pt] justify-between', folhaRosto: 'text-center text-[12pt]', folhaAprovacao: 'text-center text-[12pt]' };
 
     return (
-        <section className="flex-1 overflow-y-auto p-12 flex justify-center bg-slate-200 dark:bg-slate-900 print:bg-white print:p-0 transition-all duration-300">
+        <section className="flex-1 overflow-y-auto p-12 flex justify-center bg-surface-2 print:bg-white print:p-0">
             <style>{`
                 .abnt-doc {
                     font-family: ${fontFamily === 'Arial' ? 'Arial, sans-serif' : '"Times New Roman", Times, serif'};
