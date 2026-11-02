@@ -14,7 +14,9 @@ export const btnDanger = `${base} ${size} bg-danger text-white hover:opacity-90`
 // Botão só com ícone: precisa de aria-label onde for usado
 export const iconBtn = 'inline-flex items-center justify-center size-9 pointer-coarse:size-11 shrink-0 rounded-[var(--radius-control)] text-ink-2 hover:bg-surface-2 hover:text-ink transition-[background-color,color,transform] duration-150 disabled:opacity-40';
 
-export const field = 'w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20 read-only:bg-surface-2 read-only:text-ink-2';
+// Sem largura: use quando o campo tem largura própria (w-24, w-28…); `field` já vem com w-full
+export const fieldBase = 'rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20 read-only:bg-surface-2 read-only:text-ink-2';
+export const field = `w-full ${fieldBase}`;
 
 export const label = 'mb-1.5 block text-sm font-semibold text-ink';
 export const help = 'mt-1.5 text-xs leading-snug text-ink-3';

@@ -370,9 +370,9 @@ const Editor = () => {
                 </div>
             </header>
 
-            <main className="relative flex flex-1 overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
+            <main className="relative flex flex-1 overflow-hidden">
                 {!focusMode && (
-                    <aside aria-label="Editor" className={`fade-in absolute inset-0 z-10 w-full flex-col border-r border-line bg-surface print:hidden lg:relative lg:z-auto lg:w-[460px] ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'}`}>
+                    <aside aria-label="Editor" className={`fade-in absolute inset-x-0 top-0 bottom-[calc(4.125rem+env(safe-area-inset-bottom,0px))] z-10 w-full flex-col lg:bottom-auto border-r border-line bg-surface print:hidden lg:relative lg:z-auto lg:w-[460px] ${mobileView === 'editor' ? 'flex' : 'hidden lg:flex'}`}>
                         <nav aria-label="Etapas do documento" className="grid shrink-0 border-b border-line" style={{ gridTemplateColumns: `repeat(${panels.length}, minmax(0, 1fr))` }}>
                             {panels.map(p => {
                                 const active = currentPanel === p.id;
@@ -469,7 +469,7 @@ const Editor = () => {
                     </aside>
                 )}
 
-                <div className={`fade-in absolute inset-0 z-0 flex-1 flex-col overflow-hidden bg-surface-2 lg:relative lg:z-auto ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`fade-in absolute inset-x-0 top-0 bottom-[calc(4.125rem+env(safe-area-inset-bottom,0px))] z-0 flex-1 flex-col lg:bottom-auto overflow-hidden bg-surface-2 lg:relative lg:z-auto ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
                     {/* useDeferredValue devolve o valor anterior (null) no primeiro render após carregar */}
                     {previewData && <ABNTViewer data={previewData} authors={previewAuthors} zoomLevel={zoomLevel} fontFamily={fontFamily} groupedSections={previewSections} />}
 

@@ -14,7 +14,7 @@ import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal, GoogleIcon } from '../components/common/Modals';
 import { ConfirmDialog } from '../components/common/Dialog';
 import Sheet from '../components/common/Sheet';
-import { btnPrimary, btnSecondary, btnGhost, iconBtn, field } from '../components/common/ui';
+import { btnPrimary, btnSecondary, btnGhost, iconBtn, field, fieldBase } from '../components/common/ui';
 import { FeedbackModal } from '../components/common/FeedbackModal';
 
 const Dashboard = () => {
@@ -321,7 +321,7 @@ const Dashboard = () => {
                                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" size={16} aria-hidden="true" />
                                 <input type="search" aria-label="Procurar documento" placeholder="Procurar…" autoComplete="off" className={`${field} h-10 py-0 pl-9`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                             </div>
-                            <select aria-label="Ordenar" className={`${field.replace('w-full ', '')} h-10 py-0 pr-8 text-sm`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                            <select aria-label="Ordenar" className={`${fieldBase} h-10 py-0 pr-8 text-sm`} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
                                 <option value="recent">Mais recentes</option>
                                 <option value="az">A–Z</option>
                                 <option value="progress">Mais adiantados</option>

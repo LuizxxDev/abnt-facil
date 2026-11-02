@@ -16,7 +16,7 @@ import { DOCUMENT_TYPES, getDocType, getDocTypeKey, hasElement, isRequired } fro
 import { EditorToolbar } from './EditorToolbar';
 import { useAppContext } from '../../contexts/AppContext';
 import { ConfirmDialog } from '../common/Dialog';
-import { field, iconBtn, help } from '../common/ui';
+import { field, fieldBase, iconBtn, help } from '../common/ui';
 
 // -- Componentes internos --
 
@@ -32,7 +32,8 @@ const Field = ({ label, hint, children, className = '' }) => {
     );
 };
 
-const Input = ({ className = '', ...props }) => <input autoComplete="off" {...props} className={`${field} ${className}`} />;
+// Com largura própria (w-24, w-28…) o campo não pode levar o w-full, senão a largura dada perde
+const Input = ({ className = '', ...props }) => <input autoComplete="off" {...props} className={`${/(^|\s)w-/.test(className) ? `${fieldBase} shrink-0` : field} ${className}`} />;
 const TextArea = ({ className = '', ...props }) => <textarea {...props} className={`${field} write-area min-h-24 resize-y leading-relaxed ${className}`} />;
 
 const SectionTitle = ({ children, action }) => (
