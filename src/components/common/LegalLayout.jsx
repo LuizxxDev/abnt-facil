@@ -1,14 +1,11 @@
 import React, { useEffect } from 'react';
+import usePageMeta from '../../hooks/usePageMeta';
 import { Link } from 'react-router-dom';
 
 // Moldura das páginas legais: leitura longa, sem distrações, no tema claro da landing
-export default function LegalLayout({ title, updated, children }) {
-    useEffect(() => {
-        const previous = document.title;
-        document.title = `${title} · ABNTFácil`;
-        window.scrollTo(0, 0);
-        return () => { document.title = previous; };
-    }, [title]);
+export default function LegalLayout({ title, path, updated, children }) {
+    usePageMeta(path);
+    useEffect(() => { window.scrollTo(0, 0); }, [path]);
 
     return (
         <div className="theme-light min-h-dvh bg-paper font-sans text-ink">

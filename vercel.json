@@ -47,7 +47,19 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!api/).+)",
+      "source": "/privacidade",
+      "destination": "/privacidade.html"
+    },
+    {
+      "source": "/termos",
+      "destination": "/termos.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/editor/:id",
       "destination": "/app.html"
     }
   ]

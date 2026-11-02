@@ -3,7 +3,9 @@
 import { generateId } from './helpers';
 import { barChartDataUrl } from './exampleChart';
 
-export const EXAMPLE_ARTICLE_ID = 'exemplo-artigo-saude-mental';
+import { EXAMPLE_ARTICLE_ID as ARTICLE_ID } from './exampleIds';
+
+export const EXAMPLE_ARTICLE_ID = ARTICLE_ID;
 
 // Gráfico da Figura 1 (guardado como imagem local do documento)
 const BARRAS = [

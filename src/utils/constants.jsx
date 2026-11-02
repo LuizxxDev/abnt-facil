@@ -4,6 +4,7 @@ import React from 'react';
 import { BarChart3, ArrowLeftRight, FlaskConical } from 'lucide-react';
 import { generateId } from './helpers';
 import { parseTable } from './documentContent';
+import { EXAMPLE_ID } from './exampleIds';
 
 export const ABNT_TIPS = [
   "ABNT: Tabelas devem ter as laterais abertas (sem bordas verticais).",
@@ -49,7 +50,6 @@ export const DEFAULT_CHECKLIST = [
   { id: 'revisao', text: 'Revisão Ortográfica Final', done: false, auto: false }
 ];
 
-export const EXAMPLE_ID = 'exemplo-tcc-ifpa-readonly';
 
 // Versão dos Termos de Uso: mude junto com a data da página /termos para pedir o aceite de novo
 export const TERMS_VERSION = '2026-11-02';

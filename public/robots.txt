@@ -1,4 +1,9 @@
+# ABNTFácil: a página inicial e as páginas legais podem ser indexadas;
+# o painel e o editor são telas de trabalho de cada pessoa.
 User-agent: *
 Allow: /
-Disallow: /editor/
 Disallow: /dashboard
+Disallow: /editor/
+Disallow: /api/
+
+Sitemap: https://abnt-facil-luiz-s-projects-bbeace80.vercel.app/sitemap.xml

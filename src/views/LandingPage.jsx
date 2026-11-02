@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Copy, Check, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DOCUMENT_TYPES } from '../utils/documentTypes';
-import { EXAMPLE_ID } from '../utils/constants';
-import { EXAMPLE_ARTICLE_ID } from '../utils/exampleArticle';
+import { EXAMPLE_ID, EXAMPLE_ARTICLE_ID } from '../utils/exampleIds';
+import usePageMeta from '../hooks/usePageMeta';
 
 const FeedbackModal = lazy(() => import('../components/common/FeedbackModal').then(m => ({ default: m.FeedbackModal })));
 
@@ -208,6 +208,7 @@ const LandingPage = () => {
     const [titulo, setTitulo] = useState('');
     const [autor, setAutor] = useState('');
     useReveal();
+    usePageMeta('/');
 
     const copyPix = async () => {
         try {
@@ -259,7 +260,7 @@ const LandingPage = () => {
                     <div className="flex flex-col px-4 pb-12 pt-32 md:px-10 lg:pb-10 lg:pl-[max(2.5rem,calc((100vw-80rem)/2))] lg:pr-12 lg:pt-36">
                         <div className="my-auto max-w-[36rem]">
                             <p className="label-mono reveal text-ink-2" style={delay(0)}>Formatador ABNT para trabalhos acadêmicos</p>
-                            <h1 className="reveal mt-5 text-[clamp(2.75rem,1.4rem+3.6vw,4.5rem)] font-bold leading-[0.95] tracking-[-0.035em]" style={delay(60)}>
+                            <h1 className="mt-5 text-[clamp(2.75rem,1.4rem+3.6vw,4.5rem)] font-bold leading-[0.95] tracking-[-0.035em]">
                                 Escreva o trabalho. A ABNT fica com a gente.
                             </h1>
                             <p className="reveal mt-7 max-w-[32rem] font-serif text-[clamp(1.125rem,1rem+0.5vw,1.375rem)] leading-[1.5] text-ink" style={delay(120)}>
@@ -270,8 +271,8 @@ const LandingPage = () => {
                                     Começar a escrever <ArrowRight size={17} aria-hidden="true" />
                                 </Link>
                                 <span className="inline-flex gap-1">
-                                    <Link to={`/editor/${EXAMPLE_ID}`} className={quiet} aria-label="Ver um TCC de exemplo">Ver TCC</Link>
-                                    <Link to={`/editor/${EXAMPLE_ARTICLE_ID}`} className={quiet} aria-label="Ver um artigo de exemplo">Ver artigo</Link>
+                                    <Link to={`/editor/${EXAMPLE_ID}`} className={quiet} aria-label="Ver TCC de exemplo">Ver TCC</Link>
+                                    <Link to={`/editor/${EXAMPLE_ARTICLE_ID}`} className={quiet} aria-label="Ver artigo de exemplo">Ver artigo</Link>
                                 </span>
                             </div>
                             <p className="reveal mt-7 text-base text-ink-2" style={delay(220)}>Grátis e sem cadastro. Feito por um estudante do IFPA Belém.</p>
@@ -493,9 +494,7 @@ const LandingPage = () => {
             </footer>
 
             {isFeedbackModalOpen && (
-                <Suspense fallback={null}>
                     <FeedbackModal isOpen onClose={() => setIsFeedbackModalOpen(false)} />
-                </Suspense>
             )}
         </div>
     );

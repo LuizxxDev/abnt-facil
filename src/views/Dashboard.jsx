@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
-import { ABNT_TIPS, EXAMPLE_ID } from '../utils/constants';
+import { ABNT_TIPS } from '../utils/constants';
+import { EXAMPLE_ID } from '../utils/exampleIds';
 import { EXAMPLE_ARTICLE_ID } from '../utils/exampleArticle';
 import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE, getDocType } from '../utils/documentTypes';
 import { calculateProgress, timeAgo } from '../utils/helpers';

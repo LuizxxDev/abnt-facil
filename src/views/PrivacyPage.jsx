@@ -15,7 +15,7 @@ const DADOS = [
 
 export default function PrivacyPage() {
     return (
-        <LegalLayout title="Política de Privacidade" updated="2 de novembro de 2026">
+        <LegalLayout title="Política de Privacidade" path="/privacidade" updated="2 de novembro de 2026">
             <p>Esta política explica quais dados o ABNTFácil usa, para quê, onde eles ficam e como você pode controlá-los. Ela descreve o funcionamento atual da ferramenta e será atualizada sempre que algo mudar.</p>
 
             <h2>Quem cuida dos dados</h2>

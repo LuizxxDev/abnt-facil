@@ -4,7 +4,7 @@ import LegalLayout from '../components/common/LegalLayout';
 
 export default function TermsPage() {
     return (
-        <LegalLayout title="Termos de Uso" updated="2 de novembro de 2026">
+        <LegalLayout title="Termos de Uso" path="/termos" updated="2 de novembro de 2026">
             <p>Estes termos explicam como o ABNTFácil funciona e o que se espera de quem o usa. Ao usar a ferramenta, você concorda com eles.</p>
 
             <h2>O que é o ABNTFácil</h2>

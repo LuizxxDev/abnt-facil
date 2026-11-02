@@ -298,12 +298,13 @@
 /* Anéis de norma girando em volta da folha (hero) */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes spin-rev { to { transform: rotate(-360deg); } }
-.ring-spin { transform-origin: 50% 50%; animation: spin var(--ring-dur, 90s) linear infinite; }
-.ring-spin-rev { transform-origin: 50% 50%; animation: spin-rev var(--ring-dur, 120s) linear infinite; }
+/* Começam a girar depois que a página assentou: o carregamento fica livre e a primeira tela pronta mais cedo */
+.ring-spin { transform-origin: 50% 50%; animation: spin var(--ring-dur, 90s) linear 2.5s infinite; }
+.ring-spin-rev { transform-origin: 50% 50%; animation: spin-rev var(--ring-dur, 120s) linear 2.5s infinite; }
 
 /* Faixa corrida sob a navegação */
 @keyframes marquee { to { transform: translateX(-50%); } }
-.marquee { animation: marquee 38s linear infinite; }
+.marquee { animation: marquee 38s linear 2.5s infinite; }
 
 /* Perguntas: o + vira − ao abrir, e a resposta desce */
 .faq-item summary { list-style: none; }
