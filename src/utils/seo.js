@@ -1,6 +1,6 @@
 // Título, descrição e indexação de cada página. Usado no navegador (usePageMeta)
 // e no build (vite.config.js), que grava esses dados no HTML de cada rota.
-export const SITE_URL = 'https://abnt-facil-luiz-s-projects-bbeace80.vercel.app';
+export const SITE_URL = 'https://abnt-facil-home.vercel.app';
 
 export const PAGES = {
     '/': {

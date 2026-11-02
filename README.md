@@ -2,7 +2,7 @@
 
 O **ABNTFácil** formata trabalhos acadêmicos nas normas da **ABNT** enquanto o estudante escreve. Foi desenvolvido de forma independente por um aluno de **Engenharia de Controle e Automação do IFPA Belém**.
 
-**Acesse:** https://abnt-facil-luiz-s-projects-bbeace80.vercel.app
+**Acesse:** https://abnt-facil-home.vercel.app
 
 ## Funcionalidades
 
