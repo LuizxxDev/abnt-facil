@@ -5,7 +5,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* =========================================
-   DESIGN SYSTEM — "a folha com margem" (ver DESIGN.md)
+   DESIGN SYSTEM — "a folha com margem"
    Papel, tinta e um único verde. Títulos e interface em Libre Franklin,
    leitura e área de escrita em Source Serif 4, rótulos técnicos em IBM Plex Mono.
    ========================================= */
@@ -238,7 +238,7 @@
 .write-area { field-sizing: content; }
 
 /* =========================================
-   MOVIMENTO — só transform e opacity (ver DESIGN.md)
+   MOVIMENTO — só transform e opacity
    ========================================= */
 
 /* Entrada dos diálogos: o fundo aparece e o painel sobe 8px */

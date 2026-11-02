@@ -1,4 +1,4 @@
-// Classes compartilhadas dos controles (ver DESIGN.md). As cores vêm dos tokens do tema,
+// Classes compartilhadas dos controles. As cores vêm dos tokens do tema,
 // então os mesmos nomes servem para o claro e o escuro.
 
 const base = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] font-semibold transition-[background-color,color,transform] duration-150 disabled:opacity-50';

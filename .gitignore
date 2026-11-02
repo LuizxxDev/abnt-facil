@@ -39,6 +39,7 @@ Thumbs.db
 
 # Material interno (relatórios, auditorias, vídeos e ferramentas locais): fica só neste computador
 conformidade/
+DESIGN.md
 design-audit/
 video/
 video-explicativo/
