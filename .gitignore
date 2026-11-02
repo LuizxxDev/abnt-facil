@@ -36,3 +36,10 @@ Thumbs.db
 .stylelintcache
 # Arquivos de trabalho da skill de direção de arte
 .taste-skill/
+
+# Material interno (relatórios, auditorias, vídeos e ferramentas locais): fica só neste computador
+conformidade/
+design-audit/
+video/
+video-explicativo/
+.claude/

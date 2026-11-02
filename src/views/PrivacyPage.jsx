@@ -1,7 +1,7 @@
 import React from 'react';
 import LegalLayout from '../components/common/LegalLayout';
 
-// Política de Privacidade: descreve o que o código faz de fato (ver conformidade/RELATORIO.md).
+// Política de Privacidade: descreve o que o código faz de fato.
 // Ao mudar uma integração, um armazenamento ou um formulário, atualize esta página.
 const DADOS = [
     ['Texto do trabalho, títulos, nomes de autores, orientador e banca, imagens coladas', 'Escrever e formatar o documento', 'No seu navegador (armazenamento local). Com login, também na sua conta no Supabase'],
