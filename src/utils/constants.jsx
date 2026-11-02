@@ -1,3 +1,4 @@
+import { EXAMPLE_ARTICLE, EXAMPLE_ARTICLE_ID } from './exampleArticle';
 import React from 'react';
 import { BarChart3, ArrowLeftRight, FlaskConical } from 'lucide-react';
 import { generateId } from './helpers';
@@ -131,6 +132,9 @@ export const EXAMPLE_PROJECT = {
         anexos: "ANEXO A - Cartilha Nacional de Prevenção ao Suicídio\n\n[O conteúdo da cartilha do Ministério da Saúde seria inserido aqui]"
     }
 };
+
+// Exemplos somente leitura, abertos por /editor/<id>
+export const EXAMPLES = { [EXAMPLE_ID]: EXAMPLE_PROJECT, [EXAMPLE_ARTICLE_ID]: EXAMPLE_ARTICLE };
 
 export const TAG_RENDERERS = {
   // `num` é o número de ordem da ilustração/tabela no documento (NBR 14724: "Figura 1 – Título")

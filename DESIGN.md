@@ -28,7 +28,7 @@ Proposta da fase 2. Nada disso está aplicado ainda.
 
 ### Modos
 
-- **Landing: Persuade.** Escala grande, a folha como herói, imagens reais.
+- **Landing: Persuade.** Escala grande, a folha como herói, sem fotos: a folha desenhada é a única imagem.
 - **Painel e editor: Operate.** Precisão e calma. A marca aparece nos detalhes: a folha em miniatura, o verde só na ação principal, a serifa na área de escrita.
 
 ## Tipografia

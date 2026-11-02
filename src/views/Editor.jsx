@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { useAutosave } from '../hooks/useAutosave';
 import { useExport } from '../hooks/useExport';
-import { DEFAULT_CHECKLIST, EXAMPLE_ID, EXAMPLE_PROJECT } from '../utils/constants';
+import { DEFAULT_CHECKLIST, EXAMPLES } from '../utils/constants';
 import { getDocType, hasElement, isRequired } from '../utils/documentTypes';
 import { splitBlocks } from '../utils/documentContent';
 
@@ -60,9 +60,9 @@ const Editor = () => {
         if (!id) return;
         if (loadedId === id) return;
 
-        if (id === EXAMPLE_ID) {
-            setData(EXAMPLE_PROJECT.data); 
-            setAuthors(EXAMPLE_PROJECT.authors); 
+        if (EXAMPLES[id]) {
+            setData(EXAMPLES[id].data);
+            setAuthors(EXAMPLES[id].authors);
             setChecklist(DEFAULT_CHECKLIST); 
             setLoadedId(id);
             return;
@@ -79,7 +79,7 @@ const Editor = () => {
         }
     }, [id, projects, navigate, loadedId]);
 
-    const isReadOnly = id === EXAMPLE_ID;
+    const isReadOnly = Boolean(EXAMPLES[id]);
     const { isSaving } = useAutosave(data, authors, checklist, id, projects, setProjects, settings, isReadOnly);
     const { handleExportPDF: exportPdfNow, handleExportDocx: exportDocxNow, isExporting } = useExport(data, authors, fontFamily);
 
@@ -303,7 +303,7 @@ const Editor = () => {
     };
 
     const handleCreateFromExample = async () => {
-        const newId = await createFromExample();
+        const newId = await createFromExample(id);
         toast.success('Exemplo copiado para os seus documentos');
         navigate(`/editor/${newId}`);
     };

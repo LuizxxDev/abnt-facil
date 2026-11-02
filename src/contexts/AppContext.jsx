@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast'; 
 import { generateId } from '../utils/helpers';
-import { DEFAULT_CHECKLIST, EXAMPLE_PROJECT } from '../utils/constants';
+import { DEFAULT_CHECKLIST, EXAMPLE_PROJECT, EXAMPLES } from '../utils/constants';
+import { EXAMPLE_ARTICLE_ID } from '../utils/exampleArticle';
 import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE } from '../utils/documentTypes';
 import { supabase } from '../lib/supabase';
 
@@ -258,7 +259,14 @@ export const AppProvider = ({ children }) => {
     return await persistNewProject(prepareProjectObject(`${model.label} - ${new Date().toLocaleDateString()}`, buildDocumentData(modelKey)));
   }, [persistNewProject, prepareProjectObject, buildDocumentData]);
 
-  const createFromExample = useCallback(async () => {
+  const createFromExample = useCallback(async (exampleId) => {
+    // Artigo: copia o texto inteiro para servir de modelo editável
+    if (exampleId === EXAMPLE_ARTICLE_ID) {
+      const ex = EXAMPLES[EXAMPLE_ARTICLE_ID];
+      const copy = JSON.parse(JSON.stringify(ex.data));
+      copy.secoes = copy.secoes.map(s => ({ ...s, id: generateId() }));
+      return await persistNewProject({ ...prepareProjectObject('Meu artigo (baseado no exemplo)', copy), authors: [...ex.authors] });
+    }
     const customData = {
         ...EXAMPLE_PROJECT.data, tipoDocumento: 'TCC', curso: '', banca: [], orientadores: EXAMPLE_PROJECT.data.orientadores ? [...EXAMPLE_PROJECT.data.orientadores] : [''], 
         resumoPt: '', resumoEn: '', dedicatoria: '', agradecimentos: '', epigrafe: '', apendices: '', anexos: '', assets: {},

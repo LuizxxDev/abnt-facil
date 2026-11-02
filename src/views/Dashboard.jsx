@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { ABNT_TIPS, EXAMPLE_ID } from '../utils/constants';
+import { EXAMPLE_ARTICLE_ID } from '../utils/exampleArticle';
 import { DOCUMENT_TYPES, DEFAULT_DOC_TYPE, getDocType } from '../utils/documentTypes';
 import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal, GoogleIcon } from '../components/common/Modals';
@@ -264,16 +265,27 @@ const Dashboard = () => {
                         </p>
 
                         {showModels && <div id="modelos" className="fade-in mt-5 grid gap-3 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-                            <div className="flex gap-5 rounded-[var(--radius-panel)] bg-accent-soft p-5">
-                                <Sheet progress={100} className="w-14 self-start sm:w-20" />
-                                <div className="flex min-w-0 flex-col">
-                                    <h3 className="font-bold">TCC de exemplo completo</h3>
-                                    <p className="mt-1 text-sm text-ink-2">Capa, resumo, capítulos, citações e referências já preenchidos. Veja como o trabalho final fica ou comece por ele.</p>
-                                    <div className="mt-auto flex flex-wrap gap-2 pt-4">
-                                        <button type="button" onClick={async () => { const id = await createFromExample(); navigate(`/editor/${id}`); toast.success('Exemplo copiado para os seus documentos'); }} className={btnPrimary}><Copy size={16} aria-hidden="true" /> Usar como base</button>
-                                        <Link to={`/editor/${EXAMPLE_ID}`} className={`${btnGhost} text-accent hover:text-accent`}><Eye size={16} aria-hidden="true" /> Só ver</Link>
-                                    </div>
-                                </div>
+                            <div className="rounded-[var(--radius-panel)] bg-accent-soft p-5">
+                                <h3 className="font-bold">Exemplos completos</h3>
+                                <p className="mt-1 text-sm text-ink-2">Trabalhos inteiros já formatados. Veja como fica ou comece por um deles.</p>
+                                <ul className="mt-4 space-y-4">
+                                    {[
+                                        { id: EXAMPLE_ID, nome: 'TCC', desc: 'Capa, folha de aprovação, resumo, capítulos e referências.' },
+                                        { id: EXAMPLE_ARTICLE_ID, nome: 'Artigo científico', desc: 'Resumo e abstract, notas, equação, tabela, gráfico e quadro.' },
+                                    ].map(ex => (
+                                        <li key={ex.id} className="flex gap-4">
+                                            <Sheet progress={100} className="w-11 self-start sm:w-12" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-semibold">{ex.nome}</p>
+                                                <p className="text-sm text-ink-2">{ex.desc}</p>
+                                                <div className="mt-2 flex flex-wrap gap-x-1 gap-y-2">
+                                                    <button type="button" onClick={async () => { const id = await createFromExample(ex.id); navigate(`/editor/${id}`); toast.success('Exemplo copiado para os seus documentos'); }} className={`${btnPrimary} h-9 px-3`} aria-label={`Usar o ${ex.nome.toLowerCase()} de exemplo como base`}><Copy size={16} aria-hidden="true" /> Usar como base</button>
+                                                    <Link to={`/editor/${ex.id}`} className={`${btnGhost} h-9 px-3 text-accent hover:text-accent`} aria-label={`Ver o ${ex.nome.toLowerCase()} de exemplo`}><Eye size={16} aria-hidden="true" /> Só ver</Link>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
 
                             <ul className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] bg-line sm:grid-cols-2" aria-label="Modelos de documento">

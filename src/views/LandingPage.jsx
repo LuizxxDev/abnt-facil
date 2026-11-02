@@ -4,6 +4,7 @@ import { ArrowRight, Copy, Check, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DOCUMENT_TYPES } from '../utils/documentTypes';
 import { EXAMPLE_ID } from '../utils/constants';
+import { EXAMPLE_ARTICLE_ID } from '../utils/exampleArticle';
 
 const FeedbackModal = lazy(() => import('../components/common/FeedbackModal').then(m => ({ default: m.FeedbackModal })));
 
@@ -25,13 +26,6 @@ const FAQ = [
     { q: 'É um projeto oficial do IFPA?', a: 'Não. É um projeto independente, criado por um estudante do IFPA Campus Belém para ajudar colegas e a comunidade acadêmica.' },
     { q: 'Como não perder meu trabalho?', a: 'Entre com sua conta Google para sincronizar na nuvem ou baixe uma cópia de segurança no painel com frequência.' },
     { q: 'Minha instituição tem regras próprias.', a: 'O manual da sua instituição prevalece sobre a ABNT. Os textos da folha de rosto, a fonte e as seções podem ser ajustados no editor.' },
-];
-
-const CREDITS = [
-    { title: 'Belém Ver-o-Peso 01', by: 'Cayambe', licence: 'CC BY-SA 3.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/3.0', page: 'https://commons.wikimedia.org/wiki/File:Bel%C3%A9m_Ver-o-Peso_01.jpg' },
-    { title: 'Theatro da Paz Belém Pará 2023-7979', by: 'Prburley', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0', page: 'https://commons.wikimedia.org/wiki/File:Theatro_da_Paz_Bel%C3%A9m_Par%C3%A1_2023-7979.jpg' },
-    { title: 'Olympia Simplex', by: 'Sammlung der Medien und Wissenschaft', licence: 'CC BY 4.0', licenceUrl: 'https://creativecommons.org/licenses/by/4.0', page: 'https://commons.wikimedia.org/wiki/File:Olympia_Simplex.jpg' },
-    { title: 'Card catalog at the Indiana State Library', by: 'TBurmeister (WMF)', licence: 'CC BY-SA 4.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/4.0', page: 'https://commons.wikimedia.org/wiki/File:Card_catalog_at_the_Indiana_State_Library_-_cabinet_exterior.jpg' },
 ];
 
 // As abas da pilha de folhas: cada tipo monta a primeira folha de um jeito
@@ -234,6 +228,9 @@ const LandingPage = () => {
                             <Link to={`/editor/${EXAMPLE_ID}`} className="text-center text-base font-semibold text-accent underline decoration-accent/30 underline-offset-[0.3em] transition-colors hover:decoration-accent">
                                 Ver um TCC de exemplo
                             </Link>
+                            <Link to={`/editor/${EXAMPLE_ARTICLE_ID}`} className="text-center text-base font-semibold text-accent underline decoration-accent/30 underline-offset-[0.3em] transition-colors hover:decoration-accent">
+                                ou um artigo
+                            </Link>
                         </div>
                         <p className="reveal mt-8 text-base text-ink-2" style={delay(220)}>
                             Grátis e sem cadastro. Feito por um estudante do IFPA Belém.
@@ -310,18 +307,6 @@ const LandingPage = () => {
                     </div>
                 </section>
 
-                {/* Fotos: de onde vêm as regras que o editor aplica sozinho */}
-                <section data-reveal aria-label="Antes do editor" className="mx-auto grid max-w-6xl gap-4 px-4 pb-24 md:grid-cols-12 md:px-8 md:pb-36">
-                    <figure className="rv md:col-span-7">
-                        <img src="/img/maquina-de-escrever.webp" alt="Máquina de escrever portátil Olympia Simplex, de 1935, sobre fundo cinza claro" width="1400" height="934" loading="lazy" decoding="async" className="aspect-[3/2] w-full object-cover" />
-                        <figcaption className="mt-3 max-w-md text-base text-ink-2">Antes, as margens eram acertadas na régua da máquina de escrever, folha por folha.</figcaption>
-                    </figure>
-                    <figure className="rv md:col-span-5 md:mt-24">
-                        <img src="/img/fichario.webp" alt="Fichário de biblioteca em madeira, com dezenas de gavetas etiquetadas" width="1400" height="1866" loading="lazy" decoding="async" className="aspect-[210/297] w-full object-cover" />
-                        <figcaption className="mt-3 max-w-sm text-base text-ink-2">E as referências viviam em fichas, em ordem alfabética. Hoje a lista se organiza sozinha.</figcaption>
-                    </figure>
-                </section>
-
                 {/* Quem fez + apoio */}
                 <section data-reveal aria-labelledby="quem-fez" className="px-2 sm:px-5">
                     <div className="mx-auto max-w-[1240px] rounded-[var(--radius-panel)] bg-green-900 px-6 py-16 text-green-50 md:px-14 md:py-24">
@@ -334,16 +319,6 @@ const LandingPage = () => {
                                 <p className="mt-6 max-w-lg font-serif text-lg leading-relaxed text-green-50">
                                     Sou o Luiz Felipe, estudante de Engenharia de Controle e Automação no IFPA, em Belém. Criei o ABNTFácil para que nenhum colega perca tempo com formatação quando deveria estar pensando na pesquisa.
                                 </p>
-                                <div className="mt-10 grid grid-cols-2 gap-3">
-                                    <figure>
-                                        <img src="/img/ver-o-peso.webp" alt="Mercado do Ver-o-Peso, em Belém, com barcos de pesca na frente" width="1400" height="906" loading="lazy" decoding="async" className="aspect-[210/297] w-full rounded-[var(--radius-sheet)] object-cover" />
-                                        <figcaption className="mt-2 text-sm text-green-100">Ver-o-Peso, Belém</figcaption>
-                                    </figure>
-                                    <figure className="mt-10">
-                                        <img src="/img/theatro-da-paz.webp" alt="Fachada laranja do Theatro da Paz, em Belém" width="1400" height="934" loading="lazy" decoding="async" className="aspect-[210/297] w-full rounded-[var(--radius-sheet)] object-cover object-[60%_50%]" />
-                                        <figcaption className="mt-2 text-sm text-green-100">Theatro da Paz, Belém</figcaption>
-                                    </figure>
-                                </div>
                             </div>
                             <div className="rv flex flex-col gap-10 lg:col-span-5 lg:col-start-8 lg:pt-2">
                                 <div>
@@ -396,21 +371,13 @@ const LandingPage = () => {
 
             <footer className="bg-paper">
                 <p className="select-none overflow-hidden whitespace-nowrap px-2 pt-10 text-center text-[clamp(3rem,15.5vw,14rem)] font-bold leading-[0.85] tracking-[-0.05em] text-ink" aria-hidden="true">ABNTFácil</p>
-                <div className="mx-auto max-w-6xl space-y-6 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-10 md:px-8">
+                <div className="mx-auto max-w-6xl px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-10 md:px-8">
                     <div className="flex flex-col gap-3 text-base text-ink-2 sm:flex-row sm:items-center sm:justify-between">
                         <p suppressHydrationWarning>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
                         <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className="self-start font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent sm:self-auto">
                             Relatar um problema ou sugerir melhoria
                         </button>
                     </div>
-                    <p className="max-w-xl text-sm leading-relaxed text-ink-2">
-                        Fotos:{' '}
-                        {CREDITS.map((c, i) => (
-                            <React.Fragment key={c.page}>
-                                <a href={c.page} className="underline decoration-line underline-offset-2 hover:text-ink" rel="noopener noreferrer" target="_blank">“{c.title}”</a>, por {c.by}, <a href={c.licenceUrl} className="underline decoration-line underline-offset-2 hover:text-ink" rel="noopener noreferrer" target="_blank">{c.licence}</a>, via Wikimedia Commons{i < CREDITS.length - 1 ? '; ' : '.'}
-                            </React.Fragment>
-                        ))}
-                    </p>
                 </div>
             </footer>
 
