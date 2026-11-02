@@ -6,6 +6,8 @@ import PageLoader from './components/common/PageLoader';
 
 // Supabase, painel e editor ficam fora do arquivo inicial: a landing page abre sem baixá-los
 const AppShell = lazy(() => import('./AppShell'));
+const PrivacyPage = lazy(() => import('./views/PrivacyPage'));
+const TermsPage = lazy(() => import('./views/TermsPage'));
 
 // Fora da página inicial, baixa o shell e a tela da rota ao mesmo tempo (sem esperar um pelo outro)
 if (typeof window !== 'undefined') {
@@ -49,6 +51,8 @@ export default function App() {
       
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/privacidade" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
+        <Route path="/termos" element={<Suspense fallback={<PageLoader />}><TermsPage /></Suspense>} />
         <Route path="/*" element={<Suspense fallback={<PageLoader />}><AppShell /></Suspense>} />
       </Routes>
     </>

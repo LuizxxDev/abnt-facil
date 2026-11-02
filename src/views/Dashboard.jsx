@@ -27,7 +27,7 @@ const Dashboard = () => {
         createNewProject, createFromExample, createFromModel, createFromImport,
         duplicateProject,
         deleteProject, restoreProject, updateProject,
-        importAllProjects,
+        importAllProjects, deleteAllMyData,
         user, loginWithGoogle, logout,
         isAuthLoading, isDataLoading 
     } = useAppContext();
@@ -394,7 +394,7 @@ const Dashboard = () => {
                 onClose={() => setIsSettingsModalOpen(false)}
                 settings={settings}
                 setSettings={setSettings}
-                onDeleteAll={() => setConfirm({ title: 'Apagar tudo?', description: 'Todos os documentos e configurações deste navegador serão apagados. Esta ação não pode ser desfeita.', confirmLabel: 'Apagar tudo', onConfirm: () => { localStorage.clear(); window.location.reload(); } })}
+                onDeleteAll={() => setConfirm({ title: 'Apagar todos os seus dados?', description: user ? 'Os documentos e imagens da sua conta na nuvem e tudo o que está neste navegador serão apagados, e você sairá da conta. Esta ação não pode ser desfeita. Baixe uma cópia de segurança antes, se quiser guardar algo.' : 'Todos os documentos e configurações deste navegador serão apagados. Esta ação não pode ser desfeita. Baixe uma cópia de segurança antes, se quiser guardar algo.', confirmLabel: 'Apagar tudo', onConfirm: deleteAllMyData })}
                 user={user}
                 loginWithGoogle={loginWithGoogle}
                 logout={logout}

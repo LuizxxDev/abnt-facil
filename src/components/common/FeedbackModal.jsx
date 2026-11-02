@@ -3,7 +3,7 @@ import { Bug, Lightbulb, Send, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import Dialog from './Dialog';
-import { btnPrimary, btnGhost, field } from './ui';
+import { btnPrimary, btnGhost, field, help } from './ui';
 
 const TYPES = [
     { value: 'bug', label: 'Algo deu errado', icon: Bug, placeholder: 'O que aconteceu? Em que parte do documento a formatação falhou?' },
@@ -63,9 +63,14 @@ export const FeedbackModal = ({ isOpen, onClose }) => {
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                     placeholder={current.placeholder}
+                    maxLength={5000}
+                    aria-describedby="feedback-aviso"
                     className={`${field} h-36 resize-none leading-relaxed`}
                     disabled={isSubmitting}
                 />
+                <p id="feedback-aviso" className={help}>
+                    A mensagem é anônima e fica guardada no banco de dados do ABNTFácil (Supabase), só para corrigir erros e melhorar a ferramenta. Não inclua dados pessoais nem trechos do trabalho que você não queira compartilhar. <a href="/privacidade" className="underline underline-offset-2">Política de Privacidade</a>.
+                </p>
             </form>
         </Dialog>
     );

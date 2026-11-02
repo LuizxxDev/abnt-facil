@@ -55,6 +55,8 @@ export const AppProvider = ({ children }) => {
                 console.error("Erro inesperado na sessão:", err);
             })
             .finally(() => {
+                // O token nunca fica na barra de endereço, nem quando o login falha
+                window.history.replaceState(null, '', window.location.pathname);
                 if (mounted) setIsAuthLoading(false);
             });
             return; 
@@ -347,16 +349,42 @@ export const AppProvider = ({ children }) => {
     }
   }, [user]);
 
+  // Apaga de fato os dados do usuário: documentos e imagens na nuvem (com login) e tudo o que
+  // está neste navegador. A conta de login (nome e e-mail no Supabase Auth) só pode ser removida
+  // pelo responsável do serviço; a Política de Privacidade explica como pedir.
+  const deleteAllMyData = useCallback(async () => {
+    const toastId = toast.loading('Apagando seus dados…');
+    try {
+      if (user) {
+        const { error } = await supabase.from('projects').delete().eq('user_id', user.id);
+        if (error) throw error;
+        const { data: files } = await supabase.storage.from('project-assets').list(user.id, { limit: 1000 });
+        if (files?.length) {
+          const { error: storageError } = await supabase.storage.from('project-assets').remove(files.map(f => `${user.id}/${f.name}`));
+          if (storageError) throw storageError;
+        }
+        await supabase.auth.signOut().catch(() => {});
+      }
+      localStorage.clear();
+      if ('caches' in window) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+      toast.success('Dados apagados', { id: toastId });
+      window.location.assign('/dashboard');
+    } catch (error) {
+      console.error('Falha ao apagar os dados:', error);
+      toast.error('Não foi possível apagar os dados da nuvem. Nada foi apagado deste navegador; tente de novo com internet.', { id: toastId, duration: 7000 });
+    }
+  }, [user]);
+
   // Envolvendo o contexto atual em useMemo para evitar re-renderizações em massa
   const contextValue = useMemo(() => ({
     projects, setProjects, settings, setSettings,
     user, loginWithGoogle, logout, isAuthLoading, isDataLoading, 
     createNewProject, createFromExample, createFromModel, createFromImport, duplicateProject,
-    updateProject, deleteProject, restoreProject, importAllProjects
+    updateProject, deleteProject, restoreProject, importAllProjects, deleteAllMyData
   }), [
     projects, settings, user, isAuthLoading, isDataLoading,
     loginWithGoogle, logout, createNewProject, createFromExample, createFromModel, createFromImport,
-    duplicateProject, updateProject, deleteProject, restoreProject, importAllProjects
+    duplicateProject, updateProject, deleteProject, restoreProject, importAllProjects, deleteAllMyData
   ]);
 
   return (

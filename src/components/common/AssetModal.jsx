@@ -59,8 +59,9 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
     const processFile = async (file) => {
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            toast.error("Formato inválido. Escolha um arquivo de imagem.");
+        // SVG fica de fora: pode conter script
+        if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
+            toast.error("Formato não aceito. Use JPG, PNG, GIF ou WebP.");
             return;
         }
 
@@ -192,13 +193,13 @@ const AssetModal = ({ isOpen, onClose, assetModal, setAssetModal, onConfirm }) =
                         onClick={() => !isUploading && fileInputRef.current.click()}
                         className={`flex w-full flex-col items-center justify-center gap-3 rounded-[var(--radius-panel)] border-2 border-dashed p-8 text-center transition-[background-color,border-color] duration-150 ${isUploading ? 'cursor-not-allowed border-line opacity-60' : 'cursor-pointer'} ${isDragging ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent hover:bg-surface-2'}`}
                       >
-                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
+                          <input type="file" ref={fileInputRef} className="hidden" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleFileUpload} disabled={isUploading} />
                           <span className={`rounded-full p-3 ${localBase64 || url ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-ink-2'}`} aria-hidden="true">
                               {isUploading ? <Loader2 size={28} className="animate-spin" /> : isDragging || localBase64 || url ? <ImagePlus size={28} /> : <UploadCloud size={28} />}
                           </span>
                           <span>
                               <span className="block text-sm font-semibold text-ink">{isUploading ? 'Processando a imagem…' : isDragging ? 'Solte a imagem aqui' : localBase64 || url ? 'Imagem carregada. Toque para trocar.' : 'Toque para escolher ou arraste uma imagem'}</span>
-                              <span className="mt-1 block text-xs text-ink-3">JPG, PNG ou GIF · até {user ? '5 MB (nuvem)' : '500 KB (neste aparelho)'}</span>
+                              <span className="mt-1 block text-xs text-ink-3">JPG, PNG, GIF ou WebP · até {user ? '5 MB (nuvem)' : '500 KB (neste aparelho)'}</span>
                           </span>
                       </div>
 

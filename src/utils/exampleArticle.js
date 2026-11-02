@@ -1,10 +1,11 @@
 // Artigo científico de exemplo (NBR 6022:2018), completo: mostra todos os recursos do editor.
 // Os dados da pesquisa são fictícios (avisado em nota de rodapé); as referências são obras reais.
 import { generateId } from './helpers';
+import { barChartDataUrl } from './exampleChart';
 
 export const EXAMPLE_ARTICLE_ID = 'exemplo-artigo-saude-mental';
 
-// Gráfico de barras em SVG, guardado como imagem local do documento (vai para a prévia, o PDF e o .docx)
+// Gráfico da Figura 1 (guardado como imagem local do documento)
 const BARRAS = [
     ['Amigos e colegas de curso', 61],
     ['Família', 48],
@@ -12,19 +13,6 @@ const BARRAS = [
     ['Serviço de psicologia da instituição', 14],
     ['Profissional particular', 11],
 ];
-const grafico = () => {
-    const W = 640, H = 300, x0 = 250, barW = 330, rowH = 52, top = 24;
-    const linhas = BARRAS.map(([rotulo, v], i) => {
-        const y = top + i * rowH;
-        const w = Math.round((v / 100) * barW);
-        return `<text x="${x0 - 12}" y="${y + 21}" text-anchor="end" font-size="14">${rotulo}</text>`
-            + `<rect x="${x0}" y="${y + 6}" width="${w}" height="22" fill="#4a4a4a"/>`
-            + `<text x="${x0 + w + 8}" y="${y + 22}" font-size="14" font-weight="bold">${v}%</text>`;
-    }).join('');
-    const eixo = `<line x1="${x0}" y1="${top}" x2="${x0}" y2="${top + BARRAS.length * rowH}" stroke="#000" stroke-width="1"/>`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, Helvetica, sans-serif" fill="#000"><rect width="100%" height="100%" fill="#fff"/>${eixo}${linhas}</svg>`;
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-};
 
 const RESUMO = 'A entrada na universidade coincide com uma fase de transição marcada por novas cobranças acadêmicas, mudanças de rotina e, para muitos estudantes, o afastamento da família. Este artigo discute a importância da saúde mental na faculdade e sua relação com o desempenho e a permanência estudantil. Trata-se de um estudo exploratório, de abordagem quali-quantitativa, que combinou revisão de literatura com um levantamento ilustrativo aplicado a estudantes de graduação, por meio de questionário com a Escala de Estresse Percebido e perguntas abertas analisadas pela técnica de análise de conteúdo. Os resultados apontam estresse moderado ou alto na maior parte dos participantes, maior procura por apoio informal do que pelos serviços institucionais e a falta de tempo e o receio de julgamento como principais barreiras ao cuidado. Conclui-se que a atenção à saúde mental deve integrar a política de permanência das instituições, com ações de acolhimento, divulgação dos serviços e revisão de práticas pedagógicas que sobrecarregam os estudantes.';
 
@@ -110,6 +98,6 @@ export const EXAMPLE_ARTICLE = {
         apendices: '**APÊNDICE A - QUESTIONÁRIO APLICADO AOS ESTUDANTES**\n\n1. Qual é o seu curso e em que semestre você está?\n\n2. No último mês, com que frequência você se sentiu nervoso ou estressado por causa da faculdade?\n\n3. Quando se sentiu sobrecarregado, a quem você recorreu?\n\n4. Você sabe que a instituição oferece atendimento psicológico? Já usou o serviço?\n\n5. O que dificulta ou impede você de procurar ajuda?',
         anexos: '',
         glossario: '',
-        assets: { local_img_grafico_apoio: grafico() },
+        assets: { local_img_grafico_apoio: barChartDataUrl(BARRAS) },
     },
 };

@@ -32,12 +32,18 @@ create policy "feedback_insert_any" on public.feedback
 -- ── Imagens: pasta própria (<id do usuário>/arquivo), até 5 MB, só imagens ──
 update storage.buckets
    set file_size_limit = 5242880,
-       allowed_mime_types = array['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+       allowed_mime_types = array['image/png', 'image/jpeg', 'image/gif', 'image/webp'] -- sem SVG: pode conter script
  where id = 'project-assets';
 
+drop policy if exists "assets_select_own_folder" on storage.objects;
 drop policy if exists "assets_insert_own_folder" on storage.objects;
 drop policy if exists "assets_update_own_folder" on storage.objects;
 drop policy if exists "assets_delete_own_folder" on storage.objects;
+
+-- Listar a própria pasta é necessário para o botão "Apagar todos os seus dados" achar as imagens
+create policy "assets_select_own_folder" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'project-assets' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 create policy "assets_insert_own_folder" on storage.objects
   for insert to authenticated

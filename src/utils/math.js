@@ -1,5 +1,5 @@
 // Equações em LaTeX → MathML (Temml). A biblioteca e a fonte matemática só são baixadas
-// quando o documento tem alguma [EQUAÇÃO]; a mesma fonte é usada no PDF do servidor.
+// quando o documento tem alguma [EQUAÇÃO]; a mesma fonte (do Google) é usada no PDF do servidor.
 import { useEffect, useState } from 'react';
 
 export const MATH_FONT_URL = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Math&display=block';
@@ -9,15 +9,10 @@ let loading = null;
 
 const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const loadFont = () => new Promise((resolve) => {
-    if (document.querySelector(`link[href="${MATH_FONT_URL}"]`)) return resolve();
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = MATH_FONT_URL;
-    link.onload = () => (document.fonts?.load('1em "Noto Sans Math"') || Promise.resolve()).then(resolve, resolve);
-    link.onerror = resolve;
-    document.head.appendChild(link);
-});
+// Na tela, a fonte matemática vem do próprio site; o PDF do servidor usa MATH_FONT_URL
+const loadFont = () => import('@fontsource/noto-sans-math/400.css')
+    .then(() => document.fonts?.load('1em "Noto Sans Math"'))
+    .catch(() => {});
 
 export const loadMath = () => {
     if (!loading) {

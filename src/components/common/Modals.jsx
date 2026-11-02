@@ -134,7 +134,7 @@ export const SettingsModal = ({ isOpen, onClose, settings, setSettings, onDelete
 
                 <section aria-labelledby="cfg-perigo" className="border-t border-line pt-6">
                     <h3 id="cfg-perigo" className="text-sm font-semibold text-danger">Apagar dados</h3>
-                    <p className={`${help} mb-3 mt-0.5`}>Remove todos os documentos e configurações deste navegador.</p>
+                    <p className={`${help} mb-3 mt-0.5`}>{user ? 'Remove os documentos e imagens da sua conta na nuvem e tudo o que está neste navegador.' : 'Remove todos os documentos e configurações deste navegador.'} <a href="/privacidade" className="underline underline-offset-2">Como pedir a exclusão da conta</a>.</p>
                     <button type="button" onClick={onDeleteAll} className={`${btnGhost} text-danger hover:bg-danger-soft hover:text-danger`}><Eraser size={16} aria-hidden="true" /> Apagar todos os documentos</button>
                 </section>
             </div>

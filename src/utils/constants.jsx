@@ -1,4 +1,5 @@
 import { EXAMPLE_ARTICLE, EXAMPLE_ARTICLE_ID } from './exampleArticle';
+import { barChartDataUrl } from './exampleChart';
 import React from 'react';
 import { BarChart3, ArrowLeftRight, FlaskConical } from 'lucide-react';
 import { generateId } from './helpers';
@@ -96,7 +97,7 @@ export const EXAMPLE_PROJECT = {
                 num: "1",
                 titulo: "INTRODUÇÃO",
                 level: 1,
-                conteudo: "O ambiente universitário é, por excelência, um espaço de desenvolvimento intelectual, profissional e pessoal. No entanto, para muitos estudantes, a transição para o ensino superior é marcada por desafios que transcendem as exigências puramente acadêmicas, adentrando a esfera psicológica e emocional. O aumento da carga de estudos, a pressão por notas, as incertezas quanto ao futuro no mercado de trabalho e, muitas vezes, o afastamento do núcleo familiar, configuram um cenário propício ao adoecimento mental.\n\nO problema de pesquisa que norteia este estudo é: de que maneira o esgotamento psicológico afeta o rendimento e a permanência de discentes em cursos de alta exigência analítica, como as Engenharias?\n\nO objetivo geral é compreender os impactos da saúde mental no desempenho de estudantes universitários, propondo diretrizes para a criação de um ambiente acadêmico mais acolhedor. A justificativa fundamenta-se nos alarmantes índices de evasão escolar motivados por quadros de depressão, ansiedade e síndrome de burnout."
+                conteudo: "O ambiente universitário é, por excelência, um espaço de desenvolvimento intelectual, profissional e pessoal.^[Este é um documento de exemplo: autores, obras citadas e dados de pesquisa são fictícios e servem apenas para mostrar a formatação. Não os use como fonte.] No entanto, para muitos estudantes, a transição para o ensino superior é marcada por desafios que transcendem as exigências puramente acadêmicas, adentrando a esfera psicológica e emocional. O aumento da carga de estudos, a pressão por notas, as incertezas quanto ao futuro no mercado de trabalho e, muitas vezes, o afastamento do núcleo familiar, configuram um cenário propício ao adoecimento mental.\n\nO problema de pesquisa que norteia este estudo é: de que maneira o esgotamento psicológico afeta o rendimento e a permanência de discentes em cursos de alta exigência analítica, como as Engenharias?\n\nO objetivo geral é compreender os impactos da saúde mental no desempenho de estudantes universitários, propondo diretrizes para a criação de um ambiente acadêmico mais acolhedor. A justificativa fundamenta-se nos alarmantes índices de evasão escolar motivados por quadros de depressão, ansiedade e síndrome de burnout."
             },
             {
                 id: generateId(),
@@ -117,7 +118,7 @@ export const EXAMPLE_PROJECT = {
                 num: "4",
                 titulo: "RESULTADOS E DISCUSSÃO",
                 level: 1,
-                conteudo: "A análise dos dados revelou um cenário preocupante. Dos 150 entrevistados, aproximadamente 68% relataram ter experimentado níveis altos ou muito altos de estresse durante o último período letivo. Além disso, 45% afirmaram já ter cogitado abandonar o curso devido à exaustão mental.\n\n[TABELA]: Prevalência de Sintomas Relatados | Dados da pesquisa de campo (2024) | [[\"Sintoma Relatado\", \"Frequência (%)\", \"Impacto Percebido na Nota\"], [\"Insônia crônica\", \"58%\", \"Alto\"], [\"Crises de ansiedade\", \"42%\", \"Muito Alto\"], [\"Desmotivação generalizada\", \"71%\", \"Médio-Alto\"], [\"Pensamentos de desistência\", \"45%\", \"Extremo\"]]\n\nApesar dos altos índices de sofrimento, notou-se que apenas 12% dos estudantes buscaram o núcleo de apoio psicológico da universidade. Quando questionados sobre o motivo, a maioria apontou o estigma associado à saúde mental e a incompatibilidade de horários entre as aulas e os plantões de atendimento.\n\n[IMAGEM]: Gráfico de Busca por Apoio | Dados da pesquisa (2024) | https://placehold.co/600x300/EEE/31343C?text=Alunos+que+buscaram+Apoio:+12%25"
+                conteudo: "A análise dos dados revelou um cenário preocupante. Dos 150 entrevistados, aproximadamente 68% relataram ter experimentado níveis altos ou muito altos de estresse durante o último período letivo. Além disso, 45% afirmaram já ter cogitado abandonar o curso devido à exaustão mental.\n\n[TABELA]: Prevalência de Sintomas Relatados | Dados da pesquisa de campo (2024) | [[\"Sintoma Relatado\", \"Frequência (%)\", \"Impacto Percebido na Nota\"], [\"Insônia crônica\", \"58%\", \"Alto\"], [\"Crises de ansiedade\", \"42%\", \"Muito Alto\"], [\"Desmotivação generalizada\", \"71%\", \"Médio-Alto\"], [\"Pensamentos de desistência\", \"45%\", \"Extremo\"]]\n\nApesar dos altos índices de sofrimento, notou-se que apenas 12% dos estudantes buscaram o núcleo de apoio psicológico da universidade. Quando questionados sobre o motivo, a maioria apontou o estigma associado à saúde mental e a incompatibilidade de horários entre as aulas e os plantões de atendimento.\n\n[IMAGEM]: Estudantes que buscaram o apoio psicológico da instituição | Dados da pesquisa (2024) | local_img_grafico_tcc"
             },
             {
                 id: generateId(),
@@ -129,7 +130,8 @@ export const EXAMPLE_PROJECT = {
         ],
         referencias: "BRASIL. Ministério da Saúde. **Manual de saúde mental do estudante universitário**. Brasília, DF: Ministério da Saúde, 2023.\n\nOLIVEIRA, M. A.; FERNANDES, L. R. O produtivismo acadêmico e suas consequências. **Revista de Psicologia da Educação**, São Paulo, v. 21, n. 4, p. 89-105, 2022.\n\nSILVA, P. T. **Subjetividade e sofrimento na universidade**. São Paulo: Editora Saber, 2023.",
         apendices: "APÊNDICE A - Questionário de Estresse Percebido\n\n1. No último mês, com que frequência você se sentiu nervoso ou estressado por causa da faculdade?\n2. Com que frequência você sentiu que não conseguiria lidar com todas as tarefas acadêmicas?",
-        anexos: "ANEXO A - Cartilha Nacional de Prevenção ao Suicídio\n\n[O conteúdo da cartilha do Ministério da Saúde seria inserido aqui]"
+        anexos: "ANEXO A - Cartilha Nacional de Prevenção ao Suicídio\n\n[O conteúdo da cartilha do Ministério da Saúde seria inserido aqui]",
+        assets: { local_img_grafico_tcc: barChartDataUrl([['Buscaram o apoio da instituição', 12], ['Não buscaram', 88]]) }
     }
 };
 

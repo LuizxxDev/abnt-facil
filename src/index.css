@@ -10,8 +10,8 @@
    leitura e área de escrita em Source Serif 4.
    ========================================= */
 @theme {
-  --font-sans: "Libre Franklin", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Libre Franklin Variable", "Libre Franklin", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
 
   --font-weight-black: 700;
 
@@ -172,6 +172,21 @@
   ::placeholder { color: var(--ink-3); opacity: 1; }
   input, textarea { caret-color: var(--accent); }
 }
+
+/* Páginas legais: títulos na fonte da interface, texto corrido em serifa */
+.legal h2 { font-family: var(--font-sans); font-weight: 700; font-size: 1.375rem; letter-spacing: -0.015em; line-height: 1.2; margin: 2.75rem 0 0.75rem; }
+.legal h3 { font-family: var(--font-sans); font-weight: 600; font-size: 1.0625rem; margin: 1.75rem 0 0.5rem; }
+.legal p + p, .legal p + ul, .legal ul + p { margin-top: 0.9rem; }
+.legal p, .legal li { max-width: 66ch; }
+.legal ul { list-style: disc; padding-left: 1.25rem; }
+.legal li + li { margin-top: 0.4rem; }
+.legal a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.2em; }
+.legal strong { font-weight: 600; }
+.legal .table-wrap { overflow-x: auto; margin-top: 1rem; }
+.legal table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); font-size: 0.875rem; line-height: 1.45; }
+.legal caption { text-align: left; font-weight: 600; padding-bottom: 0.5rem; }
+.legal th, .legal td { text-align: left; vertical-align: top; padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(--line); }
+.legal th { font-weight: 600; }
 
 /* Números alinhados em métricas e contadores */
 .tabular { font-variant-numeric: tabular-nums; }

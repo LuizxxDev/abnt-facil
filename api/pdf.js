@@ -18,6 +18,27 @@ const LOCAL_CHROME_PATHS = [
 
 let browserPromise = null;
 
+// Limite simples por IP (por instância da função): segura abusos sem atrapalhar quem usa o site.
+// Para um limite global, configure também uma regra de rate limit no Firewall da Vercel.
+const RATE_LIMIT = 8;          // pedidos
+const RATE_WINDOW_MS = 60_000; // por minuto
+const hits = new Map();
+const tooMany = (ip) => {
+  const now = Date.now();
+  const recent = (hits.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) hits.clear();
+  return recent.length > RATE_LIMIT;
+};
+
+// Só o próprio site pode pedir PDFs pelo navegador (outros sites não usam o servidor às custas do projeto)
+const sameOrigin = (req) => {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try { return new URL(origin).host === req.headers.host; } catch { return false; }
+};
+
 // Reaproveita o navegador entre chamadas enquanto a função estiver "quente"
 const getBrowser = async () => {
   if (browserPromise) {
@@ -66,6 +87,12 @@ const fail = (res, status, message) => {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Use POST.');
+  if (!sameOrigin(req)) return fail(res, 403, 'Origem não permitida.');
+  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+  if (tooMany(ip)) {
+    res.setHeader('Retry-After', '60');
+    return fail(res, 429, 'Muitos PDFs em pouco tempo. Espere um minuto e tente de novo.');
+  }
 
   let body;
   try { body = readBody(req); } catch { return fail(res, 400, 'JSON inválido.'); }

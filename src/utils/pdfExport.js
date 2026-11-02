@@ -7,9 +7,10 @@ const PDF_FONTS = 'https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,40
 
 const collectCss = () => [...document.styleSheets].map(sheet => {
     try {
-        return [...sheet.cssRules].map(rule => rule.cssText).join('\n');
+        // As fontes da interface (hospedadas no site) não servem ao PDF: o servidor usa as do Google abaixo
+        return [...sheet.cssRules].filter(rule => !(rule instanceof CSSFontFaceRule)).map(rule => rule.cssText).join('\n');
     } catch {
-        return ''; // folhas de outra origem (Google Fonts da interface) não são necessárias
+        return ''; // folhas de outra origem não são necessárias
     }
 }).join('\n')
     .replace(/Arial, sans-serif/g, 'Arial, Arimo, sans-serif')

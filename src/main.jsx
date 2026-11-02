@@ -1,6 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+// Fontes hospedadas no próprio site (sem pedir nada ao Google em cada visita)
+import '@fontsource-variable/libre-franklin'
+import '@fontsource-variable/source-serif-4/opsz.css'
+import '@fontsource-variable/source-serif-4/opsz-italic.css'
 import './index.css'
 import App from './App.jsx'
 

@@ -33,7 +33,8 @@ const serviceWorkerManifest = () => {
     apply: 'build',
     configResolved(config) { outDir = config.build.outDir; },
     writeBundle(_options, bundle) {
-      const assets = Object.keys(bundle).filter((f) => /\.(js|css|woff2?)$/.test(f)).map((f) => `/${f}`);
+      // Das fontes, só os subconjuntos latinos (os de cirílico, grego etc. não são usados em português)
+      const assets = Object.keys(bundle).filter((f) => /\.(js|css)$/.test(f) || (/\.woff2?$/.test(f) && /latin/.test(f) && !/math/.test(f))).map((f) => `/${f}`);
       const version = createHash('sha256').update(assets.join()).digest('hex').slice(0, 10);
       const file = join(outDir, 'sw.js');
       const sw = readFileSync(file, 'utf8')

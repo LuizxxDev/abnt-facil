@@ -187,7 +187,7 @@ const Editor = () => {
     }, [data]);
 
     const abntStatus = useMemo(() => {
-        if (abntErrors.length === 0) return { label: 'ABNT ok', tone: 'bg-accent-soft text-accent', icon: <CheckCircle2 size={16} aria-hidden="true" /> };
+        if (abntErrors.length === 0) return { label: 'Sem alertas', tone: 'bg-accent-soft text-accent', icon: <CheckCircle2 size={16} aria-hidden="true" /> };
         const n = abntErrors.length;
         return { label: `${n} ${n === 1 ? 'ajuste' : 'ajustes'}`, tone: n <= 2 ? 'bg-warn-soft text-warn' : 'bg-danger-soft text-danger', icon: <AlertCircle size={16} aria-hidden="true" /> };
     }, [abntErrors]);
@@ -425,12 +425,13 @@ const Editor = () => {
                                     </div>
                                 </dl>
                                 <section aria-labelledby="conferencia">
-                                    <h2 id="conferencia" className="mb-3 flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-accent" aria-hidden="true" /> Conferência ABNT</h2>
+                                    <h2 id="conferencia" className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-accent" aria-hidden="true" /> Conferência automática</h2>
+                                    <p className="mb-3 mt-1 text-xs leading-snug text-ink-3">Verifica parte das regras da ABNT (resumo, palavras-chave, citações, referências, alíneas e elementos obrigatórios). Revise o documento e o manual da sua instituição antes de entregar.</p>
                                     {abntErrors.length === 0 ? (
                                         <div className="flex flex-col items-center rounded-[var(--radius-panel)] bg-accent-soft px-4 py-8 text-center">
                                             <CheckCircle2 size={28} className="text-accent" aria-hidden="true" />
-                                            <p className="mt-2 font-semibold">Tudo certo</p>
-                                            <p className="text-sm text-ink-2">Nenhum problema de estrutura encontrado.</p>
+                                            <p className="mt-2 font-semibold">Nenhum alerta</p>
+                                            <p className="text-sm text-ink-2">A conferência automática não encontrou problemas nas regras que ela verifica.</p>
                                         </div>
                                     ) : (
                                         <ul className="space-y-2">

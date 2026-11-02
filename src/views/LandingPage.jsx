@@ -16,14 +16,14 @@ const FEATURES = [
     { id: 'capa', title: 'Capa, sumário e listas automáticos', desc: 'Folha de rosto, folha de aprovação, sumário, listas de ilustrações e de tabelas são montados a partir do que você escreve, com os números de página certos.' },
     { id: 'referencias', title: 'Referências na NBR 6023:2018', desc: 'Preencha autor, título e ano: o gerador monta a referência com o destaque correto e a lista sai em ordem alfabética.' },
     { id: 'citacao', title: 'Assistente que confere as normas', desc: 'Avisa quando o resumo está fora do tamanho, quando um autor citado não está nas referências e quando a citação ainda está no formato antigo, como (SILVA, 2023).' },
-    { id: 'dados', title: 'Seus dados ficam com você', desc: 'Sem login, tudo fica salvo só no seu navegador. Com login Google, os documentos sincronizam na nuvem.' },
+    { id: 'dados', title: 'Seus dados ficam com você', desc: 'Sem login, os documentos ficam salvos no seu navegador. Com login Google, sincronizam na nuvem. Para gerar o PDF, o documento passa pelo nosso servidor e não é guardado lá.' },
 ];
 
 const FAQ = [
     { q: 'Preciso pagar para usar?', a: 'Não. Todas as ferramentas de formatação e exportação são gratuitas. O projeto se mantém com doações voluntárias.' },
-    { q: 'O PDF sai mesmo nas normas?', a: 'Sim: A4, margens de 3 cm (superior e esquerda) e 2 cm (inferior e direita), Arial ou Times 12, espaçamento 1,5, recuo de 1,25 cm e paginação conforme a NBR 14724.' },
-    { q: 'Meus dados estão seguros?', a: 'Sem login, o texto nunca sai do seu computador. Com login, fica na sua conta, acessível só por você.' },
-    { q: 'É um projeto oficial do IFPA?', a: 'Não. É um projeto independente, criado por um estudante do IFPA Campus Belém para ajudar colegas e a comunidade acadêmica.' },
+    { q: 'O PDF sai mesmo nas normas?', a: 'O editor aplica as regras principais da NBR 14724: A4, margens de 3 cm (superior e esquerda) e 2 cm (inferior e direita), Arial ou Times 12, espaçamento 1,5, recuo de 1,25 cm e paginação. A conferência automática não cobre todas as regras: revise o resultado e o manual da sua instituição antes de entregar.' },
+    { q: 'Para onde vai o meu texto?', a: 'Sem login, o documento fica salvo no seu navegador. Com login, também fica guardado na sua conta, no Supabase. Ao baixar o PDF, o documento é enviado ao nosso servidor (Vercel) só para gerar o arquivo e não é armazenado. Detalhes na Política de Privacidade.' },
+    { q: 'É um projeto oficial do IFPA ou da ABNT?', a: 'Não. É um projeto independente, criado por um estudante do IFPA Campus Belém, sem vínculo com o IFPA nem com a ABNT. As normas são aplicadas a partir dos textos publicados; o editor ajuda na formatação, mas não certifica o trabalho.' },
     { q: 'Como não perder meu trabalho?', a: 'Entre com sua conta Google para sincronizar na nuvem ou baixe uma cópia de segurança no painel com frequência.' },
     { q: 'Minha instituição tem regras próprias.', a: 'O manual da sua instituição prevalece sobre a ABNT. Os textos da folha de rosto, a fonte e as seções podem ser ajustados no editor.' },
 ];
@@ -371,13 +371,20 @@ const LandingPage = () => {
 
             <footer className="bg-paper">
                 <p className="select-none overflow-hidden whitespace-nowrap px-2 pt-10 text-center text-[clamp(3rem,15.5vw,14rem)] font-bold leading-[0.85] tracking-[-0.05em] text-ink" aria-hidden="true">ABNTFácil</p>
-                <div className="mx-auto max-w-6xl px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-10 md:px-8">
+                <div className="mx-auto max-w-6xl space-y-5 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-10 md:px-8">
                     <div className="flex flex-col gap-3 text-base text-ink-2 sm:flex-row sm:items-center sm:justify-between">
                         <p suppressHydrationWarning>© {new Date().getFullYear()} ABNTFácil · projeto independente</p>
-                        <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className="self-start font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent sm:self-auto">
-                            Relatar um problema ou sugerir melhoria
-                        </button>
+                        <nav aria-label="Informações legais" className="flex flex-wrap gap-x-5 gap-y-2">
+                            <Link to="/privacidade" className="font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent">Privacidade</Link>
+                            <Link to="/termos" className="font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent">Termos de uso</Link>
+                            <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className="font-semibold text-ink underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent">
+                                Relatar um problema
+                            </button>
+                        </nav>
                     </div>
+                    <p className="max-w-2xl text-sm leading-relaxed text-ink-2">
+                        O ABNTFácil não tem vínculo com a Associação Brasileira de Normas Técnicas (ABNT) nem com o IFPA. A ferramenta ajuda a formatar o trabalho, mas não garante aprovação nem substitui a revisão do texto e do manual da sua instituição.
+                    </p>
                 </div>
             </footer>
 
