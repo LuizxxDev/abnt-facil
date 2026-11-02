@@ -1,6 +1,6 @@
 # DESIGN.md — ABNTFácil
 
-Proposta da fase 2. Nada disso está aplicado ainda.
+Direção aplicada no site. A camada técnica (abaixo) foi acrescentada em novembro de 2026.
 
 ## Direção: "A folha com margem"
 
@@ -31,6 +31,23 @@ Proposta da fase 2. Nada disso está aplicado ainda.
 - **Landing: Persuade.** Escala grande, a folha como herói, sem fotos: a folha desenhada é a única imagem.
 - **Painel e editor: Operate.** Precisão e calma. A marca aparece nos detalhes: a folha em miniatura, o verde só na ação principal, a serifa na área de escrita.
 
+## Camada técnica (inspirada no The Content Architecture)
+
+Por cima da folha com margem, o site ganhou a voz de uma **ficha técnica de norma**. A referência foi o contentarchitecture.dev, e as cores continuam as da marca: papel, tinta e verde.
+
+- **Rótulos em mono:** IBM Plex Mono 500, em caixa alta, com 0,06em de espaçamento e no mínimo 12 px (classe `.label-mono`). Servem para sobretítulos, códigos NBR, índices numerados ("01 /", "P.001 /"), estados ("Salvo") e botões.
+- **Botões em bloco:** o primário e o secundário usam o rótulo mono, como teclas, com `--radius-control` de 4 px. O botão fantasma e os links seguem em Libre Franklin.
+- **Barra escura flutuante:** `#1C1B19` com cantos de 8 px e `--shadow-float`.
+  - Na landing, é a navegação, com uma faixa corrida de normas embaixo.
+  - No painel, é o topo da tela.
+  - No editor, são os controles da pré-visualização.
+- **Hero dividido:** o texto fica no papel, e a folha ao vivo fica num painel `green-900` com grade de pontos (`.dot-grid`).
+  - Em volta da folha giram quatro anéis de texto com as regras: elementos, normas, fonte e recuos, margens.
+  - Cada anel gira em sentido alternado, de 70 a 140 s por volta, e para com `prefers-reduced-motion`.
+- **Seções escuras em tinta:** "Como funciona" é uma janela de trabalho, com abas, lista numerada à esquerda, a folha anotada à direita e uma barra de status com as medidas da A4. "Perguntas" mostra o título fixo à esquerda e acordeões numerados (`<details>`) à direita.
+- **Número grande:** "3/2 cm" com o selo da NBR 14724. A seção não usa nenhuma estatística inventada.
+- **Cartão com picote:** o bloco "Quem fez" é dividido por uma linha tracejada com dois recortes de papel, como um canhoto.
+
 ## Tipografia
 
 Par sorteado: **Libre Franklin** (gótica americana) + **Source Serif 4** (serifa de leitura). É o par da primeira página de jornal, e combina com quem escreve texto acadêmico.
@@ -40,12 +57,13 @@ Par sorteado: **Libre Franklin** (gótica americana) + **Source Serif 4** (serif
 | Títulos (landing e app) | Libre Franklin | 700 | tracking −0,03em, entrelinha 0,95–1,1 |
 | Interface (botões, rótulos, menus) | Libre Franklin | 400 / 500 / 600 | tracking 0 |
 | Leitura longa e **área de escrita do editor** | Source Serif 4 | 400 / 600 / itálico | entrelinha 1,6, 60–75 caracteres por linha |
-| Números (NBR, contagens, %) | Libre Franklin | `tabular-nums` | sem monoespaçada |
+| Números (contagens, %) | Libre Franklin | `tabular-nums` | — |
+| Rótulos técnicos, códigos NBR, botões em bloco | IBM Plex Mono | 400 / 500 | caixa alta, 0,06em, mínimo 12 px |
 
 **O que sai:**
 - Geist e Geist Mono, que o detector marcou como fontes superusadas;
 - Instrument Serif em itálico no título, outra marca de site feito por IA;
-- o código NBR em monoespaçada.
+- Geist Mono (a voz mono agora é a IBM Plex Mono, só nos rótulos).
 
 **Por que a serifa no editor.** Quem escreve um TCC vê o texto como texto de trabalho, e não como formulário. Hoje são 12 px de sans numa caixinha.
 
@@ -128,7 +146,7 @@ Um raio para controles e um para contêineres, e nada além disso.
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--radius-control` | `6px` | botões, campos, chips, abas |
+| `--radius-control` | `4px` | botões, campos, chips, abas |
 | `--radius-panel` | `10px` | painéis, menus, diálogos |
 | `--radius-sheet` | `2px` | a folha A4 e as miniaturas (papel tem canto vivo) |
 | `--radius-pill` | `999px` | só o botão flutuante e os contadores |
@@ -169,7 +187,7 @@ Sem brilho colorido. No tema escuro, as sombras usam preto puro com mais opacida
 
 ## Componentes-chave
 
-- **Botão primário:** fundo `--accent`, texto branco, 600, `--radius-control`, altura 40 (44 no toque), sem sombra.
+- **Botão primário:** fundo `--accent`, texto branco em rótulo mono, `--radius-control`, altura 40 (44 no toque), sem sombra.
 - **Botão secundário:** fundo `--surface-2`, texto `--ink`.
 - **Botão terciário:** só texto, sublinhado no hover.
 - **Botão de ícone:** quadrado de 36 (44 no toque) com `aria-label` e tooltip.
@@ -188,8 +206,7 @@ Sem brilho colorido. No tema escuro, as sombras usam preto puro com mais opacida
 - Vidro (`backdrop-blur`) em painéis.
 - Borda lateral grossa colorida.
 - Cards dentro de cards.
-- Rótulos minúsculos em caixa alta com espaçamento.
-- Monoespaçada fora de código.
+- Rótulo mono abaixo de 12 px, ou usado em texto corrido (ele é só para rótulos, códigos e botões).
 - Emoji como ícone.
 - Roxo e índigo.
 - Itálico serifado como destaque de título.

@@ -20,7 +20,7 @@ import EditorForm from '../components/editor/EditorForm';
 import Sidebar from '../components/editor/Sidebar';
 import ABNTViewer from '../components/preview/ABNTViewer';
 import Sheet from '../components/common/Sheet';
-import { btnPrimary, btnSecondary, btnGhost, iconBtn } from '../components/common/ui';
+import { btnPrimary, btnSecondary, btnGhost, iconBtn, darkIcon } from '../components/common/ui';
 import Dialog from '../components/common/Dialog';
 
 // Modais só são baixados quando abertos pela primeira vez
@@ -339,7 +339,7 @@ const Editor = () => {
                         <button type="button" onClick={() => { if (isSaving && !window.confirm('Ainda salvando. Sair mesmo assim?')) return; navigate('/dashboard'); }} aria-label="Voltar aos documentos" className={iconBtn}><ArrowLeft size={20} /></button>
                         <div className="flex min-w-0 flex-col">
                             <h1 className="truncate text-sm font-semibold leading-tight" title={data.titulo || 'Documento sem título'}>{data.titulo || 'Documento sem título'}</h1>
-                            <p className="flex min-w-0 items-center gap-1.5 text-xs text-ink-3" aria-live="polite">
+                            <p className="label-mono flex min-w-0 items-center gap-1.5 text-[12px] text-ink-3" aria-live="polite">
                                 <span className="hidden truncate sm:inline">{docType.label}</span>
                                 <span className="hidden sm:inline" aria-hidden="true">·</span>
                                 {isReadOnly
@@ -353,7 +353,7 @@ const Editor = () => {
 
                     <div className="flex shrink-0 items-center gap-1">
                         <button type="button" onClick={() => { setPanel('revisao'); setMobileView('editor'); }} title="Ver a revisão ABNT"
-                            className={`flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-xs font-semibold transition-colors duration-150 pointer-coarse:h-11 ${abntStatus.tone}`}>
+                            className={`label-mono flex h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-[12px] transition-colors duration-150 pointer-coarse:h-11 ${abntStatus.tone}`}>
                             {abntStatus.icon}<span className="hidden sm:inline">{abntStatus.label}</span><span className="sr-only sm:hidden">{abntStatus.label}</span>
                         </button>
                         <button type="button" onClick={() => setShowOutline(!showOutline)} aria-label="Sumário do documento" aria-pressed={showOutline} className={`${iconBtn} max-sm:hidden ${showOutline ? 'bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent' : ''}`}><List size={18} /></button>
@@ -378,7 +378,7 @@ const Editor = () => {
                                 const active = currentPanel === p.id;
                                 return (
                                     <button key={p.id} type="button" onClick={() => setPanel(p.id)} aria-current={active ? 'step' : undefined}
-                                        className={`relative -mb-px flex min-h-14 flex-col items-center justify-center gap-1 border-b-2 px-1 text-xs font-medium transition-colors duration-150 ${active ? 'border-accent text-accent' : 'border-transparent text-ink-2 hover:text-ink'}`}>
+                                        className={`relative -mb-px flex min-h-14 flex-col items-center justify-center gap-1 border-b-2 px-1 font-mono text-[12px] font-medium uppercase tracking-[0.03em] transition-colors duration-150 ${active ? 'border-accent text-accent' : 'border-transparent text-ink-2 hover:text-ink'}`}>
                                         <span className="relative">
                                             <p.icon size={18} aria-hidden="true" />
                                             {p.badge > 0 && <span className="tabular absolute -right-2.5 -top-1.5 min-w-4 rounded-full bg-warn px-1 text-[11px] font-bold leading-4 text-white dark:text-slate-950" aria-label={`${p.badge} pendências`}>{p.badge}</span>}
@@ -416,12 +416,12 @@ const Editor = () => {
                             <div className="flex-1 space-y-8 overflow-y-auto overscroll-contain p-5">
                                 <dl className="grid grid-cols-2 gap-3">
                                     <div className="rounded-[var(--radius-panel)] bg-surface-2 p-4">
-                                        <dt className="text-xs text-ink-3">Palavras</dt>
+                                        <dt className="label-mono text-[12px] text-ink-3">Palavras</dt>
                                         <dd className="tabular mt-1 text-2xl font-bold">{stats.words.toLocaleString('pt-BR')}</dd>
                                     </div>
                                     <div className="rounded-[var(--radius-panel)] bg-surface-2 p-4">
-                                        <dt className="text-xs text-ink-3">Norma</dt>
-                                        <dd className="tabular mt-1.5 text-sm font-semibold">{docType.norma}</dd>
+                                        <dt className="label-mono text-[12px] text-ink-3">Norma</dt>
+                                        <dd className="label-mono tabular mt-1.5 text-[13px] text-ink">{docType.norma}</dd>
                                     </div>
                                 </dl>
                                 <section aria-labelledby="conferencia">
@@ -470,20 +470,20 @@ const Editor = () => {
                     </aside>
                 )}
 
-                <div className={`fade-in absolute inset-x-0 top-0 bottom-[calc(4.125rem+env(safe-area-inset-bottom,0px))] z-0 flex-1 flex-col lg:bottom-auto overflow-hidden bg-surface-2 lg:relative lg:z-auto ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`fade-in absolute inset-x-0 top-0 bottom-[calc(4.125rem+env(safe-area-inset-bottom,0px))] z-0 flex-1 flex-col lg:bottom-auto overflow-hidden bg-surface-2 dot-grid-ink lg:relative lg:z-auto ${mobileView === 'preview' ? 'flex' : 'hidden lg:flex'}`}>
                     {/* useDeferredValue devolve o valor anterior (null) no primeiro render após carregar */}
                     {previewData && <ABNTViewer data={previewData} authors={previewAuthors} zoomLevel={zoomLevel} fontFamily={fontFamily} groupedSections={previewSections} />}
 
                     {/* Controles da pré-visualização, perto da folha */}
-                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-[var(--radius-panel)] bg-surface p-1 shadow-[var(--shadow-float)] ring-1 ring-line print:hidden">
-                        <button type="button" onClick={() => setZoomLevel(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="Diminuir zoom" className={iconBtn}><ZoomOut size={16} /></button>
-                        <span className="tabular w-12 text-center text-xs font-semibold text-ink-2" aria-live="polite">{Math.round(zoomLevel * 100)}%</span>
-                        <button type="button" onClick={() => setZoomLevel(z => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="Aumentar zoom" className={iconBtn}><ZoomIn size={16} /></button>
+                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] bg-[#1c1b19] p-1 text-white shadow-[var(--shadow-float)] ring-1 ring-white/10 print:hidden">
+                        <button type="button" onClick={() => setZoomLevel(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="Diminuir zoom" className={darkIcon}><ZoomOut size={16} /></button>
+                        <span className="label-mono tabular w-12 text-center text-[12px] text-white" aria-live="polite">{Math.round(zoomLevel * 100)}%</span>
+                        <button type="button" onClick={() => setZoomLevel(z => Math.min(2, +(z + 0.1).toFixed(2)))} aria-label="Aumentar zoom" className={darkIcon}><ZoomIn size={16} /></button>
                         {!isReadOnly && (
-                            <div role="radiogroup" aria-label="Fonte do documento" className="ml-1 flex gap-0.5 border-l border-line pl-1.5">
+                            <div role="radiogroup" aria-label="Fonte do documento" className="ml-1 flex gap-0.5 border-l border-white/15 pl-1.5">
                                 {['Arial', 'Times New Roman'].map(f => (
                                     <button key={f} type="button" role="radio" onClick={() => setFontFamily(f)} aria-checked={fontFamily === f}
-                                        className={`h-9 rounded-[var(--radius-control)] px-2.5 text-xs font-semibold transition-colors duration-150 pointer-coarse:h-11 ${fontFamily === f ? 'bg-accent-fill text-white' : 'text-ink-2 hover:bg-surface-2 hover:text-ink'}`}>{f === 'Arial' ? 'Arial' : 'Times'}</button>
+                                        className={`label-mono h-9 rounded-[var(--radius-control)] px-2.5 text-[12px] transition-colors duration-150 pointer-coarse:h-11 ${fontFamily === f ? 'bg-accent-fill text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}>{f === 'Arial' ? 'Arial' : 'Times'}</button>
                                 ))}
                             </div>
                         )}

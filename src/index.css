@@ -7,11 +7,12 @@
 /* =========================================
    DESIGN SYSTEM — "a folha com margem" (ver DESIGN.md)
    Papel, tinta e um único verde. Títulos e interface em Libre Franklin,
-   leitura e área de escrita em Source Serif 4.
+   leitura e área de escrita em Source Serif 4, rótulos técnicos em IBM Plex Mono.
    ========================================= */
 @theme {
   --font-sans: "Libre Franklin Variable", "Libre Franklin", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4 Variable", "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
   --font-weight-black: 700;
 
@@ -55,7 +56,7 @@
   --color-orange-800: #5e4017; --color-orange-900: #4a3314; --color-orange-950: #2a1c0a;
 
   /* Raios: um para controles, um para painéis, canto vivo para a folha */
-  --radius-control: 6px;
+  --radius-control: 4px;
   --radius-panel: 10px;
   --radius-sheet: 2px;
 
@@ -188,6 +189,26 @@
 .legal th, .legal td { text-align: left; vertical-align: top; padding: 0.6rem 0.75rem 0.6rem 0; border-bottom: 1px solid var(--line); }
 .legal th { font-weight: 600; }
 
+/* Rótulo técnico: a voz de "ficha de norma" (caixa alta, mono, espaçada) */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+/* Grade de pontos dos painéis escuros (papel milimetrado) */
+.dot-grid {
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.12) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+.dot-grid-ink {
+  background-image: radial-gradient(circle, rgb(28 27 25 / 0.14) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+
 /* Números alinhados em métricas e contadores */
 .tabular { font-variant-numeric: tabular-nums; }
 
@@ -274,8 +295,27 @@
   transform: translateY(24px);
 }
 
+/* Anéis de norma girando em volta da folha (hero) */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin-rev { to { transform: rotate(-360deg); } }
+.ring-spin { transform-origin: 50% 50%; animation: spin var(--ring-dur, 90s) linear infinite; }
+.ring-spin-rev { transform-origin: 50% 50%; animation: spin-rev var(--ring-dur, 120s) linear infinite; }
+
+/* Faixa corrida sob a navegação */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee { animation: marquee 38s linear infinite; }
+
+/* Perguntas: o + vira − ao abrir, e a resposta desce */
+.faq-item summary { list-style: none; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item .faq-sign { transition: transform 200ms var(--ease-out-strong); }
+.faq-item[open] .faq-sign { transform: rotate(45deg); }
+.faq-item[open] .faq-body { animation: rise 0.4s var(--ease-out-strong) both; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .ring-spin, .ring-spin-rev, .marquee { animation: none; }
+  .faq-item[open] .faq-body { animation: none; }
   /* Sem deslocamento: só a troca de opacidade, curta, para o estado continuar perceptível */
   .reveal { animation-name: none; }
   .js-reveal [data-reveal]:not(.in) .rv { transform: none; }

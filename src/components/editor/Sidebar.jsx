@@ -18,7 +18,7 @@ const SortableNavItem = ({ item, scrollToSection, closeOnMobile }) => {
                 <GripVertical size={14} aria-hidden="true" />
             </button>
             <button type="button" onClick={() => { scrollToSection(item.id); closeOnMobile(); }} className={`${itemCls} min-w-0`} style={{ paddingLeft: `${0.5 + (item.level - 1) * 0.75}rem` }}>
-                {item.num && <span className={`tabular shrink-0 ${item.level === 1 ? 'font-semibold text-ink' : 'text-ink-3'}`}>{item.num}</span>}
+                {item.num && <span className={`tabular shrink-0 font-mono text-[12px] ${item.level === 1 ? 'font-semibold text-ink' : 'text-ink-3'}`}>{item.num}</span>}
                 <span className={`truncate ${item.level === 1 ? 'font-semibold text-ink' : ''}`}>{item.titulo || 'Sem título'}</span>
             </button>
         </li>

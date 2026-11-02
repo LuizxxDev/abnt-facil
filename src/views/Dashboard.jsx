@@ -14,7 +14,7 @@ import { calculateProgress, timeAgo } from '../utils/helpers';
 import { TitleModal, SettingsModal, GoogleIcon } from '../components/common/Modals';
 import { ConfirmDialog } from '../components/common/Dialog';
 import Sheet from '../components/common/Sheet';
-import { btnPrimary, btnSecondary, btnGhost, iconBtn, field, fieldBase } from '../components/common/ui';
+import { btnPrimary, btnSecondary, btnGhost, iconBtn, darkIcon, field, fieldBase } from '../components/common/ui';
 import { FeedbackModal } from '../components/common/FeedbackModal';
 
 const Dashboard = () => {
@@ -201,16 +201,16 @@ const Dashboard = () => {
 
     return (
         <div className="h-dvh overflow-y-auto overscroll-contain bg-paper text-ink">
-            <header className="safe-top sticky top-0 z-30 bg-paper/95 supports-[backdrop-filter]:bg-paper/85 supports-[backdrop-filter]:backdrop-blur-sm">
-                <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:px-8">
+            <header className="safe-top sticky top-0 z-30 px-3 pt-3">
+                <div className="mx-auto flex h-12 max-w-6xl items-center justify-between gap-3 rounded-[8px] bg-[#1c1b19] pl-3 pr-1 text-white shadow-[var(--shadow-float)] ring-1 ring-white/10">
                     <Link to="/" className="flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] text-[15px] font-bold tracking-[-0.01em]" aria-label="ABNTFácil, página inicial">
                         <Sheet className="w-[15px]" progress={70} />
                         ABNTFácil
                     </Link>
                     <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className={iconBtn} aria-label="Enviar comentário ou relatar erro" title="Comentários e erros"><MessageSquare size={18} /></button>
-                        <button type="button" onClick={toggleTheme} className={iconBtn} aria-label={settings.theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} title="Tema">{settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
-                        <button type="button" onClick={() => setIsSettingsModalOpen(true)} className={iconBtn} aria-label="Configurações" title="Configurações">
+                        <button type="button" onClick={() => setIsFeedbackModalOpen(true)} className={darkIcon} aria-label="Enviar comentário ou relatar erro" title="Comentários e erros"><MessageSquare size={18} /></button>
+                        <button type="button" onClick={toggleTheme} className={darkIcon} aria-label={settings.theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} title="Tema">{settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
+                        <button type="button" onClick={() => setIsSettingsModalOpen(true)} className={darkIcon} aria-label="Configurações" title="Configurações">
                             {user?.user_metadata?.avatar_url
                                 ? <img src={user.user_metadata.avatar_url} alt="" width="24" height="24" className="size-6 rounded-full" referrerPolicy="no-referrer" />
                                 : <Settings2 size={18} />}
@@ -223,7 +223,7 @@ const Dashboard = () => {
                 <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                     <div className="min-w-0">
                         <h1 className="line-clamp-2 text-[1.75rem] font-bold leading-[1.1] tracking-[-0.02em] md:text-[2.25rem]">Olá, {displayName}</h1>
-                        <p className="mt-1.5 text-[15px] text-ink-2">
+                        <p className="label-mono mt-2 text-[12px] text-ink-2">
                             {stats.total === 0 ? 'Nenhum documento ainda.' : <><span className="tabular">{stats.total}</span> {stats.total === 1 ? 'documento' : 'documentos'}{stats.completed > 0 && <>, <span className="tabular">{stats.completed}</span> {stats.completed === 1 ? 'quase pronto' : 'quase prontos'}</>}</>}
                         </p>
                     </div>
@@ -252,7 +252,7 @@ const Dashboard = () => {
                 {filterTab === 'all' && !searchTerm && (
                     <section aria-labelledby="novo" className="mt-10">
                         <div className="flex items-center justify-between gap-3">
-                            <h2 id="novo" className="text-lg font-bold tracking-[-0.01em]">Começar um documento</h2>
+                            <h2 id="novo" className="flex items-baseline gap-3 text-lg font-bold tracking-[-0.01em]"><span className="label-mono text-[12px] text-ink-3" aria-hidden="true">01 /</span>Começar um documento</h2>
                             {stats.total > 0 && (
                                 <button type="button" onClick={() => setModelsOpen(!showModels)} aria-expanded={showModels} aria-controls="modelos" className={`${btnGhost} -mr-2 h-9 px-2 text-accent hover:text-accent`}>
                                     {showModels ? 'Esconder modelos' : 'Ver modelos'} <ChevronRight size={16} className={`transition-transform duration-200 ${showModels ? '-rotate-90' : 'rotate-90'}`} aria-hidden="true" />
@@ -294,7 +294,7 @@ const Dashboard = () => {
                                         <button type="button" onClick={() => handleCreateModel(key)} className="group flex h-full w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-surface-2">
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-sm font-semibold leading-snug">{DOCUMENT_TYPES[key].label}</span>
-                                                <span className="tabular block text-xs text-ink-3">{DOCUMENT_TYPES[key].norma}</span>
+                                                <span className="label-mono tabular mt-0.5 block text-[12px] text-ink-3">{DOCUMENT_TYPES[key].norma}</span>
                                             </span>
                                             <ChevronRight size={16} className="shrink-0 text-ink-3 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true" />
                                         </button>
@@ -307,7 +307,7 @@ const Dashboard = () => {
 
                 <section aria-labelledby="meus" className="mt-12">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                        <h2 id="meus" className="text-lg font-bold tracking-[-0.01em]">Seus documentos</h2>
+                        <h2 id="meus" className="flex items-baseline gap-3 text-lg font-bold tracking-[-0.01em]"><span className="label-mono text-[12px] text-ink-3" aria-hidden="true">02 /</span>Seus documentos</h2>
                         <div className="flex flex-wrap items-center gap-2">
                             <div role="tablist" aria-label="Filtrar documentos" className="flex rounded-[var(--radius-control)] bg-surface-2 p-1">
                                 {tabs.map(t => (

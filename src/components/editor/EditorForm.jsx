@@ -130,7 +130,7 @@ const SortableSection = ({ s, i, isReadOnly, focusedSection, setFocusedSection, 
                     {!isReadOnly && (
                         <button type="button" {...attributes} {...listeners} aria-label="Arrastar para mudar a ordem da seção" className={`${iconBtn} -ml-2 size-8 cursor-grab touch-none text-ink-3 active:cursor-grabbing`}><GripVertical size={16} /></button>
                     )}
-                    <span className="text-xs text-ink-3">Seção {LEVEL_NAMES[currentLevel] || 'secundária'}</span>
+                    <span className="label-mono text-[12px] text-ink-3">Seção {LEVEL_NAMES[currentLevel] || 'secundária'}</span>
                 </div>
                 <div className="-mr-2 flex items-center">
                     {!isReadOnly && (
@@ -299,7 +299,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {panel === 'documento' && (
             <div className="space-y-8">
             <section>
-              <Field label="Tipo de documento" hint={<><span className="tabular font-semibold text-ink-2">{docType.norma}</span>. {docType.description}</>}>
+              <Field label="Tipo de documento" hint={<><span className="label-mono tabular text-[12px] text-ink-2">{docType.norma}</span>. {docType.description}</>}>
                 <select disabled={isReadOnly} className={field} value={typeKey} onChange={e => updateField('tipoDocumento', e.target.value)}>
                   {Object.entries(DOCUMENT_TYPES).map(([key, t]) => <option key={key} value={key}>{t.label}</option>)}
                 </select>
@@ -565,7 +565,7 @@ const EditorForm = ({ data, setData, authors, setAuthors, settings, isReadOnly, 
             {next && (
                 <button type="button" onClick={next.onClick} className="mt-10 flex w-full items-center justify-between gap-3 rounded-[var(--radius-panel)] bg-surface-2 px-4 py-3 text-left transition-colors duration-150 hover:bg-accent-soft">
                     <span>
-                        <span className="block text-xs text-ink-3">Próxima etapa</span>
+                        <span className="label-mono block text-[12px] text-ink-3">Próxima etapa</span>
                         <span className="block font-semibold">{next.label}</span>
                     </span>
                     <ArrowRight size={18} className="shrink-0 text-accent" aria-hidden="true" />
