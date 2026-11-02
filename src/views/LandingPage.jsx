@@ -191,12 +191,33 @@ const NormRings = () => (
     </div>
 );
 
+// Seções da barra do topo
+const NAV = [
+    { id: 'documentos', label: 'Documentos' },
+    { id: 'como-funciona', label: 'Como funciona' },
+    { id: 'perguntas', label: 'Perguntas' },
+];
+
+// A seção que ocupa o meio da tela fica marcada na barra
+const useActiveSection = () => {
+    const [active, setActive] = useState(null);
+    useEffect(() => {
+        if (!('IntersectionObserver' in window)) return;
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); else setActive(a => (a === e.target.id ? null : a)); });
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        NAV.forEach(n => { const el = document.getElementById(n.id); if (el) io.observe(el); });
+        return () => io.disconnect();
+    }, []);
+    return active;
+};
+
 // Faixa corrida sob a navegação: o texto vai duas vezes para o laço não ter emenda
 const TICKER = 'GRÁTIS · SEM CADASTRO · NBR 14724 · REFERÊNCIAS NA NBR 6023 · CITAÇÕES NA NBR 10520 · PDF E WORD · SALVO NO SEU NAVEGADOR · ';
 const Ticker = () => (
-    <div className="overflow-hidden whitespace-nowrap bg-paper text-ink" aria-hidden="true">
+    <div className="overflow-hidden whitespace-nowrap bg-white/[0.04] text-white/55" aria-hidden="true">
         <div className="marquee flex w-max">
-            {[0, 1].map(k => <span key={k} className="label-mono px-0 py-1 text-[12px]">{TICKER.repeat(3)}</span>)}
+            {[0, 1].map(k => <span key={k} className="label-mono block py-1.5 text-[12px]">{TICKER.repeat(3)}</span>)}
         </div>
     </div>
 );
@@ -209,6 +230,7 @@ const LandingPage = () => {
     const [autor, setAutor] = useState('');
     useReveal();
     usePageMeta('/');
+    const section = useActiveSection();
 
     const copyPix = async () => {
         try {
@@ -233,24 +255,33 @@ const LandingPage = () => {
         <div className="theme-light relative min-h-dvh bg-paper font-sans text-ink">
             <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-[var(--radius-control)] focus:bg-surface focus:px-4 focus:py-2 focus:shadow-[var(--shadow-float)]">Pular para o conteúdo</a>
 
-            {/* Navegação flutuante: uma barra escura no topo, com a faixa corrida embaixo */}
-            <header className="safe-top pointer-events-none fixed inset-x-0 top-0 z-50 px-3 pt-3">
-                <div className="pointer-events-auto mx-auto max-w-[720px] overflow-hidden rounded-[8px] bg-ink p-1 text-white shadow-[var(--shadow-float)] ring-1 ring-white/10">
-                    <nav aria-label="Principal" className="flex h-11 items-center justify-between gap-2 pl-2">
-                        <a href="/" className="flex items-center gap-2 rounded-[var(--radius-control)] text-base font-bold tracking-[-0.02em]" aria-label="ABNTFácil, início">
-                            <img src="/favicon.svg" alt="" width="24" height="24" className="size-6" />
-                            <span className="hidden sm:inline">ABNTFácil</span>
+            {/* Barra do topo: ocupa a largura da página, com a marca à esquerda, as seções no meio e as ações à direita */}
+            <header className="safe-top pointer-events-none fixed inset-x-0 top-0 z-50 px-2 pt-2 sm:px-3 sm:pt-3">
+                <div className="pointer-events-auto mx-auto max-w-[1400px] overflow-hidden rounded-[8px] bg-ink text-white shadow-[var(--shadow-float)] ring-1 ring-white/10">
+                    <nav aria-label="Principal" className="grid h-14 grid-cols-[1fr_auto] items-center gap-3 pl-3 pr-2 md:grid-cols-[1fr_auto_1fr]">
+                        <a href="/" className="flex min-w-0 items-center gap-2.5 justify-self-start rounded-[var(--radius-control)]" aria-label="ABNTFácil, início">
+                            <img src="/favicon.svg" alt="" width="28" height="28" className="size-7 shrink-0" />
+                            <span className="text-[17px] font-bold tracking-[-0.02em]">ABNTFácil</span>
+                            <span className="label-mono hidden border-l border-white/15 pl-2.5 text-[12px] text-white/50 xl:inline">Editor ABNT gratuito</span>
                         </a>
-                        <div className="flex items-center gap-0.5">
-                            <a href="#documentos" className="label-mono hidden rounded-[var(--radius-control)] px-2.5 py-2 text-[12px] text-white/70 transition-colors hover:bg-white/10 hover:text-white md:block">Documentos</a>
-                            <a href="#como-funciona" className="label-mono hidden rounded-[var(--radius-control)] px-2.5 py-2 text-[12px] text-white/70 transition-colors hover:bg-white/10 hover:text-white md:block">Como funciona</a>
-                            <a href="#perguntas" className="label-mono hidden rounded-[var(--radius-control)] px-2.5 py-2 text-[12px] text-white/70 transition-colors hover:bg-white/10 hover:text-white md:block">Perguntas</a>
-                            <Link to="/dashboard" className="label-mono ml-1 inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] bg-accent-fill px-3.5 text-[12px] text-white transition-[background-color,transform] duration-150 hover:bg-accent-fill-hover active:scale-[0.97]">
+                        <ul className="hidden items-center gap-1 md:flex">
+                            {NAV.map((n, i) => (
+                                <li key={n.id}>
+                                    <a href={`#${n.id}`} aria-current={section === n.id ? 'location' : undefined}
+                                        className={`label-mono flex items-center gap-1.5 rounded-[var(--radius-control)] px-3 py-2 text-[12px] transition-colors duration-150 ${section === n.id ? 'bg-white/10 text-white' : 'text-white/65 hover:bg-white/5 hover:text-white'}`}>
+                                        <span className={`tabular ${section === n.id ? 'text-green-300' : 'text-white/35'}`} aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>{n.label}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="flex items-center gap-1 justify-self-end">
+                            <Link to={`/editor/${EXAMPLE_ID}`} className="label-mono hidden h-10 items-center rounded-[var(--radius-control)] px-3 text-[12px] text-white/75 transition-colors hover:bg-white/10 hover:text-white lg:inline-flex">Ver exemplo</Link>
+                            <Link to="/dashboard" className="label-mono inline-flex h-10 items-center gap-2 rounded-[var(--radius-control)] bg-accent-fill px-4 text-[12px] text-white transition-[background-color,transform] duration-150 hover:bg-accent-fill-hover active:scale-[0.97]">
                                 Abrir o editor <ArrowRight size={15} aria-hidden="true" />
                             </Link>
                         </div>
                     </nav>
-                    <div className="mt-1 overflow-hidden rounded-[4px]"><Ticker /></div>
+                    <div className="border-t border-white/10"><Ticker /></div>
                 </div>
             </header>
 
