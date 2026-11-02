@@ -50,6 +50,10 @@ export const DEFAULT_CHECKLIST = [
 ];
 
 export const EXAMPLE_ID = 'exemplo-tcc-ifpa-readonly';
+
+// Versão dos Termos de Uso: mude junto com a data da página /termos para pedir o aceite de novo
+export const TERMS_VERSION = '2026-11-02';
+export const TERMS_KEY = 'abntfacil_termos_aceitos';
 export const ESTADOS_BR = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
 export const EXAMPLE_PROJECT = {

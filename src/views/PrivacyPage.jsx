@@ -61,6 +61,7 @@ export default function PrivacyPage() {
             <ul>
                 <li><strong>Documentos</strong> (<code>ifpa_projects_final_v6</code>): necessário para o editor funcionar sem conta.</li>
                 <li><strong>Preferências</strong> (<code>ifpa_app_settings</code>): tema, fonte e perfil acadêmico.</li>
+                <li><strong>Aceite dos termos</strong> (<code>abntfacil_termos_aceitos</code>): a versão dos Termos de Uso que você aceitou e a data, para não perguntar de novo.</li>
                 <li><strong>Sessão de login</strong> (<code>sb-…-auth-token</code>): só existe se você entrar com o Google e é necessária para manter a conta conectada.</li>
                 <li><strong>Cópia do site para uso sem internet</strong> (cache do navegador): guarda os arquivos do próprio site, não os seus documentos.</li>
             </ul>
